@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  passwordHash  String
+  role          Role           @default(PARENT)
+  createdAt     DateTime       @default(now())
+  babies        BabyUser[]
+  refreshTokens RefreshToken[]
+}
+
+model Baby {
+  id        String     @id @default(cuid())
+  name      String?
+  dueDate   DateTime?
+  birthDate DateTime?
+  createdAt DateTime   @default(now())
+  parents   BabyUser[]
+}
+
+model BabyUser {
+  babyId String
+  userId String
+  baby   Baby   @relation(fields: [babyId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([babyId, userId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  PARENT
+  ADMIN
+}

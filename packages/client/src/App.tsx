@@ -1,10 +1,33 @@
-export default function App() {
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './lib/queryClient'
+import LoginPage from './features/auth/LoginPage'
+import ProtectedRoute from './components/ProtectedRoute'
+
+function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Baby Tracker</h1>
-        <p className="mt-2 text-gray-500">Setting up...</p>
-      </div>
+      <h1 className="text-2xl font-bold text-gray-900">Dashboard — coming soon</h1>
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }
