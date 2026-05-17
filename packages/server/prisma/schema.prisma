@@ -16,6 +16,27 @@ model User {
   createdAt     DateTime       @default(now())
   babies        BabyUser[]
   refreshTokens RefreshToken[]
+  credentials   Credential[]
+}
+
+model Credential {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      BigInt    @default(0)
+  transports   String[]
+  deviceName   String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+}
+
+model Challenge {
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Baby {

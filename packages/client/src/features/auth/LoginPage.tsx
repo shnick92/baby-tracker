@@ -6,6 +6,7 @@ import type { AxiosError } from 'axios'
 import { loginSchema, type LoginInput } from '@tracker/shared'
 import { api } from '../../lib/axios'
 import { useAuthStore, type AuthUser } from '../../stores/authStore'
+import { PasskeyLoginButton } from './PasskeyLoginButton'
 
 type LoginData = { accessToken: string; user: AuthUser; babyId: string | null }
 type LoginError = AxiosError<{ error: string | null }>
@@ -82,6 +83,17 @@ export default function LoginPage() {
           >
             {isPending ? 'Signing in…' : 'Sign in'}
           </button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-xs text-gray-400">
+              <span className="bg-white px-2">or</span>
+            </div>
+          </div>
+
+          <PasskeyLoginButton />
         </form>
       </div>
     </div>

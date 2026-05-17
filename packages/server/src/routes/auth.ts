@@ -1,29 +1,11 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import crypto from 'node:crypto'
 import { loginSchema } from '@tracker/shared'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
+import { signAccess, issueRefreshToken, COOKIE_OPTS } from '../services/tokens'
 
 export const authRouter = Router()
-
-const ACCESS_TTL_SEC = 15 * 60
-const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000
-
-function signAccess(userId: string, email: string, role: string): string {
-  return jwt.sign({ userId, email, role }, process.env.JWT_ACCESS_SECRET!, {
-    expiresIn: ACCESS_TTL_SEC,
-  })
-}
-
-const COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  maxAge: REFRESH_TTL_MS,
-  path: '/api/auth',
-}
 
 // POST /api/auth/login
 authRouter.post('/login', async (req, res) => {
@@ -40,11 +22,7 @@ authRouter.post('/login', async (req, res) => {
     return
   }
 
-  const rawToken = crypto.randomBytes(40).toString('hex')
-  await prisma.refreshToken.create({
-    data: { userId: user.id, token: rawToken, expiresAt: new Date(Date.now() + REFRESH_TTL_MS) },
-  })
-
+  const rawToken = await issueRefreshToken(user.id)
   const babyUser = await prisma.babyUser.findFirst({ where: { userId: user.id } })
 
   res.cookie('rt', rawToken, COOKIE_OPTS).json({
@@ -78,13 +56,15 @@ authRouter.post('/refresh', async (req, res) => {
 
   // Rotate refresh token
   await prisma.refreshToken.delete({ where: { id: stored.id } })
-  const newRaw = crypto.randomBytes(40).toString('hex')
-  await prisma.refreshToken.create({
-    data: { userId: stored.userId, token: newRaw, expiresAt: new Date(Date.now() + REFRESH_TTL_MS) },
-  })
+  const newRaw = await issueRefreshToken(stored.userId)
+  const babyUser = await prisma.babyUser.findFirst({ where: { userId: stored.userId } })
 
   res.cookie('rt', newRaw, COOKIE_OPTS).json({
-    data: { accessToken: signAccess(stored.user.id, stored.user.email, stored.user.role) },
+    data: {
+      accessToken: signAccess(stored.user.id, stored.user.email, stored.user.role),
+      user: { id: stored.user.id, name: stored.user.name, email: stored.user.email, role: stored.user.role },
+      babyId: babyUser?.babyId ?? null,
+    },
     error: null,
   })
 })
