@@ -1,0 +1,46 @@
+services:
+  nginx:
+    build:
+      context: ..
+      dockerfile: docker/client.Dockerfile
+      args:
+        VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY}
+    image: ${DOCKERHUB_USERNAME}/tracker-client:latest
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  server:
+    image: ${DOCKERHUB_USERNAME}/tracker-server:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    # Run migrations then start the server
+    command: sh -c "prisma migrate deploy && tsx src/index.ts"
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-tracker}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  db_data:
