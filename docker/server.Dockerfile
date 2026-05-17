@@ -17,7 +17,6 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules 2>/dev/null || true
 
 COPY packages/server/src ./packages/server/src
 COPY packages/server/tsconfig.json ./packages/server/
