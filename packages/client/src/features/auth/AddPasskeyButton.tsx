@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { startRegistration } from '@simplewebauthn/browser'
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser'
-import { api } from '../../lib/axios'
+import { api } from '@lib/axios'
 
 interface Props {
   deviceName?: string

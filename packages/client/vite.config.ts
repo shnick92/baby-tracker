@@ -52,6 +52,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@tracker/shared': resolve(__dirname, '../shared/src/index.ts'),
+      '@lib': resolve(__dirname, 'src/lib'),
+      '@stores': resolve(__dirname, 'src/stores'),
+      '@components': resolve(__dirname, 'src/components'),
+      '@features': resolve(__dirname, 'src/features'),
+      '@test': resolve(__dirname, 'src/test'),
     },
   },
   server: {

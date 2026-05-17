@@ -15,8 +15,15 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
     "paths": {
-      "@tracker/shared": ["../shared/src/index.ts"]
+      "@tracker/shared": ["../shared/src/index.ts"],
+      "@lib/*": ["src/lib/*"],
+      "@stores/*": ["src/stores/*"],
+      "@components": ["src/components/index.ts"],
+      "@components/*": ["src/components/*"],
+      "@features/*": ["src/features/*"],
+      "@test/*": ["src/test/*"]
     }
   },
   "include": ["src"]

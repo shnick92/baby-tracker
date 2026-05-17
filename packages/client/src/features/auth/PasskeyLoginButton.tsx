@@ -2,8 +2,8 @@ import { useMutation } from '@tanstack/react-query'
 import { startAuthentication } from '@simplewebauthn/browser'
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../../lib/axios'
-import { useAuthStore, type AuthUser } from '../../stores/authStore'
+import { api } from '@lib/axios'
+import { useAuthStore, type AuthUser } from '@stores/authStore'
 
 type LoginData = { accessToken: string; user: AuthUser; babyId: string | null }
 

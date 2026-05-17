@@ -8,7 +8,7 @@ on:
 
 jobs:
   ci:
-    name: Lint · Typecheck · Build
+    name: Lint · Typecheck · Test · Build
     runs-on: ubuntu-latest
 
     steps:
@@ -33,6 +33,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test -w packages/client
 
       - name: Build
         run: npm run build

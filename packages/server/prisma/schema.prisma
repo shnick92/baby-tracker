@@ -40,12 +40,15 @@ model Challenge {
 }
 
 model Baby {
-  id        String     @id @default(cuid())
-  name      String?
-  dueDate   DateTime?
-  birthDate DateTime?
-  createdAt DateTime   @default(now())
-  parents   BabyUser[]
+  id           String        @id @default(cuid())
+  name         String?
+  dueDate      DateTime?
+  birthDate    DateTime?
+  createdAt    DateTime      @default(now())
+  parents      BabyUser[]
+  checklists   Checklist[]
+  purchases    Purchase[]
+  visitorSlots VisitorSlot[]
 }
 
 model BabyUser {
@@ -66,7 +69,71 @@ model RefreshToken {
   createdAt DateTime @default(now())
 }
 
+model Checklist {
+  id        String        @id @default(cuid())
+  babyId    String
+  baby      Baby          @relation(fields: [babyId], references: [id])
+  type      ChecklistType
+  items     ChecklistItem[]
+  createdAt DateTime      @default(now())
+
+  @@unique([babyId, type])
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  category    String
+  label       String
+  notes       String?
+  isChecked   Boolean   @default(false)
+  checkedAt   DateTime?
+  checkedById String?
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+}
+
+model Purchase {
+  id        String         @id @default(cuid())
+  babyId    String
+  baby      Baby           @relation(fields: [babyId], references: [id])
+  name      String
+  category  String
+  status    PurchaseStatus @default(NEEDED)
+  price     Float?
+  notes     String?
+  url       String?
+  createdAt DateTime       @default(now())
+}
+
+model VisitorSlot {
+  id        String    @id @default(cuid())
+  babyId    String
+  baby      Baby      @relation(fields: [babyId], references: [id])
+  name      String
+  date      String    // YYYY-MM-DD, always required
+  startTime DateTime?
+  endTime   DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+}
+
 enum Role {
   PARENT
   ADMIN
+}
+
+enum ChecklistType {
+  HOSPITAL_BAG_MOM
+  HOSPITAL_BAG_BABY
+  HOME_PREP
+  BEFORE_HOME
+}
+
+enum PurchaseStatus {
+  NEEDED
+  BOUGHT
+  GIFTED
+  SKIP
 }

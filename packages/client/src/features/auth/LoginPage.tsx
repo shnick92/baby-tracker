@@ -4,14 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import type { AxiosError } from 'axios'
 import { loginSchema, type LoginInput } from '@tracker/shared'
-import { api } from '../../lib/axios'
-import { useAuthStore, type AuthUser } from '../../stores/authStore'
+import { api } from '@lib/axios'
+import { useAuthStore, type AuthUser } from '@stores/authStore'
 import { PasskeyLoginButton } from './PasskeyLoginButton'
 
 type LoginData = { accessToken: string; user: AuthUser; babyId: string | null }
 type LoginError = AxiosError<{ error: string | null }>
 
-export default function LoginPage() {
+export function LoginPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
 
