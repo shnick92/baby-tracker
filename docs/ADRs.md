@@ -562,4 +562,37 @@ Vite/Vitest resolve directory aliases to `index.ts` automatically; this gap only
 
 ---
 
+## ADR-014: Branch Workflow — All Development on Feature Branches via PR
+
+**Status:** Accepted  
+**Date:** 2026-05-17
+
+### Decision
+
+All development work — including AI-assisted sessions with Claude Code — must follow this branch workflow:
+
+1. **Start from a fresh pull of `main`:** Before beginning any work, run `git checkout main && git pull` to ensure the branch base reflects the latest deployed state.
+2. **Create a dedicated feature/fix branch:** Branch name should follow the conventional commit scope pattern, e.g. `feat/feeding-tracker`, `fix/socket-reconnect`, `docs/update-plan`.
+3. **Push the branch and open a PR:** Every piece of work lands via a pull request — never committed directly to `main`. This applies equally to feature work, docs, infra changes, and AI-generated code.
+4. **PRs must pass CI before merge:** GitHub Actions runs lint, typecheck, and tests on every PR. Failing checks block merge.
+
+### Rationale
+
+`main` is the deployment branch — every merge triggers a production deploy via Watchtower within ~5 minutes. Direct commits to `main` skip CI checks, risk deploying broken code, and make it impossible to review changes before they reach the home server. The PR workflow provides a mandatory review gate and a clean rollback path (revert the PR merge commit).
+
+This rule applies to Claude Code sessions specifically because agentic development can touch multiple files in a single turn. A PR gives a clear diff view of the full change set before anything reaches production.
+
+### Enforcement
+
+- **Branch protection on `main`:** Require PR reviews and status checks to pass before merging (configure in GitHub repo settings).
+- **No `--no-verify`:** Never bypass husky/commitlint hooks with `--no-verify`. Fix the underlying lint or commit message issue instead.
+- **Claude Code sessions:** Each session that produces code changes must start with `git checkout main && git pull`, create a branch, and end with a pushed branch and open PR.
+
+### Consequences
+
+- Positive: All changes are reviewable before production deploy; CI always runs; broken commits cannot reach `main`; clean git history with one commit per feature
+- Negative: Small one-liner fixes require a PR — acceptable overhead given the automated deploy pipeline and the value of the change history
+
+---
+
 *ADRs authored May 2026. Review after initial launch.*

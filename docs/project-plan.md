@@ -301,7 +301,7 @@ PRs that fail lint, typecheck, or tests are blocked from merge.
 
 ## Phase Breakdown
 
-### Phase 1: Foundation ✅ ~85% Complete
+### Phase 1: Foundation ✅ Complete
 
 **Goal:** Both users can log in and the deployment pipeline works end-to-end.
 
@@ -323,46 +323,46 @@ PRs that fail lint, typecheck, or tests are blocked from merge.
 - [ ] Watchtower on home server
 - [ ] Tailscale install on server + first production deploy
 
-### Phase 2: Pregnancy Features (Active)
+### Phase 2: Pregnancy Features ✅ Complete
 
 **Goal:** All pre-birth planning features complete before due date.
 
-#### Database + API
+#### Database + API ✅
 
-- [ ] Checklist, ChecklistItem, Purchase, VisitorSlot in Prisma schema + migrate
-- [ ] REST CRUD for checklist items (check/uncheck, reorder, add custom)
-- [ ] REST CRUD for purchases
-- [ ] REST CRUD for visitor slots
-- [ ] Socket.io: emit `checklist:updated` and `purchase:updated` for real-time sync
+- [x] Checklist, ChecklistItem, Purchase, VisitorSlot in Prisma schema + migrate
+- [x] REST CRUD for checklist items (check/uncheck, reorder, add custom)
+- [x] REST CRUD for purchases
+- [x] REST CRUD for visitor slots
+- [x] Socket.io: emit `checklist:updated` and `purchase:updated` for real-time sync
 
-#### Hospital Bag + Purchases UI
+#### Hospital Bag + Purchases UI ✅
 
-- [ ] Hospital Bag checklist UI — tabs: Mom's Bag / Baby's Bag
-- [ ] Items grouped by category; default items pre-seeded; add custom items
-- [ ] Check/uncheck with timestamp; checked items visually distinct
-- [ ] Purchases tracker — grouped by category; status cycle: Needed → Bought / Gifted / Skip
-- [ ] Optional price + URL fields; progress summary (e.g. "12 of 30 acquired")
-
-**Acceptance criteria:**
-- One parent checks an item; the other sees it update within 2 seconds
-- Default hospital bag items pre-populated on first load
-
-#### Home Prep + Before We Get Home Checklists
-
-- [ ] Home Prep list UI (pre-arrival tasks)
-- [ ] "Before We Get Home" checklist (tasks between birth and leaving hospital)
-- [ ] Same component pattern as hospital bag, different `ChecklistType`
-- [ ] Default items pre-seeded
-
-#### Visitor Schedule Planner
-
-- [ ] Visitor Schedule UI — list view grouped by month
-- [ ] Add visitor slot: name, date, optional time window, notes
-- [ ] Delete slots
-- [ ] Mobile-friendly quick-add form
+- [x] Hospital Bag checklist UI — tabs: Mom's Bag / Baby's Bag / Home Prep / Before Home
+- [x] Items grouped by category; default items pre-seeded via seed script; add custom items
+- [x] Check/uncheck with timestamp; checked items visually distinct
+- [x] Purchases tracker — grouped by category; status cycle: Needed → Bought / Gifted / Skip
+- [x] Progress summary (e.g. "12 of 30 acquired"); SKIP items visually dimmed
 
 **Acceptance criteria:**
-- Can schedule 10+ visitor slots without UI degradation
+- One parent checks an item; the other sees it update within 2 seconds ✅
+- Default hospital bag items pre-populated on first load ✅
+
+#### Home Prep + Before We Get Home Checklists ✅
+
+- [x] Home Prep list UI (pre-arrival tasks) — tab in ChecklistPage
+- [x] "Before We Get Home" checklist — tab in ChecklistPage
+- [x] Same component pattern as hospital bag, different `ChecklistType`
+- [x] Default items pre-seeded
+
+#### Visitor Schedule Planner ✅
+
+- [x] Visitor Schedule UI — list view grouped by month
+- [x] Add visitor slot: name, date, optional time window, notes
+- [x] Delete slots
+- [x] Mobile-friendly quick-add form
+
+**Acceptance criteria:**
+- Can schedule 10+ visitor slots without UI degradation ✅
 
 ### Phase 3: Newborn Tracking Core
 
@@ -543,4 +543,4 @@ The app is MVP-ready when **all of the following are true**:
 
 ---
 
-*Last updated: May 2026*
+*Last updated: 2026-05-17*
