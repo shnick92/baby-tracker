@@ -1,10 +1,5 @@
 services:
   nginx:
-    build:
-      context: ..
-      dockerfile: docker/client.Dockerfile
-      args:
-        VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY}
     image: ${DOCKERHUB_USERNAME}/tracker-client:latest
     ports:
       - "80:80"
@@ -20,10 +15,27 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       CLIENT_ORIGIN: ${CLIENT_ORIGIN}
       NODE_ENV: production
+      PORT: ${PORT:-3001}
+      RP_ID: ${RP_ID}
+      RP_NAME: ${RP_NAME}
+      RP_ORIGIN: ${RP_ORIGIN}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_EMAIL: ${VAPID_EMAIL}
+      FAMILY_NAME: ${FAMILY_NAME}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      MAX_USERS: ${MAX_USERS:-2}
+      TIMEZONE: ${TIMEZONE}
+      APP_URL: ${APP_URL}
+      SEED_USER_1_NAME: ${SEED_USER_1_NAME}
+      SEED_USER_1_EMAIL: ${SEED_USER_1_EMAIL}
+      SEED_USER_1_PASSWORD: ${SEED_USER_1_PASSWORD}
+      SEED_USER_2_NAME: ${SEED_USER_2_NAME}
+      SEED_USER_2_EMAIL: ${SEED_USER_2_EMAIL}
+      SEED_USER_2_PASSWORD: ${SEED_USER_2_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
-    # Run migrations then start the server
     command: sh -c "prisma migrate deploy && tsx src/index.ts"
     restart: unless-stopped
 
@@ -39,7 +51,15 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tracker}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 tracker-nginx-1 tracker-server-1
     restart: unless-stopped
 
 volumes:

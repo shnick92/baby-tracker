@@ -12,8 +12,12 @@ RUN npm ci --ignore-scripts
 COPY packages/client ./packages/client
 COPY packages/shared ./packages/shared
 
-# VITE_VAPID_PUBLIC_KEY is baked into the JS bundle at build time
+# VITE_* vars are baked into the JS bundle at build time
+ARG VITE_API_URL
+ARG VITE_SOCKET_URL
 ARG VITE_VAPID_PUBLIC_KEY
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 ENV VITE_VAPID_PUBLIC_KEY=$VITE_VAPID_PUBLIC_KEY
 
 RUN npm run build -w packages/client
