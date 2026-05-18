@@ -453,7 +453,7 @@ Monthly cost estimate for 2 users: ~$4.
 - Data export: PDF for pediatrician visits, CSV raw export
 - Push notifications: VAPID-based feeding reminders
 - PWA offline write queue: logs made offline sync when connection restores
-- Dark mode (Tailwind `dark:` classes + system preference)
+- Dark mode toggle (system preference / manual switch) — app already defaults to dark via `class="dark"` on `<html>`; Phase 6 adds the user-facing toggle in Settings
 - Lighthouse PWA score ≥ 90
 
 ---

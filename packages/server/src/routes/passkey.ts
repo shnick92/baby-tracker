@@ -177,7 +177,7 @@ passkeyRouter.post('/auth/verify', async (req, res) => {
   res.cookie('rt', rawToken, COOKIE_OPTS).json({
     data: {
       accessToken: signAccess(user.id, user.email, user.role),
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, hasPasskey: true },
       babyId: babyUser?.babyId ?? null,
     },
     error: null,

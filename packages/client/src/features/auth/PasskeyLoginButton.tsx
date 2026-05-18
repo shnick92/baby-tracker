@@ -45,7 +45,7 @@ export function PasskeyLoginButton() {
         type="button"
         onClick={() => mutate()}
         disabled={isPending}
-        className="w-full py-3 rounded-xl border border-gray-300 bg-white text-gray-700 font-medium text-sm flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        className="w-full py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-medium text-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
       >
         <svg
           className="w-5 h-5"

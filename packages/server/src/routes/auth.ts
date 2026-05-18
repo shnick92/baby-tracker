@@ -16,7 +16,10 @@ authRouter.post('/login', async (req, res) => {
   }
 
   const { email, password } = parsed.data
-  const user = await prisma.user.findUnique({ where: { email } })
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { _count: { select: { credentials: true } } },
+  })
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     res.status(401).json({ data: null, error: 'Invalid credentials' })
     return
@@ -28,7 +31,7 @@ authRouter.post('/login', async (req, res) => {
   res.cookie('rt', rawToken, COOKIE_OPTS).json({
     data: {
       accessToken: signAccess(user.id, user.email, user.role),
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, hasPasskey: user._count.credentials > 0 },
       babyId: babyUser?.babyId ?? null,
     },
     error: null,
@@ -45,7 +48,7 @@ authRouter.post('/refresh', async (req, res) => {
 
   const stored = await prisma.refreshToken.findUnique({
     where: { token: rawToken },
-    include: { user: true },
+    include: { user: { include: { _count: { select: { credentials: true } } } } },
   })
 
   if (!stored || stored.expiresAt < new Date()) {
@@ -62,7 +65,7 @@ authRouter.post('/refresh', async (req, res) => {
   res.cookie('rt', newRaw, COOKIE_OPTS).json({
     data: {
       accessToken: signAccess(stored.user.id, stored.user.email, stored.user.role),
-      user: { id: stored.user.id, name: stored.user.name, email: stored.user.email, role: stored.user.role },
+      user: { id: stored.user.id, name: stored.user.name, email: stored.user.email, role: stored.user.role, hasPasskey: stored.user._count.credentials > 0 },
       babyId: babyUser?.babyId ?? null,
     },
     error: null,
@@ -82,12 +85,13 @@ authRouter.post('/logout', authMiddleware, async (req, res) => {
 authRouter.get('/me', authMiddleware, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user!.userId },
-    select: { id: true, name: true, email: true, role: true },
+    select: { id: true, name: true, email: true, role: true, _count: { select: { credentials: true } } },
   })
   if (!user) {
     res.status(404).json({ data: null, error: 'User not found' })
     return
   }
   const babyUser = await prisma.babyUser.findFirst({ where: { userId: user.id } })
-  res.json({ data: { user, babyId: babyUser?.babyId ?? null }, error: null })
+  const { _count, ...userFields } = user
+  res.json({ data: { user: { ...userFields, hasPasskey: _count.credentials > 0 }, babyId: babyUser?.babyId ?? null }, error: null })
 })

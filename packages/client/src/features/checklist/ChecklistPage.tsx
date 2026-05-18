@@ -56,23 +56,23 @@ export function ChecklistPage() {
   const grouped = groupBy(items, (item) => item.category)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <Link to="/" className="text-gray-400 hover:text-gray-600">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+        <Link to="/" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="text-base font-semibold text-gray-900 flex-1">
+        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1">
           {TYPE_LABELS[activeType] ?? activeType}
         </h1>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-500 dark:text-gray-400">
           {checked}/{items.length}
         </span>
       </header>
 
       {/* Progress bar */}
-      <div className="h-1 bg-gray-100">
+      <div className="h-1 bg-gray-100 dark:bg-gray-700">
         <div
           className="h-1 bg-blue-500 transition-all duration-300"
           style={{ width: items.length ? `${(checked / items.length) * 100}%` : '0%' }}
@@ -80,15 +80,15 @@ export function ChecklistPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 flex overflow-x-auto">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex overflow-x-auto">
         {TABS.map((tab) => (
           <Link
             key={tab.type}
             to={`/checklist/${tab.type.toLowerCase()}`}
             className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeType === tab.type
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             {tab.label}
@@ -104,10 +104,10 @@ export function ChecklistPage() {
         ) : (
           Object.entries(grouped).map(([category, catItems]) => (
             <div key={category}>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
                 {category}
               </h2>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
                 {catItems.map((item) => (
                   <label
                     key={item.id}
@@ -119,11 +119,11 @@ export function ChecklistPage() {
                       onChange={(e) =>
                         toggleMutation.mutate({ itemId: item.id, isChecked: e.target.checked })
                       }
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500"
                     />
                     <span
                       className={`flex-1 text-sm leading-snug ${
-                        item.isChecked ? 'line-through text-gray-400' : 'text-gray-800'
+                        item.isChecked ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-100'
                       }`}
                     >
                       {item.label}
@@ -138,20 +138,20 @@ export function ChecklistPage() {
         {addingItem ? (
           <form
             onSubmit={onSubmit}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3"
           >
             <input
               autoFocus
               type="text"
               placeholder="Item name"
               {...register('label')}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
               placeholder="Category (optional)"
               {...register('category')}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex gap-2">
               <button
@@ -164,7 +164,7 @@ export function ChecklistPage() {
               <button
                 type="button"
                 onClick={() => { reset(); setAddingItem(false) }}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600"
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
               >
                 Cancel
               </button>
@@ -173,7 +173,7 @@ export function ChecklistPage() {
         ) : (
           <button
             onClick={() => setAddingItem(true)}
-            className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+            className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-sm text-gray-400 dark:text-gray-500 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
           >
             + Add custom item
           </button>

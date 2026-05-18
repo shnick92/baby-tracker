@@ -53,7 +53,7 @@ const NAV_CARDS: NavCard[] = [
 ]
 
 export function Dashboard() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, markPasskeyAdded } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
   const [showAddPasskey, setShowAddPasskey] = useState(false)
 
@@ -62,28 +62,26 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        {/* Avatar with socket status ring */}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
         <div
-          className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-semibold flex-shrink-0"
+          className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold flex-shrink-0"
           style={{ boxShadow: SOCKET_RING[socketStatus] }}
         >
           {user?.name?.[0]?.toUpperCase() ?? '?'}
         </div>
-        <h1 className="text-lg font-semibold text-gray-900 flex-1">Baby Tracker</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex-1">Baby Tracker</h1>
         <button
           onClick={handleLogout}
-          className="text-sm text-gray-400 hover:text-gray-600"
+          className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
         >
           Sign out
         </button>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {/* Pregnancy prep section */}
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 px-1">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3 px-1">
             Pregnancy Prep
           </h2>
           <div className="space-y-2">
@@ -91,16 +89,16 @@ export function Dashboard() {
               <Link
                 key={card.to}
                 to={card.to}
-                className="flex items-center gap-4 bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-4 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-750 active:scale-[0.98] transition-all"
               >
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
                   {card.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">{card.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{card.sublabel}</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{card.label}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{card.sublabel}</p>
                 </div>
-                <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
@@ -108,30 +106,30 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Coming soon placeholder */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-1">Baby Tracking</h2>
-          <p className="text-xs text-gray-400">Feeding, sleep & diaper logs coming in Phase 3.</p>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Baby Tracking</h2>
+          <p className="text-xs text-gray-400 dark:text-gray-500">Feeding, sleep & diaper logs coming in Phase 3.</p>
         </div>
 
-        {/* Security */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">Security</h2>
-          {showAddPasskey ? (
-            <AddPasskeyButton
-              deviceName={`${user?.name}'s device`}
-              onSuccess={() => setShowAddPasskey(false)}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAddPasskey(true)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Add a passkey (biometric login)
-            </button>
-          )}
-        </div>
+        {!user?.hasPasskey && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 space-y-3">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Security</h2>
+            {showAddPasskey ? (
+              <AddPasskeyButton
+                deviceName={`${user?.name}'s device`}
+                onSuccess={markPasskeyAdded}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowAddPasskey(true)}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+              >
+                Add a passkey (biometric login)
+              </button>
+            )}
+          </div>
+        )}
       </main>
     </div>
   )

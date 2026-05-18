@@ -31,40 +31,40 @@ export function LoginPage() {
   const serverError = error?.response?.data?.error ?? (error ? 'Login failed. Please try again.' : null)
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Baby Tracker</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to continue</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Baby Tracker</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Sign in to continue</p>
         </div>
 
         <form
           onSubmit={handleSubmit((data) => mutate(data))}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-4"
         >
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
               Email
             </label>
             <input
               id="email"
               type="email"
               autoComplete="email"
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               {...register('email')}
             />
             {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
               Password
             </label>
             <input
               id="password"
               type="password"
               autoComplete="current-password"
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               {...register('password')}
             />
             {errors.password && (
@@ -73,7 +73,7 @@ export function LoginPage() {
           </div>
 
           {serverError && (
-            <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{serverError}</div>
+            <div className="rounded-xl bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-700 dark:text-red-400">{serverError}</div>
           )}
 
           <button
@@ -86,10 +86,10 @@ export function LoginPage() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+              <div className="w-full border-t border-gray-200 dark:border-gray-600" />
             </div>
             <div className="relative flex justify-center text-xs text-gray-400">
-              <span className="bg-white px-2">or</span>
+              <span className="bg-white dark:bg-gray-800 px-2">or</span>
             </div>
           </div>
 

@@ -27,10 +27,10 @@ const STATUS_LABELS: Record<PurchaseStatus, string> = {
 }
 
 const STATUS_COLORS: Record<PurchaseStatus, string> = {
-  NEEDED: 'bg-gray-100 text-gray-600',
-  BOUGHT: 'bg-green-100 text-green-700',
-  GIFTED: 'bg-purple-100 text-purple-700',
-  SKIP: 'bg-red-50 text-red-400',
+  NEEDED: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+  BOUGHT: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
+  GIFTED: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400',
+  SKIP: 'bg-red-50 text-red-400 dark:bg-red-900/20 dark:text-red-400',
 }
 
 const STATUS_CYCLE: PurchaseStatus[] = ['NEEDED', 'BOUGHT', 'GIFTED', 'SKIP']
@@ -66,23 +66,23 @@ export function PurchasesPage() {
   const grouped = groupBy(purchases, (p) => p.category)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-        <Link to="/" className="text-gray-400 hover:text-gray-600">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+        <Link to="/" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="text-base font-semibold text-gray-900 flex-1">Purchases</h1>
+        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1">Purchases</h1>
         {meta && (
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
             {meta.bought}/{meta.total} acquired
           </span>
         )}
       </header>
 
       {meta && meta.total > 0 && (
-        <div className="h-1 bg-gray-100">
+        <div className="h-1 bg-gray-100 dark:bg-gray-700">
           <div
             className="h-1 bg-green-500 transition-all duration-300"
             style={{ width: `${(meta.bought / meta.total) * 100}%` }}
@@ -99,18 +99,18 @@ export function PurchasesPage() {
           Object.entries(grouped).map(([category, items]) => (
             <div key={category}>
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                   {category}
                 </h2>
                 <button
                   onClick={() => deleteGroupMutation.mutate(items.map((p) => p.id))}
-                  className="w-7 h-7 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                  className="w-7 h-7 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   aria-label={`Delete all items in ${category}`}
                 >
                   <TrashIcon />
                 </button>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
                 {items.map((purchase) => (
                   <div
                     key={purchase.id}
@@ -122,14 +122,14 @@ export function PurchasesPage() {
                       <p
                         className={`text-sm font-medium truncate ${
                           purchase.status === 'BOUGHT' || purchase.status === 'GIFTED'
-                            ? 'line-through text-gray-400'
-                            : 'text-gray-800'
+                            ? 'line-through text-gray-400 dark:text-gray-600'
+                            : 'text-gray-800 dark:text-gray-100'
                         }`}
                       >
                         {purchase.name}
                       </p>
                       {purchase.price && (
-                        <p className="text-xs text-gray-400">${purchase.price.toFixed(2)}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">${purchase.price.toFixed(2)}</p>
                       )}
                     </div>
                     <button
@@ -144,7 +144,7 @@ export function PurchasesPage() {
                     </button>
                     <button
                       onClick={() => deleteItemMutation.mutate(purchase.id)}
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       aria-label={`Delete ${purchase.name}`}
                     >
                       <TrashIcon />
@@ -159,26 +159,26 @@ export function PurchasesPage() {
         {addingItem ? (
           <form
             onSubmit={onSubmit}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3"
           >
             <input
               autoFocus
               type="text"
               placeholder="Item name *"
               {...register('name')}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="text"
               placeholder="Category (e.g. Nursery, Feeding)"
               {...register('category')}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="number"
               placeholder="Price (optional)"
               {...register('price')}
-              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex gap-2">
               <button
@@ -191,7 +191,7 @@ export function PurchasesPage() {
               <button
                 type="button"
                 onClick={() => { reset(); setAddingItem(false) }}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600"
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
               >
                 Cancel
               </button>
@@ -200,7 +200,7 @@ export function PurchasesPage() {
         ) : (
           <button
             onClick={() => setAddingItem(true)}
-            className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+            className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-sm text-gray-400 dark:text-gray-500 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
           >
             + Add item
           </button>
