@@ -1,8 +1,13 @@
+name: tracker
+
 services:
   nginx:
     image: ${DOCKERHUB_USERNAME}/tracker-client:latest
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /mnt/user/appdata/tracker/certs:/etc/ssl/tailscale:ro
     depends_on:
       - server
     restart: unless-stopped
@@ -16,6 +21,7 @@ services:
       CLIENT_ORIGIN: ${CLIENT_ORIGIN}
       NODE_ENV: production
       PORT: ${PORT:-3001}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
       RP_ID: ${RP_ID}
       RP_NAME: ${RP_NAME}
       RP_ORIGIN: ${RP_ORIGIN}

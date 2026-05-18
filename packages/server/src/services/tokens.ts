@@ -7,8 +7,10 @@ export const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
 export const COOKIE_OPTS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  // Driven by COOKIE_SECURE env var so we can keep NODE_ENV=production while
+  // toggling the Secure flag independently (e.g. HTTP-only Tailscale setups).
+  secure: process.env.COOKIE_SECURE === 'true',
+  sameSite: 'lax' as const,
   maxAge: REFRESH_TTL_MS,
   path: '/api/auth',
 }

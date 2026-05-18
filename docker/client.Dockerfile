@@ -25,5 +25,5 @@ RUN npm run build -w packages/client
 FROM nginx:alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/packages/client/dist /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 80 443
 CMD ["nginx", "-g", "daemon off;"]

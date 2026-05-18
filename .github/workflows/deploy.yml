@@ -46,8 +46,8 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/tracker-client:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/tracker-client:${{ github.sha }}
           build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL }}
-            VITE_SOCKET_URL=${{ secrets.VITE_SOCKET_URL }}
+            VITE_API_URL=
+            VITE_SOCKET_URL=
             VITE_VAPID_PUBLIC_KEY=${{ secrets.VITE_VAPID_PUBLIC_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
