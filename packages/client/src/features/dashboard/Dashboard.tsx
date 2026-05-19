@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
-import { api } from '@lib/axios'
-import { AddPasskeyButton } from '../auth/AddPasskeyButton'
 import { ClipboardIcon, ShoppingBagIcon, UsersIcon, HomeIcon } from '@components/icons'
+import { formatHeaderDate, greeting } from '@lib/utils/formatDate'
+import { AddPasskeyButton } from '../auth/AddPasskeyButton'
 import { PregnancyProgressWidget } from '../pregnancy'
 
 const SOCKET_RING: Record<string, string> = {
@@ -54,33 +54,32 @@ const NAV_CARDS: NavCard[] = [
 ]
 
 export function Dashboard() {
-  const { user, logout, markPasskeyAdded } = useAuthStore()
+  const { user, markPasskeyAdded } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
   const [showAddPasskey, setShowAddPasskey] = useState(false)
-
-  const handleLogout = () => {
-    api.post('/api/auth/logout').catch(() => null).finally(() => logout())
-  }
+  const firstName = user?.name?.split(' ')[0] ?? ''
+  const headerDate = formatHeaderDate()
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+            {greeting(firstName)}
+          </h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            {headerDate}
+          </p>
+        </div>
         <div
-          className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold flex-shrink-0"
+          className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold"
           style={{ boxShadow: SOCKET_RING[socketStatus] }}
         >
           {user?.name?.[0]?.toUpperCase() ?? '?'}
         </div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex-1">Baby Tracker</h1>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-        >
-          Sign out
-        </button>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-lg mx-auto px-4 py-6 space-y-4 md:max-w-2xl md:px-8">
         <PregnancyProgressWidget />
 
         <div>

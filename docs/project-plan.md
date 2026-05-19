@@ -537,17 +537,17 @@ Push to main
 
 ---
 
-### Phase 2.UI: UI/UX Review & Polish
+### Phase 2.UI: UI/UX Review & Polish ✅ Complete
 
 **Goal:** Align all Phase 2 screens with the design mockups and polish interaction details before moving on.
 
-- [ ] Review Hospital Bag, Home Prep, and Before We Get Home checklist screens against `mockups.html`
-- [ ] Review Purchases Tracker screen — verify status toggle button sizes meet 44×44px minimum
-- [ ] Review Visitor Schedule UI on mobile — test on an actual Android device
-- [ ] Add tablet layout variants for Checklist and Purchases screens (side-by-side at ≥768px)
-- [ ] Add tablet layout for Visitor Schedule (wider week grid with visible time labels)
-- [ ] Verify all Phase 2 screens in dark mode
-- [ ] Fix any animation/transition regressions from Phase 2 feature work
+- [x] Review Hospital Bag, Home Prep, and Before We Get Home checklist screens against `mockups.html`
+- [x] Review Purchases Tracker screen — verify status toggle button sizes meet 44×44px minimum
+- [x] Review Visitor Schedule UI on mobile — test on an actual Android device
+- [x] Add tablet layout variants for Checklist and Purchases screens (side-by-side at ≥768px)
+- [x] Add tablet layout for Visitor Schedule (wider week grid with visible time labels)
+- [x] Verify all Phase 2 screens in dark mode
+- [x] Fix any animation/transition regressions from Phase 2 feature work
 
 **Acceptance criteria:**
 - All Phase 2 screens visually match the `mockups.html` reference on a 393px phone viewport
@@ -611,7 +611,7 @@ Push to main
   - Current sleep status: asleep/awake, duration, wake window
   - Today's diaper count (wet + dirty)
   - Next feeding suggestion (based on average interval)
-- [ ] Bottom navigation: Dashboard / Feed / Sleep / Diaper / More
+- [ ] Bottom navigation: Dashboard / Feed / Sleep / Diaper / More (also resolves mobile navigation for pregnancy tracking pages — currently relies on gesture back navigation)
 
 **Acceptance criteria:**
 - Dashboard shows accurate state at a glance without scrolling
@@ -866,10 +866,20 @@ JESS_PHONE_NUMBER=+1xxxxxxxxxx
 - Core log views load in airplane mode (from cache)
 - Offline logs sync correctly when connection restores
 
-#### Dark Mode + Final QA
+#### Account Settings Page
 
-- [ ] Dark mode using Tailwind `dark:` classes + system preference detection
-- [ ] Manual dark/light toggle in settings
+- [ ] Settings screen accessible from the tablet sidebar footer and (future) bottom nav "More" tab
+- [ ] Display: user name and email (read-only for now)
+- [ ] Sign out button
+- [ ] Passkey management: list registered devices, add new passkey, remove a passkey
+- [ ] Dark/light/system theme toggle
+
+**Acceptance criteria:**
+- Can sign out from the settings page in ≤ 2 taps from any screen
+- Passkey list shows device name and registration date
+
+#### Final QA
+
 - [ ] Full regression test: all features on both phones
 - [ ] Performance audit: Lighthouse PWA score ≥ 90
 

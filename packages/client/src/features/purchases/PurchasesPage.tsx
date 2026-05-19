@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -111,18 +110,15 @@ export function PurchasesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
-        <Link to="/" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1">Purchases</h1>
-        {meta && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {meta.bought}/{meta.total} acquired
-          </span>
-        )}
+      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">Purchases</h1>
+          {meta && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              {meta.bought} of {meta.total} acquired
+            </p>
+          )}
+        </div>
       </header>
 
       {meta && meta.total > 0 && (
@@ -134,11 +130,12 @@ export function PurchasesPage() {
         </div>
       )}
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-4 md:max-w-4xl md:px-8">
         {isLoading ? (
           <PurchasesSkeleton />
         ) : (
-          Object.entries(grouped).map(([category, items]) => (
+          <div className="space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+          {Object.entries(grouped).map(([category, items]) => (
             <div key={category}>
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
@@ -238,7 +235,7 @@ export function PurchasesPage() {
                           href={`/s/${purchase.shortCode}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                          className="flex-shrink-0 h-11 px-3 flex items-center rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                           aria-label={`Visit link for ${purchase.name}`}
                         >
                           Visit
@@ -248,7 +245,7 @@ export function PurchasesPage() {
                         onClick={() =>
                           cycleMutation.mutate({ id: purchase.id, status: nextStatus(purchase.status) })
                         }
-                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        className={`flex-shrink-0 h-11 px-3 flex items-center rounded-full text-xs font-medium transition-colors ${
                           STATUS_COLORS[purchase.status]
                         }`}
                       >
@@ -273,9 +270,11 @@ export function PurchasesPage() {
                 )}
               </div>
             </div>
-          ))
+          ))}
+          </div>
         )}
 
+        <div className="mt-6">
         {addingItem ? (
           <form
             onSubmit={onAddSubmit}
@@ -333,6 +332,7 @@ export function PurchasesPage() {
             + Add item
           </button>
         )}
+        </div>
       </div>
     </div>
   )

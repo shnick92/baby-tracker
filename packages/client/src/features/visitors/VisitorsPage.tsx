@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { TrashIcon, PencilIcon } from '@components/icons'
+import { formatDueMonthYear } from '@lib/utils/formatDate'
+import { usePregnancyStatus } from '@features/pregnancy'
 
 import { useVisitors } from './useVisitors'
 import { VisitorsSkeleton } from './VisitorsSkeleton'
@@ -49,13 +50,13 @@ function DateBox({ dateStr, isToday }: { dateStr: string; isToday: boolean }) {
   const monthAbbr = formatMonthAbbr(dateStr)
   return (
     <div
-      className={`flex-shrink-0 rounded-xl px-3 py-2 text-center min-w-[52px] border ${
+      className={`flex-shrink-0 rounded-xl px-3 py-2 text-center w-[60px] border ${
         isToday
           ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700'
           : 'bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700'
       }`}
     >
-      <div className={`text-[10px] font-semibold uppercase tracking-wide ${isToday ? 'text-green-500 dark:text-green-400' : 'text-blue-500 dark:text-blue-400'}`}>
+      <div className={`text-[10px] font-semibold uppercase ${isToday ? 'text-green-500 dark:text-green-400' : 'text-blue-500 dark:text-blue-400'}`}>
         {isToday ? 'Today' : monthAbbr}
       </div>
       <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100 leading-tight">{day}</div>
@@ -67,6 +68,7 @@ export function VisitorsPage() {
   const [addingSlot, setAddingSlot] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const { slots, isLoading, deleteMutation, addMutation, editMutation } = useVisitors()
+  const { data: pregnancy } = usePregnancyStatus()
 
   const addForm = useForm<VisitorForm>({
     resolver: zodResolver(visitorSchema),
@@ -122,17 +124,18 @@ export function VisitorsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
-        <Link to="/" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1">Visitor Schedule</h1>
-        <span className="text-sm text-gray-500 dark:text-gray-400">{slots.length} {slots.length === 1 ? 'visit' : 'visits'}</span>
+      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">Visitors</h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            {pregnancy?.dueDate
+              ? `After baby arrives · ${formatDueMonthYear(pregnancy.dueDate)}`
+              : 'Visitor schedule'}
+          </p>
+        </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-6 md:max-w-3xl md:px-8">
         {isLoading ? (
           <VisitorsSkeleton />
         ) : slots.length === 0 && !addingSlot ? (
@@ -143,7 +146,7 @@ export function VisitorsPage() {
               <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
                 {formatMonthYear(monthKey)}
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-2 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
                 {monthSlots.map((slot) => {
                   const isToday = slot.date === today
                   return editingId === slot.id ? (

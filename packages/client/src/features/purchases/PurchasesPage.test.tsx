@@ -42,7 +42,7 @@ describe('PurchasesPage', () => {
   it('shows bought/total acquired count in the header', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
     renderWithProviders(<PurchasesPage />)
-    expect(await screen.findByText('2/4 acquired')).toBeInTheDocument()
+    expect(await screen.findByText('2 of 4 acquired')).toBeInTheDocument()
   })
 
   it('renders BOUGHT and GIFTED items with strikethrough text', async () => {

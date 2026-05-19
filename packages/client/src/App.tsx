@@ -8,7 +8,7 @@ import { api } from '@lib/axios'
 import { connectSocket, disconnectSocket, getSocket } from '@lib/socket'
 import { useAuthStore, type AuthUser } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
-import { ProtectedRoute } from '@components'
+import { ProtectedRoute, AppLayout } from '@components'
 import { LoginPage } from '@features/auth'
 import { Dashboard } from '@features/dashboard'
 import { ChecklistPage } from '@features/checklist'
@@ -69,10 +69,6 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function guard(path: string, element: React.ReactElement) {
-  return <Route path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -80,10 +76,12 @@ export default function App() {
         <AuthBootstrap>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            {guard('/', <Dashboard />)}
-            {guard('/checklist/:type', <ChecklistPage />)}
-            {guard('/purchases', <PurchasesPage />)}
-            {guard('/visitors', <VisitorsPage />)}
+            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/checklist/:type" element={<ChecklistPage />} />
+              <Route path="/purchases" element={<PurchasesPage />} />
+              <Route path="/visitors" element={<VisitorsPage />} />
+            </Route>
           </Routes>
         </AuthBootstrap>
       </BrowserRouter>

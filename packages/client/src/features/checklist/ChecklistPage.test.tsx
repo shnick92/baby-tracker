@@ -29,10 +29,10 @@ const mockChecklist = {
 describe('ChecklistPage', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('shows a loading spinner while fetching', () => {
+  it('shows a loading skeleton while fetching', () => {
     vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
     const { container } = renderPage()
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('renders item labels after loading', async () => {
@@ -56,7 +56,8 @@ describe('ChecklistPage', () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: mockChecklist } })
     renderPage()
     await screen.findByText('Comfy clothes')
-    expect(screen.getByText('1/3')).toBeInTheDocument()
+    // count appears in both the header and the progress card
+    expect(screen.getAllByText('1/3').length).toBeGreaterThan(0)
   })
 
   it('renders checked items with strikethrough text', async () => {

@@ -5,9 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { groupBy } from '@lib/utils/groupBy'
+import { formatDueMonthYear } from '@lib/utils/formatDate'
 import type { ChecklistTypeInput } from '@tracker/shared'
+import { usePregnancyStatus } from '@features/pregnancy'
 
 import { useChecklist } from './useChecklist'
+import { ChecklistSkeleton } from './ChecklistSkeleton'
 
 const addItemSchema = z.object({
   label: z.string().min(1, 'Required'),
@@ -37,6 +40,7 @@ export function ChecklistPage() {
   const [addingItem, setAddingItem] = useState(false)
 
   const { data, isLoading, toggleMutation, addMutation } = useChecklist(activeType)
+  const { data: pregnancy } = usePregnancyStatus()
 
   const { register, handleSubmit, reset, watch } = useForm<AddItemForm>({
     resolver: zodResolver(addItemSchema),
@@ -57,18 +61,18 @@ export function ChecklistPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
-        <Link to="/" className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex-1">
-          {TYPE_LABELS[activeType] ?? activeType}
-        </h1>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {checked}/{items.length}
-        </span>
+      {/* Mobile-only header — AppLayout sidebar replaces this on tablet */}
+      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+            {TYPE_LABELS[activeType] ?? activeType}
+          </h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            {pregnancy?.weeksPregnant && pregnancy?.dueDate
+              ? `Week ${pregnancy.weeksPregnant} · Due ${formatDueMonthYear(pregnancy.dueDate)}`
+              : ''}
+          </p>
+        </div>
       </header>
 
       {/* Progress bar */}
@@ -79,8 +83,8 @@ export function ChecklistPage() {
         />
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex overflow-x-auto">
+      {/* Tab bar — horizontal scroll at all sizes */}
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex overflow-x-auto">
         {TABS.map((tab) => (
           <Link
             key={tab.type}
@@ -94,45 +98,70 @@ export function ChecklistPage() {
             {tab.label}
           </Link>
         ))}
-      </div>
+      </nav>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
+      {/* Content */}
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4 md:max-w-2xl md:px-8">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <ChecklistSkeleton />
         ) : (
-          Object.entries(grouped).map(([category, catItems]) => (
-            <div key={category}>
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
-                {category}
-              </h2>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
-                {catItems.map((item) => (
-                  <label
-                    key={item.id}
-                    className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={item.isChecked}
-                      onChange={(e) =>
-                        toggleMutation.mutate({ itemId: item.id, isChecked: e.target.checked })
-                      }
-                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span
-                      className={`flex-1 text-sm leading-snug ${
-                        item.isChecked ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-100'
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </label>
-                ))}
+          <>
+            {/* Progress summary card */}
+            {items.length > 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 px-4 py-3.5">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{checked}/{items.length}</span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500">items packed</span>
+                  {checked === items.length && (
+                    <span className="ml-auto text-xs font-semibold text-green-600 dark:text-green-400">All done ✓</span>
+                  )}
+                </div>
+                <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all duration-300"
+                    style={{ width: `${(checked / items.length) * 100}%` }}
+                  />
+                </div>
               </div>
-            </div>
-          ))
+            )}
+
+            {Object.entries(grouped).map(([category, catItems]) => (
+              <div key={category}>
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+                  {category}
+                </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
+                  {catItems.map((item) => (
+                    <label
+                      key={item.id}
+                      className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.isChecked}
+                        onChange={(e) =>
+                          toggleMutation.mutate({ itemId: item.id, isChecked: e.target.checked })
+                        }
+                        className="w-5 h-5 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span
+                        className={`flex-1 text-sm leading-snug ${
+                          item.isChecked ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-100'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                      {!item.isChecked && (
+                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                          Needed
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
         )}
 
         {addingItem ? (
