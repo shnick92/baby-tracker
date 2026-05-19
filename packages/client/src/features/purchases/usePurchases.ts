@@ -94,6 +94,23 @@ export function usePurchases() {
     },
   })
 
+  const editMutation = useMutation({
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string
+      name: string
+      category?: string
+      price?: number
+      url?: string
+      notes?: string
+    }) => api.patch(`/api/purchases/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.list(babyId) })
+    },
+  })
+
   const deleteGroupMutation = useMutation({
     mutationFn: (ids: string[]) =>
       Promise.all(ids.map((id) => api.delete(`/api/purchases/${id}`))),
@@ -118,5 +135,5 @@ export function usePurchases() {
     },
   })
 
-  return { data, isLoading, cycleMutation, addMutation, deleteItemMutation, deleteGroupMutation }
+  return { data, isLoading, cycleMutation, addMutation, editMutation, deleteItemMutation, deleteGroupMutation }
 }

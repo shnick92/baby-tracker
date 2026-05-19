@@ -30,10 +30,10 @@ const NOTED_SLOT = {
 describe('VisitorsPage', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('shows a loading spinner while fetching', () => {
+  it('shows a skeleton while fetching', () => {
     vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
     const { container } = renderWithProviders(<VisitorsPage />)
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('shows empty state when no visits are scheduled', async () => {
@@ -68,7 +68,6 @@ describe('VisitorsPage', () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: [NO_TIME_SLOT] } })
     renderWithProviders(<VisitorsPage />)
     await screen.findByText('Alice')
-    // no time text rendered
     const card = screen.getByText('Alice').closest('div')
     expect(card?.textContent).not.toMatch(/AM|PM/)
   })
@@ -170,6 +169,81 @@ describe('VisitorsPage', () => {
 
     await waitFor(() => {
       expect(api.delete).toHaveBeenCalledWith('/api/visitors/1')
+    })
+  })
+
+  // --- edit ---
+
+  it('edit button opens an inline form pre-populated with the slot values', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: [NO_TIME_SLOT] } })
+    renderWithProviders(<VisitorsPage />)
+    await screen.findByText('Alice')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Alice' }))
+
+    expect(screen.getByDisplayValue('Alice')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('2026-10-15')).toBeInTheDocument()
+  })
+
+  it('edit form for a timed slot pre-populates both time inputs', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: [TIMED_SLOT] } })
+    const { container } = renderWithProviders(<VisitorsPage />)
+    await screen.findByText('Bob')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Bob' }))
+
+    // Both time inputs should have non-empty values
+    const timeInputs = container.querySelectorAll('input[type="time"]')
+    expect((timeInputs[0] as HTMLInputElement).value).not.toBe('')
+    expect((timeInputs[1] as HTMLInputElement).value).not.toBe('')
+  })
+
+  it('edit form for a slot with no times leaves time inputs empty', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: [NO_TIME_SLOT] } })
+    const { container } = renderWithProviders(<VisitorsPage />)
+    await screen.findByText('Alice')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Alice' }))
+
+    const timeInputs = container.querySelectorAll('input[type="time"]')
+    expect((timeInputs[0] as HTMLInputElement).value).toBe('')
+    expect((timeInputs[1] as HTMLInputElement).value).toBe('')
+  })
+
+  it('cancel button closes the edit form without calling patch', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: [NO_TIME_SLOT] } })
+    renderWithProviders(<VisitorsPage />)
+    await screen.findByText('Alice')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Alice' }))
+    expect(screen.getByDisplayValue('Alice')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.getByText('Alice')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Alice')).not.toBeInTheDocument()
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('submitting the edit form calls patch with updated name and same date', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: [NO_TIME_SLOT] } })
+    vi.mocked(api.patch).mockResolvedValue({ data: { data: {} } })
+    renderWithProviders(<VisitorsPage />)
+    await screen.findByText('Alice')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Alice' }))
+
+    const nameInput = screen.getByDisplayValue('Alice')
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Alicia')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith(
+        '/api/visitors/1',
+        expect.objectContaining({ name: 'Alicia', date: '2026-10-15' }),
+      )
     })
   })
 })

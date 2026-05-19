@@ -5,10 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { groupBy } from '@lib/utils/groupBy'
-import { TrashIcon } from '@components/icons'
+import { TrashIcon, PencilIcon } from '@components/icons'
 import type { PurchaseStatus } from '@tracker/shared'
 
 import { usePurchases } from './usePurchases'
+import { PurchasesSkeleton } from './PurchasesSkeleton'
 
 const addPurchaseSchema = z.object({
   name: z.string().min(1, 'Required'),
@@ -18,6 +19,14 @@ const addPurchaseSchema = z.object({
 })
 type AddPurchaseForm = z.infer<typeof addPurchaseSchema>
 
+const editPurchaseSchema = z.object({
+  name: z.string().min(1, 'Required'),
+  category: z.string().optional(),
+  price: z.string().optional(),
+  url: z.string().optional(),
+  notes: z.string().optional(),
+})
+type EditPurchaseForm = z.infer<typeof editPurchaseSchema>
 
 const STATUS_LABELS: Record<PurchaseStatus, string> = {
   NEEDED: 'Need',
@@ -35,21 +44,45 @@ const STATUS_COLORS: Record<PurchaseStatus, string> = {
 
 const STATUS_CYCLE: PurchaseStatus[] = ['NEEDED', 'BOUGHT', 'GIFTED', 'SKIP']
 
-
 const nextStatus = (current: PurchaseStatus): PurchaseStatus =>
   STATUS_CYCLE[(STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length]
 
+const inputCls =
+  'w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
 export function PurchasesPage() {
   const [addingItem, setAddingItem] = useState(false)
-  const { data, isLoading, cycleMutation, addMutation, deleteItemMutation, deleteGroupMutation } = usePurchases()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const { data, isLoading, cycleMutation, addMutation, editMutation, deleteItemMutation, deleteGroupMutation } = usePurchases()
 
-  const { register, handleSubmit, reset, watch } = useForm<AddPurchaseForm>({
+  const addForm = useForm<AddPurchaseForm>({
     resolver: zodResolver(addPurchaseSchema),
     defaultValues: { name: '', category: '', price: '', url: '' },
   })
-  const name = watch('name')
+  const addName = addForm.watch('name')
 
-  const onSubmit = handleSubmit((values) => {
+  const editForm = useForm<EditPurchaseForm>({
+    resolver: zodResolver(editPurchaseSchema),
+  })
+
+  const purchases = data?.data ?? []
+  const meta = data?.meta
+  const grouped = groupBy(purchases, (p) => p.category)
+
+  const handleStartEdit = (purchase: (typeof purchases)[number]) => {
+    setEditingId(purchase.id)
+    editForm.reset({
+      name: purchase.name,
+      category: purchase.category,
+      price: purchase.price?.toString() ?? '',
+      url: purchase.url ?? '',
+      notes: purchase.notes ?? '',
+    })
+  }
+
+  const handleCancelEdit = () => setEditingId(null)
+
+  const onAddSubmit = addForm.handleSubmit((values) => {
     addMutation.mutate(
       {
         name: values.name.trim(),
@@ -57,13 +90,24 @@ export function PurchasesPage() {
         price: values.price ? parseFloat(values.price) : undefined,
         url: values.url?.trim() || undefined,
       },
-      { onSuccess: () => { reset(); setAddingItem(false) } },
+      { onSuccess: () => { addForm.reset(); setAddingItem(false) } },
     )
   })
 
-  const purchases = data?.data ?? []
-  const meta = data?.meta
-  const grouped = groupBy(purchases, (p) => p.category)
+  const onEditSubmit = editForm.handleSubmit((values) => {
+    if (!editingId) return
+    editMutation.mutate(
+      {
+        id: editingId,
+        name: values.name.trim(),
+        category: values.category?.trim() || undefined,
+        price: values.price ? parseFloat(values.price) : undefined,
+        url: values.url?.trim() || undefined,
+        notes: values.notes?.trim() || undefined,
+      },
+      { onSuccess: () => setEditingId(null) },
+    )
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -92,9 +136,7 @@ export function PurchasesPage() {
 
       <div className="max-w-lg mx-auto px-4 py-4 space-y-6">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <PurchasesSkeleton />
         ) : (
           Object.entries(grouped).map(([category, items]) => (
             <div key={category}>
@@ -111,46 +153,113 @@ export function PurchasesPage() {
                 </button>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
-                {items.map((purchase) => (
-                  <div
-                    key={purchase.id}
-                    className={`flex items-center gap-3 px-4 py-3.5 ${
-                      purchase.status === 'SKIP' ? 'opacity-40' : ''
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-medium truncate ${
-                          purchase.status === 'BOUGHT' || purchase.status === 'GIFTED'
-                            ? 'line-through text-gray-400 dark:text-gray-600'
-                            : 'text-gray-800 dark:text-gray-100'
-                        }`}
-                      >
-                        {purchase.name}
-                      </p>
-                      {purchase.price && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500">${purchase.price.toFixed(2)}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() =>
-                        cycleMutation.mutate({ id: purchase.id, status: nextStatus(purchase.status) })
-                      }
-                      className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        STATUS_COLORS[purchase.status]
+                {items.map((purchase) =>
+                  editingId === purchase.id ? (
+                    <form
+                      key={purchase.id}
+                      onSubmit={onEditSubmit}
+                      className="px-4 py-3 space-y-2.5"
+                    >
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Item name *"
+                        {...editForm.register('name')}
+                        className={inputCls}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Category"
+                        {...editForm.register('category')}
+                        className={inputCls}
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          placeholder="Price"
+                          {...editForm.register('price')}
+                          className={`${inputCls} flex-1`}
+                        />
+                        <input
+                          type="text"
+                          placeholder="URL"
+                          {...editForm.register('url')}
+                          className={`${inputCls} flex-1`}
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Notes (optional)"
+                        {...editForm.register('notes')}
+                        className={inputCls}
+                      />
+                      <div className="flex gap-2 pt-0.5">
+                        <button
+                          type="submit"
+                          disabled={editMutation.isPending}
+                          className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-50"
+                        >
+                          {editMutation.isPending ? 'Saving…' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div
+                      key={purchase.id}
+                      className={`flex items-center gap-3 px-4 py-3.5 ${
+                        purchase.status === 'SKIP' ? 'opacity-40' : ''
                       }`}
                     >
-                      {STATUS_LABELS[purchase.status]}
-                    </button>
-                    <button
-                      onClick={() => deleteItemMutation.mutate(purchase.id)}
-                      className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      aria-label={`Delete ${purchase.name}`}
-                    >
-                      <TrashIcon />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-sm font-medium truncate ${
+                            purchase.status === 'BOUGHT' || purchase.status === 'GIFTED'
+                              ? 'line-through text-gray-400 dark:text-gray-600'
+                              : 'text-gray-800 dark:text-gray-100'
+                          }`}
+                        >
+                          {purchase.name}
+                        </p>
+                        {purchase.price && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500">${purchase.price.toFixed(2)}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() =>
+                          cycleMutation.mutate({ id: purchase.id, status: nextStatus(purchase.status) })
+                        }
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                          STATUS_COLORS[purchase.status]
+                        }`}
+                      >
+                        {STATUS_LABELS[purchase.status]}
+                      </button>
+                      <button
+                        onClick={() => handleStartEdit(purchase)}
+                        className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        aria-label={`Edit ${purchase.name}`}
+                      >
+                        <PencilIcon />
+                      </button>
+                      <button
+                        onClick={() => deleteItemMutation.mutate(purchase.id)}
+                        className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        aria-label={`Delete ${purchase.name}`}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           ))
@@ -158,39 +267,47 @@ export function PurchasesPage() {
 
         {addingItem ? (
           <form
-            onSubmit={onSubmit}
+            onSubmit={onAddSubmit}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3"
           >
             <input
               autoFocus
               type="text"
               placeholder="Item name *"
-              {...register('name')}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {...addForm.register('name')}
+              className={inputCls}
             />
             <input
               type="text"
               placeholder="Category (e.g. Nursery, Feeding)"
-              {...register('category')}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {...addForm.register('category')}
+              className={inputCls}
             />
             <input
               type="number"
+              step="any"
+              min="0"
               placeholder="Price (optional)"
-              {...register('price')}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              {...addForm.register('price')}
+              className={inputCls}
+            />
+            <input
+              type="text"
+              placeholder="URL (optional)"
+              {...addForm.register('url')}
+              className={inputCls}
             />
             <div className="flex gap-2">
               <button
                 type="submit"
-                disabled={!name?.trim() || addMutation.isPending}
+                disabled={!addName?.trim() || addMutation.isPending}
                 className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-50"
               >
                 {addMutation.isPending ? 'Adding…' : 'Add item'}
               </button>
               <button
                 type="button"
-                onClick={() => { reset(); setAddingItem(false) }}
+                onClick={() => { addForm.reset(); setAddingItem(false) }}
                 className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
               >
                 Cancel

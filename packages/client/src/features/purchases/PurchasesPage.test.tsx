@@ -22,10 +22,10 @@ const mockResponse = {
 describe('PurchasesPage', () => {
   beforeEach(() => { vi.clearAllMocks() })
 
-  it('shows a loading spinner while fetching', () => {
+  it('shows a skeleton while fetching', () => {
     vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
     const { container } = renderWithProviders(<PurchasesPage />)
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
   it('renders purchase names with their status badges', async () => {
@@ -111,5 +111,86 @@ describe('PurchasesPage', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Item name *'), 'New item')
     expect(screen.getByRole('button', { name: 'Add item' })).not.toBeDisabled()
+  })
+
+  // --- edit ---
+
+  it('edit button opens an inline form pre-populated with the purchase values', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Crib' }))
+
+    expect(screen.getByDisplayValue('Crib')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Nursery')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('299.99')).toBeInTheDocument()
+  })
+
+  it('cancel button closes the edit form without calling patch', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Crib' }))
+    expect(screen.getByDisplayValue('Crib')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.getByText('Crib')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('Crib')).not.toBeInTheDocument()
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('submitting the edit form calls patch with updated values', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    vi.mocked(api.patch).mockResolvedValue({ data: { data: {} } })
+    renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Crib' }))
+
+    const nameInput = screen.getByDisplayValue('Crib')
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Bassinet')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(api.patch).toHaveBeenCalledWith(
+        '/api/purchases/p1',
+        expect.objectContaining({ name: 'Bassinet', category: 'Nursery' }),
+      )
+    })
+  })
+
+  it('edit form includes a notes field not present in the add form', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+
+    // No notes field before editing
+    expect(screen.queryByPlaceholderText('Notes (optional)')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Crib' }))
+
+    expect(screen.getByPlaceholderText('Notes (optional)')).toBeInTheDocument()
+  })
+
+  it('price inputs have step="any" to allow decimal values', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    const { container } = renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+
+    // Add form price input
+    await userEvent.click(screen.getByText('+ Add item'))
+    const addPrice = container.querySelector('input[placeholder="Price (optional)"]')
+    expect(addPrice).toHaveAttribute('step', 'any')
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // Edit form price input
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Crib' }))
+    const editPrice = container.querySelector('input[placeholder="Price"]')
+    expect(editPrice).toHaveAttribute('step', 'any')
   })
 })

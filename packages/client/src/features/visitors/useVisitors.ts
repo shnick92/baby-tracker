@@ -56,5 +56,22 @@ export function useVisitors() {
     },
   })
 
-  return { slots, isLoading, deleteMutation, addMutation }
+  const editMutation = useMutation({
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string
+      name: string
+      date: string
+      startTime?: string
+      endTime?: string
+      notes?: string
+    }) => api.patch(`/api/visitors/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitorKeys.list(babyId) })
+    },
+  })
+
+  return { slots, isLoading, deleteMutation, addMutation, editMutation }
 }
