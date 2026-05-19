@@ -595,4 +595,120 @@ This rule applies to Claude Code sessions specifically because agentic developme
 
 ---
 
-*ADRs authored May 2026. Review after initial launch.*
+## ADR-015: Calendar View — Unified Timeline with Filter Chips
+
+**Status:** Accepted  
+**Date:** 2026-05-18  
+**Deciders:** Nick  
+
+### Context
+
+Phase 4 adds a Calendar View screen that aggregates all tracked event types — feedings, sleep/naps, diaper changes, and visitor slots — into a single chronological view. Several design decisions needed to be made: whether to use a unified calendar or per-feature history lists, which calendar granularity to default to, how to implement filtering, and how the tablet layout should differ from mobile.
+
+### Decision
+
+Build a **unified month-view calendar** with **filter chips** defaulting to "All", a **tap-to-expand day-detail panel** on mobile, and a **split-panel layout** (month grid + day detail side-by-side) on tablet (≥768px). A single aggregated API endpoint serves all event types per date range.
+
+### Options Considered
+
+#### Calendar Architecture: Unified vs. Per-Feature History Lists
+
+| Criterion | Unified Calendar | Per-Feature History Lists |
+|-----------|-----------------|--------------------------|
+| Cross-category pattern recognition | ✅ Excellent | ❌ Requires mental synthesis across screens |
+| Implementation complexity | Medium — one view, aggregated endpoint | Low — reuses existing list UIs |
+| Most useful for exhausted parents | ✅ Single place to review the day | ❌ Too many screens to check |
+
+**Decision:** Unified calendar. The core value is seeing relationships across categories — e.g., "baby always naps 45 minutes after a feeding." Per-feature history lists already exist for category-specific review.
+
+#### Default Calendar Granularity: Month vs. Week vs. Day
+
+**Decision:** Month view as default, with day-detail accessible on tap. Week view provides no meaningful advantage for a 2-parent family. The day-level detail view is the drill-down panel, not the primary entry point.
+
+#### Filter UX: Chips vs. Tab Bar vs. Dropdown
+
+**Decision:** Filter chips. They make "All" the natural default, support future multi-select, and have a clear active state at a glance. The filter is client-side — chips change what indicator dots are visible without a new network request.
+
+#### Tablet Layout: Split-Panel vs. Week Timeline
+
+**Decision:** Split-panel. The month grid already exists; widening it and moving the day-detail into a persistent right panel is a small layout change with high value.
+
+#### API Design: Aggregated Endpoint vs. Per-Category Queries
+
+**Decision:** Aggregated endpoint. For a 2-user family, monthly payloads are small. A single cache key per month keeps the caching logic simple.
+
+```
+GET /api/calendar?babyId=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD
+
+Response: {
+  data: {
+    feedings: FeedingLog[],
+    sleep: SleepLog[],
+    diapers: DiaperLog[],
+    visitors: VisitorSlot[]
+  },
+  meta: { from, to, totalCount }
+}
+```
+
+### Colour Coding Convention
+
+| Category | CSS Variable | Hex |
+|----------|-------------|-----|
+| Feedings | `--accent-blue` | `#7eb8e8` |
+| Sleep / Naps | `--accent-green` | `#7ec8a0` |
+| Diapers | `--accent-amber` | `#e8c47e` |
+| Visitors | `--accent-purple` | `#b4a0e8` |
+
+### Consequences
+
+- Positive: Parents can see daily patterns across all categories at a glance
+- Positive: Client-side filtering means no additional network requests when toggling between categories
+- Positive: Aggregated endpoint cached as one React Query key per month — navigating back is instant
+- Positive: Split-panel tablet layout adds value with minimal implementation effort
+- Negative: Indicator dots can get crowded on high-activity days — mitigated by capping at 4 + "+N" overflow
+- Negative: Aggregated endpoint returns a larger payload — acceptable at this scale
+
+---
+
+## ADR-016: Self-Hosted Link Shortener
+
+**Status:** Accepted  
+**Date:** 2026-05-18  
+**Deciders:** Nick  
+
+### Context
+
+The Purchases feature stores optional URLs (product pages, Amazon links, etc.). These links are often very long and unwieldy. An external shortener (bit.ly, TinyURL) conflicts with the project's principle that no data leaves the home network. A simple self-hosted solution fits naturally into the existing Express + Postgres stack.
+
+### Decision
+
+Build a minimal link shortener directly into the app:
+
+- **`ShortLink` Prisma model** — `code` (6-char alphanumeric, unique), `originalUrl`, `babyId`, `createdById`, `createdAt`
+- **`ShortLink` creation is automatic** — the purchase create/update service calls an internal `createShortLink()` function whenever a URL is present; no separate client-facing endpoint is exposed
+- **`GET /s/:code`** — the only public surface; no auth required; 302 to `originalUrl`; 404 on miss
+- Short codes are served from the same Express server — no separate service, no subdomain
+- The UI exposes a "Visit" button on purchases; the short code and original URL are invisible to the user
+
+### Options Considered
+
+| Option | Verdict |
+|--------|---------|
+| External shortener (bit.ly, TinyURL) | Rejected — sends URLs to a third party; conflicts with home-network-only principle |
+| Store full URL, truncate in UI only | Rejected — doesn't solve the problem when sharing a link externally |
+| Self-hosted (this decision) | Accepted — zero new infrastructure, consistent with existing stack |
+| Separate shortener service (YOURLS, etc.) | Rejected — overkill; adds another Docker container and admin surface |
+
+### Consequences
+
+- Positive: No data leaves the home network — URLs stay in the family's own Postgres instance
+- Positive: Zero new infrastructure — one new table and two new routes on the existing Express server
+- Positive: Short URLs work on the local network and via Tailscale without any extra config
+- Negative: Short links only resolve while the server is running — not suitable for sharing outside Tailscale
+- Negative: No analytics, click tracking, or expiry — intentional; not needed for this use case
+- Negative: No deduplication — shortening the same URL twice creates two codes (acceptable; keeps implementation trivial)
+
+---
+
+*ADRs authored May 2026. Review after initial launch (target: Q4 2026 post-birth).*

@@ -232,6 +232,38 @@ socket.on('feeding:created', () => {
 
 ---
 
+## Loading Skeletons
+
+Every screen that loads async data **must** show a skeleton placeholder while data is in-flight — never an empty screen, a spinner alone, or layout shift on data arrival.
+
+**Rule:** If a `useQuery` is pending, render a skeleton. The skeleton must match the shape of the loaded content so there is no layout shift when real data arrives.
+
+```tsx
+// ✅ Correct — skeleton matches content shape
+function FeedingCard() {
+  const { data, isLoading } = useFeedingQuery()
+
+  if (isLoading) return <FeedingCardSkeleton />    // same height/width as loaded card
+  return <FeedingCardContent data={data} />
+}
+```
+
+**Skeleton component conventions:**
+- Feature-scoped: `features/<name>/components/<Name>Skeleton.tsx`
+- Shared: `components/skeletons/`
+- Use Tailwind `animate-pulse` on `<div>` blocks with `bg-[var(--bg3)]` fill and `rounded` matching the real content
+- Skeleton height must match the loaded content height — no layout shift allowed
+- For lists: render a fixed number (3–5) of skeleton rows, not a single full-height block
+- Never use a generic spinner as the only loading state for a content-heavy area; spinners are acceptable only for action buttons (submitting, saving)
+
+**Shared skeleton components** (put in `src/components/skeletons/`):
+- `<TextLineSkeleton width?>` — a single line of text
+- `<CardSkeleton rows?>` — a card with N text line skeletons
+- `<StatSkeleton>` — a stat number + label block
+- `<AvatarSkeleton>` — circular avatar placeholder
+
+---
+
 ## Authentication (ADR-004)
 
 - JWT access token: 15 minutes, stored in memory (never `localStorage`)
@@ -510,7 +542,9 @@ All ADRs are in `docs/ADRs.md`. Summary:
 | ADR-012 | Stay with Vite + React Router; do not migrate to Next.js | Accepted |
 | ADR-013 | Utility placement two-tier rule; import ordering; barrel exports | Accepted |
 | ADR-014 | All work on feature branches via PR; no direct commits to `main` | Accepted |
+| ADR-015 | Calendar View: unified month view with filter chips, split-panel tablet layout | Accepted |
+| ADR-016 | Self-hosted link shortener for purchase URLs; auto-created, no external service | Accepted |
 
 ---
 
-*Last updated: 2026-05-17. Update this file whenever a new ADR is accepted or a convention changes.*
+*Last updated: 2026-05-18. Update this file whenever a new ADR is accepted or a convention changes.*
