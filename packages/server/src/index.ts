@@ -10,6 +10,7 @@ import { checklistRouter } from './routes/checklist'
 import { purchaseRouter } from './routes/purchase'
 import { visitorRouter } from './routes/visitor'
 import { shortLinkRouter } from './routes/shortLink'
+import { pregnancyRouter } from './routes/pregnancy'
 import { errorHandler } from './middleware/errorHandler'
 import { setupSocket } from './socket/index'
 
@@ -47,6 +48,7 @@ app.use('/api/auth/passkey', passkeyRouter)
 app.use('/api/checklist', checklistRouter)
 app.use('/api/purchases', purchaseRouter)
 app.use('/api/visitors', visitorRouter)
+app.use('/api/pregnancy', pregnancyRouter)
 app.use('/s', shortLinkRouter)
 
 app.use(errorHandler)

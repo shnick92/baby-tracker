@@ -5,6 +5,7 @@ import { useSocketStore } from '@stores/socketStore'
 import { api } from '@lib/axios'
 import { AddPasskeyButton } from '../auth/AddPasskeyButton'
 import { ClipboardIcon, ShoppingBagIcon, UsersIcon, HomeIcon } from '@components/icons'
+import { PregnancyProgressWidget } from '../pregnancy'
 
 const SOCKET_RING: Record<string, string> = {
   connecting: '0 0 0 2px #f59e0b',
@@ -80,6 +81,8 @@ export function Dashboard() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        <PregnancyProgressWidget />
+
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3 px-1">
             Pregnancy Prep

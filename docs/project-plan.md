@@ -461,14 +461,14 @@ Push to main
 
 **Goal:** All pre-birth planning features are complete. This phase should be done well before the due date.
 
-#### Pregnancy Progress Widget
+#### Pregnancy Progress Widget ✅ Complete
 
-- [ ] Add `GET /api/pregnancy/status?babyId=` endpoint — returns `{ weeksPregnant, weeksRemaining, progressPct, babySize, dueDate }`
-- [ ] Server-side week calculation from `Baby.dueDate`; hardcoded week-by-week baby size lookup table (weeks 4–40)
-- [ ] Client: `usePregnancyStatus(babyId)` hook via TanStack Query; stale time 1 hour
-- [ ] `<PregnancyProgressWidget>` component — circular SVG progress ring, week number, baby size, due date
-- [ ] Hide widget entirely after birth
-- [ ] `<PregnancyProgressSkeleton>` — same dimensions as loaded widget
+- [x] Add `GET /api/pregnancy/status?babyId=` endpoint — returns `{ weeksPregnant, weeksRemaining, progressPct, babySize, dueDate }`
+- [x] Server-side week calculation from `Baby.dueDate`; hardcoded week-by-week baby size lookup table (weeks 4–40)
+- [x] Client: `usePregnancyStatus(babyId)` hook via TanStack Query; stale time 1 hour
+- [x] `<PregnancyProgressWidget>` component — circular SVG progress ring, week number, baby size, due date
+- [x] Hide widget entirely after birth
+- [x] `<PregnancyProgressSkeleton>` — same dimensions as loaded widget
 
 **Acceptance criteria:**
 - Widget shows correct week number and baby size on first load with no layout shift
