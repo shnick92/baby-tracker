@@ -42,7 +42,7 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test -w packages/client
+        run: npm test --workspaces --if-present
 
       - name: Build
         run: npm run build

@@ -492,20 +492,24 @@ Push to main
 - [x] Purchases Tracker UI — grouped by category
 - [x] Status toggle: Needed → Bought / Gifted / Skip
 - [x] Optional price + URL fields
+- [x] Inline edit for purchase items (name, category, price, notes, URL)
+- [x] Loading skeleton (`<PurchasesSkeleton>`) — no layout shift on load
 
 **Acceptance criteria:**
 - One parent checks an item on their phone; the other sees it update within 2 seconds (real-time sync)
 - Default hospital bag items are pre-populated on first load
 - Purchases list shows progress summary (e.g., "12 of 30 items bought")
 
-#### Self-Hosted Link Shortener
+#### Self-Hosted Link Shortener ✅ Complete
 
-- [ ] Add `ShortLink` model to Prisma schema: `id`, `code` (unique, 6-char alphanumeric), `originalUrl`, `babyId`, `createdById`, `createdAt` — migrate
-- [ ] `GET /s/:code` — public redirect route (no auth required); 302 to `originalUrl`; 404 if not found
-- [ ] `createShortLink(originalUrl, babyId, userId)` service function — generates unique 6-char code, retries up to 5 times on collision
-- [ ] Call `createShortLink` automatically inside the purchase create/update service whenever a `url` field is present
-- [ ] Client: purchases with a URL show a "Visit" button — taps open the short link; the raw URL is never displayed
-- [ ] Socket.io: no event needed — short links are not shared state
+- [x] Add `ShortLink` model to Prisma schema: `id`, `code` (unique, 6-char alphanumeric), `originalUrl`, `babyId`, `createdById`, `createdAt` — migrate
+- [x] Add `shortCode String?` to `Purchase` model — populated automatically when a URL is saved
+- [x] `GET /s/:code` — public redirect route (no auth required); 302 to `originalUrl`; 404 if not found
+- [x] `createShortLink(originalUrl, babyId, userId)` service function — generates unique 6-char code, retries up to 5 times on collision
+- [x] Call `createShortLink` automatically on purchase create/update whenever a `url` field is present and changed
+- [x] Nginx proxies `/s/` to Express (before SPA fallback); Vite dev proxy also handles `/s/`
+- [x] Client: purchases with a `shortCode` show a "Visit" link — opens in new tab; raw URL never displayed
+- [x] Server tests: `shortLink.test.ts` covers `generateCode` and `createShortLink` (including retry on collision)
 
 **Acceptance criteria:**
 - Submitting a purchase with a URL results in a working short link with no extra steps from the user
@@ -523,8 +527,9 @@ Push to main
 
 - [x] Visitor Schedule UI — calendar-style week view
 - [x] Add visitor slot: name, date, time window, notes
-- [x] Edit/delete slots
+- [x] Edit/delete slots (inline edit form)
 - [x] Mobile-friendly: tapping a time slot opens a quick-add form
+- [x] Loading skeleton (`<VisitorsSkeleton>`) — no layout shift on load
 
 **Acceptance criteria:**
 - Can schedule 10+ visitor slots without UI degradation

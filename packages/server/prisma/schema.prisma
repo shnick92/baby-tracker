@@ -49,6 +49,7 @@ model Baby {
   checklists   Checklist[]
   purchases    Purchase[]
   visitorSlots VisitorSlot[]
+  shortLinks   ShortLink[]
 }
 
 model BabyUser {
@@ -95,16 +96,27 @@ model ChecklistItem {
 }
 
 model Purchase {
-  id        String         @id @default(cuid())
-  babyId    String
-  baby      Baby           @relation(fields: [babyId], references: [id])
-  name      String
-  category  String
-  status    PurchaseStatus @default(NEEDED)
-  price     Float?
-  notes     String?
-  url       String?
-  createdAt DateTime       @default(now())
+  id         String         @id @default(cuid())
+  babyId     String
+  baby       Baby           @relation(fields: [babyId], references: [id])
+  name       String
+  category   String
+  status     PurchaseStatus @default(NEEDED)
+  price      Float?
+  notes      String?
+  url        String?
+  shortCode  String?        // 6-char code pointing to a ShortLink record
+  createdAt  DateTime       @default(now())
+}
+
+model ShortLink {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  originalUrl String
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  createdById String
+  createdAt   DateTime @default(now())
 }
 
 model VisitorSlot {

@@ -3,6 +3,7 @@ import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
 import { createPurchaseSchema, updatePurchaseSchema } from '@tracker/shared'
+import { createShortLink } from '../services/shortLink'
 
 export const purchaseRouter = Router()
 purchaseRouter.use(authMiddleware)
@@ -40,8 +41,13 @@ purchaseRouter.post('/', async (req, res) => {
     return
   }
 
+  let shortCode: string | undefined
+  if (parsed.data.url) {
+    shortCode = await createShortLink({ originalUrl: parsed.data.url, babyId, createdById: req.user!.userId })
+  }
+
   const purchase = await prisma.purchase.create({
-    data: { babyId, ...parsed.data },
+    data: { babyId, ...parsed.data, ...(shortCode ? { shortCode } : {}) },
   })
 
   const io = req.app.get('io') as Server
@@ -64,9 +70,19 @@ purchaseRouter.patch('/:id', async (req, res) => {
     return
   }
 
+  let shortCodeUpdate: { shortCode: string } | undefined
+  if (parsed.data.url && parsed.data.url !== existing.url) {
+    const code = await createShortLink({
+      originalUrl: parsed.data.url,
+      babyId: existing.babyId,
+      createdById: req.user!.userId,
+    })
+    shortCodeUpdate = { shortCode: code }
+  }
+
   const purchase = await prisma.purchase.update({
     where: { id: req.params['id'] },
-    data: parsed.data,
+    data: { ...parsed.data, ...shortCodeUpdate },
   })
 
   const io = req.app.get('io') as Server

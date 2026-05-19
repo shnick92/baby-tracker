@@ -233,6 +233,17 @@ export function PurchasesPage() {
                           <p className="text-xs text-gray-400 dark:text-gray-500">${purchase.price.toFixed(2)}</p>
                         )}
                       </div>
+                      {purchase.shortCode && (
+                        <a
+                          href={`/s/${purchase.shortCode}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                          aria-label={`Visit link for ${purchase.name}`}
+                        >
+                          Visit
+                        </a>
+                      )}
                       <button
                         onClick={() =>
                           cycleMutation.mutate({ id: purchase.id, status: nextStatus(purchase.status) })

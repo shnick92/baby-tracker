@@ -16,6 +16,7 @@ type Purchase = {
   price: number | null
   notes: string | null
   url: string | null
+  shortCode: string | null
 }
 
 type PurchasesResponse = { data: Purchase[]; meta: { total: number; bought: number } }

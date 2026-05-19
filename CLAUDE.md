@@ -109,6 +109,13 @@ Every session that produces code changes must follow this workflow exactly. `mai
 
 5. **PR must pass CI** (lint + typecheck + build) before merging.
 
+6. **PRs must include tests** for any new behavior. Server service functions → unit tests in `*.test.ts` (Vitest, `environment: 'node'`). Client UI behavior → component tests in `*.test.tsx` (Vitest + Testing Library). Existing tests must not regress.
+
+7. **PRs must include doc updates** for any completed features:
+   - Mark the task `[x]` in `docs/project-plan.md`
+   - If a new ADR is accepted, add it to `docs/ADRs.md` and the ADR index in `CLAUDE.md`
+   - If a new coding convention is introduced, add it to `CLAUDE.md`
+
 ### Enforcement Rules
 
 - Branch protection on `main` requires PR reviews and status checks

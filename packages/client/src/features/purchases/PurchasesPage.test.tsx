@@ -11,10 +11,10 @@ vi.mock('@stores/authStore')
 
 const mockResponse = {
   data: [
-    { id: 'p1', name: 'Crib', category: 'Nursery', status: 'NEEDED', price: 299.99, notes: null, url: null },
-    { id: 'p2', name: 'Breast pump', category: 'Feeding', status: 'BOUGHT', price: 149.99, notes: null, url: null },
-    { id: 'p3', name: 'Bottles', category: 'Feeding', status: 'GIFTED', price: null, notes: null, url: null },
-    { id: 'p4', name: 'Wipe warmer', category: 'Nursery', status: 'SKIP', price: null, notes: null, url: null },
+    { id: 'p1', name: 'Crib', category: 'Nursery', status: 'NEEDED', price: 299.99, notes: null, url: 'https://example.com/crib', shortCode: 'abc123' },
+    { id: 'p2', name: 'Breast pump', category: 'Feeding', status: 'BOUGHT', price: 149.99, notes: null, url: null, shortCode: null },
+    { id: 'p3', name: 'Bottles', category: 'Feeding', status: 'GIFTED', price: null, notes: null, url: null, shortCode: null },
+    { id: 'p4', name: 'Wipe warmer', category: 'Nursery', status: 'SKIP', price: null, notes: null, url: null, shortCode: null },
   ],
   meta: { total: 4, bought: 2 },
 }
@@ -86,7 +86,7 @@ describe('PurchasesPage', () => {
       vi.clearAllMocks()
       vi.mocked(api.get).mockResolvedValue({
         data: {
-          data: [{ id: 'px', name: 'Item', category: 'Test', status: currentStatus, price: null, notes: null, url: null }],
+          data: [{ id: 'px', name: 'Item', category: 'Test', status: currentStatus, price: null, notes: null, url: null, shortCode: null }],
           meta: { total: 1, bought: 0 },
         },
       })
@@ -175,6 +175,27 @@ describe('PurchasesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Edit Crib' }))
 
     expect(screen.getByPlaceholderText('Notes (optional)')).toBeInTheDocument()
+  })
+
+  // --- visit button ---
+
+  it('shows a Visit link for purchases that have a shortCode', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+
+    // p1 has shortCode 'abc123'
+    const visitLink = await screen.findByRole('link', { name: 'Visit link for Crib' })
+    expect(visitLink).toHaveAttribute('href', '/s/abc123')
+    expect(visitLink).toHaveAttribute('target', '_blank')
+  })
+
+  it('does not show a Visit link for purchases without a shortCode', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+
+    await screen.findByText('Breast pump')
+    // p2 has no shortCode
+    expect(screen.queryByRole('link', { name: 'Visit link for Breast pump' })).not.toBeInTheDocument()
   })
 
   it('price inputs have step="any" to allow decimal values', async () => {
