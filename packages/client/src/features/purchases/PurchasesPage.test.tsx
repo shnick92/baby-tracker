@@ -179,23 +179,33 @@ describe('PurchasesPage', () => {
 
   // --- visit button ---
 
-  it('shows a Visit link for purchases that have a shortCode', async () => {
+  it('shows an open-link icon linking to the original URL for purchases that have a url', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
     renderWithProviders(<PurchasesPage />)
 
-    // p1 has shortCode 'abc123'
-    const visitLink = await screen.findByRole('link', { name: 'Visit link for Crib' })
-    expect(visitLink).toHaveAttribute('href', '/s/abc123')
+    // p1 has url 'https://example.com/crib'
+    const visitLink = await screen.findByRole('link', { name: 'Open link for Crib' })
+    expect(visitLink).toHaveAttribute('href', 'https://example.com/crib')
     expect(visitLink).toHaveAttribute('target', '_blank')
   })
 
-  it('does not show a Visit link for purchases without a shortCode', async () => {
+  it('shows a copy-link icon for purchases that have a shortCode', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+
+    await screen.findByText('Crib')
+    // p1 has shortCode 'abc123'
+    expect(screen.getByRole('button', { name: 'Copy short link for Crib' })).toBeInTheDocument()
+  })
+
+  it('does not show link icons for purchases without a url or shortCode', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
     renderWithProviders(<PurchasesPage />)
 
     await screen.findByText('Breast pump')
-    // p2 has no shortCode
-    expect(screen.queryByRole('link', { name: 'Visit link for Breast pump' })).not.toBeInTheDocument()
+    // p2 has no url or shortCode
+    expect(screen.queryByRole('link', { name: 'Open link for Breast pump' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copy short link for Breast pump' })).not.toBeInTheDocument()
   })
 
   it('price inputs have step="any" to allow decimal values', async () => {

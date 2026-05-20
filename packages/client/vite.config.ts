@@ -49,7 +49,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        navigateFallbackDenylist: [/^\/s\//],
         runtimeCaching: [
+          {
+            urlPattern: /^\/s\//,
+            handler: 'NetworkOnly',
+          },
           {
             urlPattern: /^https?.*\/api\/.*/i,
             handler: 'NetworkFirst',

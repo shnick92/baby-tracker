@@ -3,7 +3,7 @@ import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
 import { createPurchaseSchema, updatePurchaseSchema } from '@tracker/shared'
-import { createShortLink } from '../services/shortLink'
+import { createShortLink, isAlreadyShortened } from '../services/shortLink'
 
 export const purchaseRouter = Router()
 purchaseRouter.use(authMiddleware)
@@ -42,7 +42,7 @@ purchaseRouter.post('/', async (req, res) => {
   }
 
   let shortCode: string | undefined
-  if (parsed.data.url) {
+  if (parsed.data.url && !isAlreadyShortened(parsed.data.url)) {
     shortCode = await createShortLink({ originalUrl: parsed.data.url, babyId, createdById: req.user!.userId })
   }
 
@@ -71,7 +71,7 @@ purchaseRouter.patch('/:id', async (req, res) => {
   }
 
   let shortCodeUpdate: { shortCode: string } | undefined
-  if (parsed.data.url && parsed.data.url !== existing.url) {
+  if (parsed.data.url && parsed.data.url !== existing.url && !isAlreadyShortened(parsed.data.url)) {
     const code = await createShortLink({
       originalUrl: parsed.data.url,
       babyId: existing.babyId,

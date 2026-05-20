@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { groupBy } from '@lib/utils/groupBy'
-import { TrashIcon, PencilIcon } from '@components/icons'
+import { TrashIcon, PencilIcon, ExternalLinkIcon, LinkIcon, CheckIcon } from '@components/icons'
 import type { PurchaseStatus } from '@tracker/shared'
 
 import { usePurchases } from './usePurchases'
@@ -52,6 +52,13 @@ const inputCls =
 export function PurchasesPage() {
   const [addingItem, setAddingItem] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const handleCopyLink = (id: string, shortCode: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/s/${shortCode}`)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
   const { data, isLoading, cycleMutation, addMutation, editMutation, deleteItemMutation, deleteGroupMutation } = usePurchases()
 
   const addForm = useForm<AddPurchaseForm>({
@@ -230,16 +237,30 @@ export function PurchasesPage() {
                           <p className="text-xs text-gray-400 dark:text-gray-500">${purchase.price.toFixed(2)}</p>
                         )}
                       </div>
-                      {purchase.shortCode && (
+                      {purchase.url && (
                         <a
-                          href={`/s/${purchase.shortCode}`}
+                          href={purchase.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-shrink-0 h-11 px-3 flex items-center rounded-full text-xs font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
-                          aria-label={`Visit link for ${purchase.name}`}
+                          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          aria-label={`Open link for ${purchase.name}`}
                         >
-                          Visit
+                          <ExternalLinkIcon />
                         </a>
+                      )}
+                      {purchase.shortCode && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLink(purchase.id, purchase.shortCode!)}
+                          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                          aria-label={`Copy short link for ${purchase.name}`}
+                        >
+                          {copiedId === purchase.id ? (
+                            <CheckIcon className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <LinkIcon />
+                          )}
+                        </button>
                       )}
                       <button
                         onClick={() =>

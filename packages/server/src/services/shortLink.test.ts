@@ -9,7 +9,7 @@ vi.mock('../lib/prisma', () => ({
 }))
 
 import { prisma } from '../lib/prisma'
-import { generateCode, createShortLink } from './shortLink'
+import { generateCode, createShortLink, isAlreadyShortened } from './shortLink'
 
 const mockCreate = vi.mocked(prisma.shortLink.create)
 
@@ -36,6 +36,27 @@ describe('generateCode', () => {
   it('produces different codes across many calls', () => {
     const codes = new Set(Array.from({ length: 200 }, () => generateCode()))
     expect(codes.size).toBeGreaterThan(190)
+  })
+})
+
+describe('isAlreadyShortened', () => {
+  it('returns true for known shortener domains', () => {
+    expect(isAlreadyShortened('https://amzn.to/3xYzAbc')).toBe(true)
+    expect(isAlreadyShortened('https://bit.ly/3xYzAbc')).toBe(true)
+    expect(isAlreadyShortened('https://tinyurl.com/abc123')).toBe(true)
+    expect(isAlreadyShortened('https://t.co/abc123')).toBe(true)
+    expect(isAlreadyShortened('https://rb.gy/abc123')).toBe(true)
+  })
+
+  it('returns false for regular product URLs', () => {
+    expect(isAlreadyShortened('https://www.amazon.com/dp/B08N5WRWNW')).toBe(false)
+    expect(isAlreadyShortened('https://babylist.com/list/some-item')).toBe(false)
+    expect(isAlreadyShortened('https://www.target.com/p/something')).toBe(false)
+  })
+
+  it('returns false for malformed URLs without throwing', () => {
+    expect(isAlreadyShortened('not-a-url')).toBe(false)
+    expect(isAlreadyShortened('')).toBe(false)
   })
 })
 
