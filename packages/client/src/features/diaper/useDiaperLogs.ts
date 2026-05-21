@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@lib/axios'
 import { getSocket } from '@lib/socket'
-import type { DiaperType, DiaperColor, DiaperConsistency } from '@tracker/shared'
+import type { DiaperType, DiaperColor, DiaperConsistency, UpdateDiaperInput } from '@tracker/shared'
 
 import { diaperKeys } from './queryKeys'
 
@@ -44,9 +44,11 @@ export function useDiaperLogs(babyId: string) {
     const socket = getSocket()
     const invalidate = () => queryClient.invalidateQueries({ queryKey: diaperKeys.list(babyId) })
     socket.on('diaper:created', invalidate)
+    socket.on('diaper:updated', invalidate)
     socket.on('diaper:deleted', invalidate)
     return () => {
       socket.off('diaper:created', invalidate)
+      socket.off('diaper:updated', invalidate)
       socket.off('diaper:deleted', invalidate)
     }
   }, [babyId, queryClient])
@@ -54,6 +56,12 @@ export function useDiaperLogs(babyId: string) {
   const logMutation = useMutation({
     mutationFn: (payload: LogDiaperPayload) =>
       api.post('/api/diaper', { babyId, ...payload }).then((r) => r.data.data as DiaperLog),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: diaperKeys.list(babyId) }),
+  })
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & UpdateDiaperInput) =>
+      api.patch(`/api/diaper/${id}`, data).then((r) => r.data.data as DiaperLog),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: diaperKeys.list(babyId) }),
   })
 
@@ -68,5 +76,5 @@ export function useDiaperLogs(babyId: string) {
   const wetCount = todayLogs.filter((l) => l.type === 'WET' || l.type === 'BOTH').length
   const dirtyCount = todayLogs.filter((l) => l.type === 'DIRTY' || l.type === 'BOTH').length
 
-  return { logs, isLoading: query.isLoading, todayLogs, wetCount, dirtyCount, logMutation, deleteMutation }
+  return { logs, isLoading: query.isLoading, todayLogs, wetCount, dirtyCount, logMutation, editMutation, deleteMutation }
 }

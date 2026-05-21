@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@lib/axios'
 import { getSocket } from '@lib/socket'
-import type { FeedingType } from '@tracker/shared'
+import type { FeedingType, UpdateFeedingInput } from '@tracker/shared'
 
 import { feedingKeys } from './queryKeys'
 
@@ -69,6 +69,12 @@ export function useFeedingLogs(babyId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: feedingKeys.list(babyId) }),
   })
 
+  const editMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & UpdateFeedingInput) =>
+      api.patch(`/api/feeding/${id}`, data).then((r) => r.data.data as FeedingLog),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: feedingKeys.list(babyId) }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/feeding/${id}`).then((r) => r.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: feedingKeys.list(babyId) }),
@@ -87,6 +93,7 @@ export function useFeedingLogs(babyId: string) {
     endMutation,
     logBottleMutation,
     logPumpMutation,
+    editMutation,
     deleteMutation,
   }
 }

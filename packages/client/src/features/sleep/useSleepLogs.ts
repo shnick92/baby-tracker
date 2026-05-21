@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@lib/axios'
 import { getSocket } from '@lib/socket'
-import type { SleepType } from '@tracker/shared'
+import type { SleepType, UpdateSleepInput } from '@tracker/shared'
 
 import { sleepKeys } from './queryKeys'
 
@@ -55,6 +55,12 @@ export function useSleepLogs(babyId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: sleepKeys.list(babyId) }),
   })
 
+  const editMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & UpdateSleepInput) =>
+      api.patch(`/api/sleep/${id}`, data).then((r) => r.data.data as SleepLog),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: sleepKeys.list(babyId) }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/api/sleep/${id}`).then((r) => r.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: sleepKeys.list(babyId) }),
@@ -64,5 +70,5 @@ export function useSleepLogs(babyId: string) {
   const activeSession = logs.find((l) => !l.endedAt) ?? null
   const lastEnded = logs.find((l) => l.endedAt) ?? null
 
-  return { logs, isLoading: query.isLoading, activeSession, lastEnded, startMutation, endMutation, deleteMutation }
+  return { logs, isLoading: query.isLoading, activeSession, lastEnded, startMutation, endMutation, editMutation, deleteMutation }
 }

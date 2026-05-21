@@ -615,16 +615,16 @@ Push to main
 
 ---
 
-### Phase 3.Edit: Log Editing
+### Phase 3.Edit: Log Editing ✅ Complete
 
 **Goal:** Allow parents to correct logs that were entered incorrectly — wrong time, wrong volume, wrong type.
 
-- [ ] Feeding: edit startedAt, endedAt, volumeOz on any completed log
-- [ ] Feeding: edit type (e.g., change BREAST_LEFT to BREAST_RIGHT)
-- [ ] Sleep: edit startedAt, endedAt on any completed log
-- [ ] Diaper: edit type, color, and consistency on any log
-- [ ] Edit UI: inline edit on tap (same pattern as purchases — tap row to reveal edit form)
-- [ ] Server: PATCH `/api/feeding/:id`, PATCH `/api/sleep/:id`, PATCH `/api/diaper/:id`
+- [x] Feeding: edit startedAt, endedAt, volumeOz on any completed log
+- [x] Feeding: edit type (e.g., change BREAST_LEFT to BREAST_RIGHT)
+- [x] Sleep: edit startedAt, endedAt on any completed log
+- [x] Diaper: edit type, color, and consistency on any log
+- [x] Edit UI: inline edit on tap (same pattern as purchases — tap row to reveal edit form)
+- [x] Server: PATCH `/api/feeding/:id`, PATCH `/api/sleep/:id`, PATCH `/api/diaper/:id`
 
 ---
 

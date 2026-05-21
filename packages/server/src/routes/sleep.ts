@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
-import { startSleepSchema, endSleepSchema } from '@tracker/shared'
+import { startSleepSchema, endSleepSchema, updateSleepSchema } from '@tracker/shared'
 
 export const sleepRouter = Router()
 sleepRouter.use(authMiddleware)
@@ -57,6 +57,32 @@ sleepRouter.patch('/:id/end', async (req, res) => {
   const log = await prisma.sleepLog.update({
     where: { id: existing.id },
     data: { endedAt },
+  })
+
+  const io = req.app.get('io') as Server
+  io.to(`family:${log.babyId}`).emit('sleep:updated', { babyId: log.babyId })
+
+  res.json({ data: log, error: null })
+})
+
+// PATCH /api/sleep/:id — edit a sleep log
+sleepRouter.patch('/:id', async (req, res) => {
+  const existing = await prisma.sleepLog.findUnique({ where: { id: req.params['id'] } })
+  if (!existing) { res.status(404).json({ data: null, error: 'Sleep log not found' }); return }
+
+  const parsed = updateSleepSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
+
+  const { type, startedAt, endedAt, notes } = parsed.data
+
+  const log = await prisma.sleepLog.update({
+    where: { id: existing.id },
+    data: {
+      ...(type !== undefined && { type }),
+      ...(startedAt !== undefined && { startedAt: new Date(startedAt) }),
+      ...(endedAt !== undefined && { endedAt: endedAt ? new Date(endedAt) : null }),
+      ...(notes !== undefined && { notes }),
+    },
   })
 
   const io = req.app.get('io') as Server

@@ -10,4 +10,14 @@ export const logDiaperSchema = z.object({
   notes: z.string().optional(),
 })
 
+export const updateDiaperSchema = z.object({
+  type: z.enum(['WET', 'DIRTY', 'BOTH']).optional(),
+  color: z.enum(['YELLOW', 'GREEN', 'BROWN', 'BLACK', 'RED', 'OTHER']).nullable().optional(),
+  consistency: z.enum(['SEEDY', 'PASTY', 'RUNNY', 'FIRM', 'WATERY', 'CUSTOM']).nullable().optional(),
+  customConsistency: z.string().nullable().optional(),
+  occurredAt: z.string().datetime().optional(),
+  notes: z.string().nullable().optional(),
+})
+
 export type LogDiaperInput = z.infer<typeof logDiaperSchema>
+export type UpdateDiaperInput = z.infer<typeof updateDiaperSchema>

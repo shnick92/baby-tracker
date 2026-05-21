@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
-import { startBreastFeedSchema, endFeedSchema, logBottleSchema, logPumpSchema } from '@tracker/shared'
+import { startBreastFeedSchema, endFeedSchema, logBottleSchema, logPumpSchema, updateFeedingSchema } from '@tracker/shared'
 
 export const feedingRouter = Router()
 feedingRouter.use(authMiddleware)
@@ -109,6 +109,43 @@ feedingRouter.post('/pump', async (req, res) => {
   io.to(`family:${log.babyId}`).emit('feeding:created', { babyId: log.babyId })
 
   res.status(201).json({ data: log, error: null })
+})
+
+// PATCH /api/feeding/:id — edit a completed feeding log
+feedingRouter.patch('/:id', async (req, res) => {
+  const existing = await prisma.feedingLog.findUnique({ where: { id: req.params['id'] } })
+  if (!existing) { res.status(404).json({ data: null, error: 'Feeding log not found' }); return }
+
+  const parsed = updateFeedingSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
+
+  const { type, startedAt, endedAt, volumeOz, notes } = parsed.data
+
+  const newStartedAt = startedAt ? new Date(startedAt) : existing.startedAt
+  const newEndedAt = endedAt !== undefined ? (endedAt ? new Date(endedAt) : null) : existing.endedAt
+  const newType = type ?? existing.type
+
+  let durationSec = existing.durationSec
+  if (newEndedAt && (newType === 'BREAST_LEFT' || newType === 'BREAST_RIGHT')) {
+    durationSec = Math.round((newEndedAt.getTime() - newStartedAt.getTime()) / 1000)
+  }
+
+  const log = await prisma.feedingLog.update({
+    where: { id: existing.id },
+    data: {
+      ...(type !== undefined && { type }),
+      ...(startedAt !== undefined && { startedAt: newStartedAt }),
+      ...(endedAt !== undefined && { endedAt: newEndedAt }),
+      ...(volumeOz !== undefined && { volumeOz }),
+      ...(notes !== undefined && { notes }),
+      durationSec,
+    },
+  })
+
+  const io = req.app.get('io') as Server
+  io.to(`family:${log.babyId}`).emit('feeding:updated', { babyId: log.babyId })
+
+  res.json({ data: log, error: null })
 })
 
 // DELETE /api/feeding/:id

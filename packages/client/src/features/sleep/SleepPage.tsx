@@ -1,19 +1,69 @@
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
 import { useAuthStore } from '@stores/authStore'
-import { formatDuration, formatTimeAgo } from '@lib/utils'
+import { formatDuration, formatTimeAgo, toDatetimeLocal } from '@lib/utils'
 import { useElapsedSeconds } from '@hooks/useElapsedSeconds'
-import { TrashIcon } from '@components/icons'
+import { TrashIcon, PencilIcon } from '@components/icons'
 
 import { useSleepLogs } from './useSleepLogs'
 import { SleepSkeleton } from './SleepSkeleton'
 
+const editSleepSchema = z.object({
+  type: z.enum(['NAP', 'NIGHT']),
+  startedAt: z.string().min(1, 'Required'),
+  endedAt: z.string().optional(),
+  notes: z.string().optional(),
+})
+
+type EditSleepForm = z.infer<typeof editSleepSchema>
+
+const inputCls =
+  'w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+
 export function SleepPage() {
   const { babyId } = useAuthStore()
-  const { logs, isLoading, activeSession, lastEnded, startMutation, endMutation, deleteMutation } = useSleepLogs(babyId!)
+  const { logs, isLoading, activeSession, lastEnded, startMutation, endMutation, editMutation, deleteMutation } = useSleepLogs(babyId!)
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  const editForm = useForm<EditSleepForm>({ resolver: zodResolver(editSleepSchema) })
 
   const sleepElapsed = useElapsedSeconds(activeSession?.startedAt)
   const awakeElapsed = useElapsedSeconds(lastEnded?.endedAt ?? undefined)
 
   const completedLogs = logs.filter((l) => l.endedAt)
+
+  const handleStartEdit = (log: (typeof completedLogs)[0]) => {
+    setEditingId(log.id)
+    editForm.reset({
+      type: log.type,
+      startedAt: toDatetimeLocal(log.startedAt),
+      endedAt: log.endedAt ? toDatetimeLocal(log.endedAt) : '',
+      notes: log.notes ?? '',
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    editForm.reset()
+  }
+
+  const onEditSubmit = editForm.handleSubmit((values) => {
+    if (!editingId) return
+    editMutation.mutate(
+      {
+        id: editingId,
+        type: values.type,
+        startedAt: new Date(values.startedAt).toISOString(),
+        endedAt: values.endedAt ? new Date(values.endedAt).toISOString() : undefined,
+        notes: values.notes || null,
+      },
+      { onSuccess: () => { setEditingId(null); editForm.reset() } },
+    )
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -117,6 +167,69 @@ export function SleepPage() {
                     const dur = log.endedAt
                       ? Math.round((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000)
                       : null
+
+                    if (editingId === log.id) {
+                      return (
+                        <form
+                          key={log.id}
+                          noValidate
+                          onSubmit={onEditSubmit}
+                          className="px-4 py-3 space-y-3"
+                        >
+                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Edit sleep log
+                          </p>
+
+                          <select {...editForm.register('type')} className={inputCls}>
+                            <option value="NAP">Nap</option>
+                            <option value="NIGHT">Night sleep</option>
+                          </select>
+
+                          <div>
+                            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start</label>
+                            <input
+                              type="datetime-local"
+                              {...editForm.register('startedAt')}
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End</label>
+                            <input
+                              type="datetime-local"
+                              {...editForm.register('endedAt')}
+                              className={inputCls}
+                            />
+                          </div>
+
+                          <input
+                            type="text"
+                            placeholder="Notes (optional)"
+                            {...editForm.register('notes')}
+                            className={inputCls}
+                          />
+
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              type="submit"
+                              disabled={editMutation.isPending}
+                              className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium disabled:opacity-50"
+                            >
+                              {editMutation.isPending ? 'Saving…' : 'Save'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEdit}
+                              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      )
+                    }
+
                     return (
                       <div key={log.id} className="flex items-center gap-3 px-4 py-3">
                         <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm flex-shrink-0">
@@ -133,6 +246,14 @@ export function SleepPage() {
                             {formatTimeAgo(log.endedAt ?? log.startedAt)}
                           </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(log)}
+                          className="p-2 text-gray-300 dark:text-gray-600 hover:text-indigo-400 dark:hover:text-indigo-500 transition-colors flex-shrink-0"
+                          aria-label={`Edit ${log.type === 'NAP' ? 'nap' : 'night sleep'} log`}
+                        >
+                          <PencilIcon />
+                        </button>
                         <button
                           type="button"
                           onClick={() => deleteMutation.mutate(log.id)}

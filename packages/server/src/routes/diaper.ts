@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
-import { logDiaperSchema } from '@tracker/shared'
+import { logDiaperSchema, updateDiaperSchema } from '@tracker/shared'
 
 export const diaperRouter = Router()
 diaperRouter.use(authMiddleware)
@@ -45,6 +45,34 @@ diaperRouter.post('/', async (req, res) => {
   io.to(`family:${log.babyId}`).emit('diaper:created', { babyId: log.babyId })
 
   res.status(201).json({ data: log, error: null })
+})
+
+// PATCH /api/diaper/:id — edit a diaper log
+diaperRouter.patch('/:id', async (req, res) => {
+  const existing = await prisma.diaperLog.findUnique({ where: { id: req.params['id'] } })
+  if (!existing) { res.status(404).json({ data: null, error: 'Diaper log not found' }); return }
+
+  const parsed = updateDiaperSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
+
+  const { type, color, consistency, customConsistency, occurredAt, notes } = parsed.data
+
+  const log = await prisma.diaperLog.update({
+    where: { id: existing.id },
+    data: {
+      ...(type !== undefined && { type }),
+      ...(color !== undefined && { color }),
+      ...(consistency !== undefined && { consistency }),
+      ...(customConsistency !== undefined && { customConsistency }),
+      ...(occurredAt !== undefined && { occurredAt: new Date(occurredAt) }),
+      ...(notes !== undefined && { notes }),
+    },
+  })
+
+  const io = req.app.get('io') as Server
+  io.to(`family:${log.babyId}`).emit('diaper:updated', { babyId: log.babyId })
+
+  res.json({ data: log, error: null })
 })
 
 // DELETE /api/diaper/:id

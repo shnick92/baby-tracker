@@ -25,7 +25,16 @@ export const logPumpSchema = z.object({
   notes: z.string().optional(),
 })
 
+export const updateFeedingSchema = z.object({
+  type: z.enum(['BREAST_LEFT', 'BREAST_RIGHT', 'BOTTLE', 'PUMP']).optional(),
+  startedAt: z.string().datetime().optional(),
+  endedAt: z.string().datetime().nullable().optional(),
+  volumeOz: z.number().min(0).max(32).nullable().optional(),
+  notes: z.string().nullable().optional(),
+})
+
 export type StartBreastFeedInput = z.infer<typeof startBreastFeedSchema>
 export type EndFeedInput = z.infer<typeof endFeedSchema>
 export type LogBottleInput = z.infer<typeof logBottleSchema>
 export type LogPumpInput = z.infer<typeof logPumpSchema>
+export type UpdateFeedingInput = z.infer<typeof updateFeedingSchema>

@@ -22,3 +22,9 @@ export function formatTimeAgo(date: string | Date): string {
 export function formatOz(oz: number): string {
   return `${oz % 1 === 0 ? oz : oz.toFixed(1)} oz`
 }
+
+export function toDatetimeLocal(isoString: string): string {
+  const d = new Date(isoString)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
