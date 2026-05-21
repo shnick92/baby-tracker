@@ -39,3 +39,9 @@ export type MilestoneCategory =
 export type AlertStatus = 'SENT' | 'SEEN' | 'ACKNOWLEDGED'
 
 export type SocketStatus = 'connecting' | 'synced' | 'unsynced'
+
+export type SleepSettings = {
+  napIdealMinutes: number
+  nightIdealMinutes: number
+  wakeWindowMaxMinutes: number
+}

@@ -9,6 +9,7 @@ import { useElapsedMinutes } from '@hooks/useElapsedMinutes'
 import { TrashIcon, PencilIcon } from '@components/icons'
 
 import { useSleepLogs } from './useSleepLogs'
+import { useSleepSettings } from './useSleepSettings'
 import { SleepSkeleton } from './SleepSkeleton'
 
 const editSleepSchema = z.object({
@@ -30,17 +31,19 @@ function fmtMin(minutes: number): string {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-const IDEAL_MIN_SEC: Record<'NAP' | 'NIGHT', number> = {
-  NAP: 45 * 60,     // 45 min
-  NIGHT: 3 * 3600,  // 3 hours
-}
-
-function sleepBarColor(durSec: number, type: 'NAP' | 'NIGHT'): string {
-  const pct = (durSec / IDEAL_MIN_SEC[type]) * 100
+function sleepBarColor(durSec: number, idealSec: number): string {
+  const pct = (durSec / idealSec) * 100
   if (pct >= 80) return 'bg-green-400 dark:bg-green-500'
   if (pct >= 50) return 'bg-amber-400 dark:bg-amber-500'
   return 'bg-rose-400 dark:bg-rose-500'
 }
+
+const settingsSchema = z.object({
+  napIdealMinutes: z.coerce.number().int().min(5, 'Min 5 min').max(240, 'Max 240 min'),
+  nightIdealMinutes: z.coerce.number().int().min(60, 'Min 60 min').max(720, 'Max 720 min'),
+  wakeWindowMaxMinutes: z.coerce.number().int().min(1, 'Min 1 min').max(360, 'Max 360 min'),
+})
+type SettingsForm = z.infer<typeof settingsSchema>
 
 function formatTimeRange(startedAt: string, endedAt: string | null): string {
   const fmt = (d: Date) =>
@@ -57,16 +60,28 @@ export function SleepPage() {
     totalSleepTodaySec, longestStretchSec,
     startMutation, endMutation, editMutation, deleteMutation,
   } = useSleepLogs(babyId!)
+  const { settings, updateMutation: updateSettings } = useSleepSettings(babyId!)
 
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+
   const editForm = useForm<EditSleepForm>({ resolver: zodResolver(editSleepSchema) })
+  const settingsForm = useForm<SettingsForm>({
+    resolver: zodResolver(settingsSchema),
+    values: settings,
+  })
 
   const sleepMinutes = useElapsedMinutes(activeSession?.startedAt)
   const awakeMinutes = useElapsedMinutes(lastEnded?.endedAt ?? undefined)
 
   const completedLogs = logs.filter((l) => l.endedAt)
 
-  const napWindowApproaching = awakeMinutes > 75 // approaching 90 min ideal window
+  const wakeWindowPct = awakeMinutes / settings.wakeWindowMaxMinutes
+  const napWindowSoon = wakeWindowPct >= 0.8 && wakeWindowPct < 1
+  const napWindowExceeded = wakeWindowPct >= 1
+
+  const idealSecForType = (type: 'NAP' | 'NIGHT') =>
+    type === 'NAP' ? settings.napIdealMinutes * 60 : settings.nightIdealMinutes * 60
 
   const handleStartEdit = (log: (typeof completedLogs)[0]) => {
     setEditingId(log.id)
@@ -97,6 +112,10 @@ export function SleepPage() {
     )
   })
 
+  const onSettingsSubmit = settingsForm.handleSubmit((values) => {
+    updateSettings.mutate(values, { onSuccess: () => setShowSettings(false) })
+  })
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
@@ -108,11 +127,23 @@ export function SleepPage() {
             </p>
           )}
         </div>
-        {activeSession && (
-          <span className="text-xs text-purple-500 dark:text-purple-400 font-medium">
-            Sleeping · {fmtMin(sleepMinutes)}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {activeSession && (
+            <span className="text-xs text-purple-500 dark:text-purple-400 font-medium">
+              Sleeping · {fmtMin(sleepMinutes)}
+            </span>
+          )}
+          <button
+            onClick={() => setShowSettings((s) => !s)}
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            aria-label="Sleep settings"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {isLoading ? (
@@ -124,6 +155,20 @@ export function SleepPage() {
 
           {/* Left column: controls */}
           <div className="space-y-4">
+
+            {/* Gear button — tablet only (mobile has it in the header above) */}
+            <div className="hidden md:flex justify-end">
+              <button
+                onClick={() => setShowSettings((s) => !s)}
+                className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                aria-label="Sleep settings"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+              </button>
+            </div>
 
             {/* Active sleep timer */}
             {activeSession && (
@@ -168,7 +213,12 @@ export function SleepPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-purple-600 dark:text-purple-400">
                     Currently awake
                   </p>
-                  {napWindowApproaching && (
+                  {napWindowExceeded && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 font-medium">
+                      Nap overdue
+                    </span>
+                  )}
+                  {napWindowSoon && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
                       Nap window soon
                     </span>
@@ -183,14 +233,14 @@ export function SleepPage() {
                 <div className="h-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-full overflow-hidden mb-1">
                   <div
                     className="h-full rounded-full bg-purple-500 dark:bg-purple-400"
-                    style={{ width: `${Math.min(100, Math.round((awakeMinutes / 90) * 100))}%` }}
+                    style={{ width: `${Math.min(100, Math.round((awakeMinutes / settings.wakeWindowMaxMinutes) * 100))}%` }}
                   />
                 </div>
                 <div className="flex justify-between mb-4">
                   <span className="text-[10px] text-gray-400 dark:text-gray-500">
                     Woke {new Date(lastEnded.endedAt!).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </span>
-                  <span className="text-[10px] text-purple-500 dark:text-purple-400">Ideal: 90 min window</span>
+                  <span className="text-[10px] text-purple-500 dark:text-purple-400">Notify after {settings.wakeWindowMaxMinutes} min</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -226,6 +276,78 @@ export function SleepPage() {
                   </button>
                 ))}
               </div>
+            )}
+            {/* Settings panel */}
+            {showSettings && (
+              <form
+                noValidate
+                onSubmit={onSettingsSubmit}
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Sleep targets</p>
+                  <button type="button" onClick={() => setShowSettings(false)} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">Done</button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Nap ideal (min)</label>
+                    <input
+                      type="number" min="5" max="240"
+                      {...settingsForm.register('napIdealMinutes')}
+                      className={`${inputCls} ${settingsForm.formState.errors.napIdealMinutes ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                    />
+                    {settingsForm.formState.errors.napIdealMinutes && (
+                      <p className="text-xs text-red-500 mt-1 text-right">{settingsForm.formState.errors.napIdealMinutes.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Night ideal (min)</label>
+                    <input
+                      type="number" min="60" max="720"
+                      {...settingsForm.register('nightIdealMinutes')}
+                      className={`${inputCls} ${settingsForm.formState.errors.nightIdealMinutes ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                    />
+                    {settingsForm.formState.errors.nightIdealMinutes && (
+                      <p className="text-xs text-red-500 mt-1 text-right">{settingsForm.formState.errors.nightIdealMinutes.message}</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Wake window alert (min)</label>
+                  <input
+                    type="number" min="1" max="360"
+                    {...settingsForm.register('wakeWindowMaxMinutes')}
+                    className={`${inputCls} ${settingsForm.formState.errors.wakeWindowMaxMinutes ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                  />
+                  {settingsForm.formState.errors.wakeWindowMaxMinutes ? (
+                    <p className="text-xs text-red-500 mt-1 text-right">{settingsForm.formState.errors.wakeWindowMaxMinutes.message}</p>
+                  ) : (
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Push notification sent after this many minutes awake</p>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={updateSettings.isPending}
+                  className="w-full py-3 rounded-xl bg-purple-600 text-white text-sm font-semibold disabled:opacity-50"
+                >
+                  {updateSettings.isPending ? 'Saving…' : 'Save targets'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.serviceWorker.ready.then((reg) => {
+                      reg.showNotification('Test notification', {
+                        body: 'If you see this, the SW and notification permission are working.',
+                        icon: '/icons/icon-192.png',
+                        tag: 'test',
+                      })
+                    }).catch((err) => console.error('[push] test notification failed:', err))
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400"
+                >
+                  Test notification
+                </button>
+              </form>
             )}
           </div>
 
@@ -267,9 +389,9 @@ export function SleepPage() {
                         )
                       : null
                     const logType = log.type as 'NAP' | 'NIGHT'
-                    const idealMin = IDEAL_MIN_SEC[logType]
-                    const barPct = dur != null ? Math.min(100, Math.max(3, Math.round((dur / idealMin) * 100))) : 0
-                    const barColor = dur != null ? sleepBarColor(dur, logType) : 'bg-gray-300'
+                    const idealSec = idealSecForType(logType)
+                    const barPct = dur != null ? Math.min(100, Math.max(3, Math.round((dur / idealSec) * 100))) : 0
+                    const barColor = dur != null ? sleepBarColor(dur, idealSec) : 'bg-gray-300'
 
                     if (editingId === log.id) {
                       return (
@@ -359,7 +481,7 @@ export function SleepPage() {
                             {formatTimeRange(log.startedAt, log.endedAt)}
                           </p>
                           <p className="text-[11px] text-gray-300 dark:text-gray-600">
-                            {barPct >= 100 ? '✓ ideal' : `${barPct}% of ${logType === 'NAP' ? '45m' : '3h'} goal`}
+                            {barPct >= 100 ? '✓ ideal' : `${barPct}% of ${logType === 'NAP' ? `${settings.napIdealMinutes}m` : `${settings.nightIdealMinutes}m`} goal`}
                           </p>
                         </div>
                       </div>

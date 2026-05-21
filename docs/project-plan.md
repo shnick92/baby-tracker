@@ -654,13 +654,36 @@ Push to main
 
 - [x] Awake elapsed and active-sleep elapsed update every 5 minutes (not every second)
 - [x] Sleep bars show duration as % of per-type ideal minimum (NAP: 45 min; NIGHT: 3 h), color-coded green / amber / rose
-- [ ] Wake window card shows "Log Nap" / "Night Sleep" quick-start buttons (no confusing "Start Timer" label when a timer is visually already running)
-- [ ] Configurable ideal sleep targets per type stored in a settings table (currently hardcoded: NAP 45 min, NIGHT 3 h)
-- [ ] Background wake-window reminder: push notification if baby has been awake > 2 h with no sleep logged
+- [x] Wake window card shows "Log Nap" / "Night Sleep" quick-start buttons (no confusing "Start Timer" label when a timer is visually already running)
+- [x] Configurable ideal sleep targets per type stored in a settings table (currently hardcoded: NAP 45 min, NIGHT 3 h)
+- [x] Background wake-window reminder: push notification if baby has been awake > 2 h with no sleep logged
 
 **Acceptance criteria:**
 - Elapsed times in wake window and active session are never more than 5 minutes stale
 - Sleep bar color correctly reflects short / adequate / ideal duration for both nap and night sleep types
+
+---
+
+### Phase 3.Validation: App-Wide Form Validation UX
+
+**Goal:** Every form field that fails validation shows a red border and a short inline error message bottom-right. No silent failures.
+
+**Pattern (to become the app-wide standard):**
+- Invalid input: red border (`border-red-400 dark:border-red-500 focus:ring-red-400`)
+- Error message: `<p className="text-xs text-red-500 mt-1 text-right">{error.message}</p>` directly below the field
+- All Zod `.min()` / `.max()` / `.refine()` messages must be human-readable strings, not TS defaults
+- Server-side 4xx responses with `{ data: null, error: "..." }` should surface as a toast or inline banner — never silently swallowed
+
+**Tasks:**
+- [ ] Add the border+helper-text pattern to all existing form inputs that currently have no error display: FeedingPage (edit form), SleepPage (edit form), DiaperPage (edit form), VisitorsPage (add form), ChecklistPage (add item), PurchasesPage (add/edit forms)
+- [ ] Add human-readable messages to all existing Zod schema constraints in `packages/shared/src/schemas/` and any inline schemas
+- [ ] Add a lightweight `<Toast>` component (top-center, auto-dismiss 4 s) for server-side errors that don't map to a specific field
+- [ ] Wire the axios response interceptor to fire the toast on any `{ error: string }` response that isn't handled inline
+- [ ] Document the pattern in CLAUDE.md as the canonical form-error convention
+
+**Acceptance criteria:**
+- Entering an out-of-range value in any form field shows a red border and readable message without submitting
+- A server-side error on any mutation surfaces as a toast within 1 s of the failed request
 
 ---
 

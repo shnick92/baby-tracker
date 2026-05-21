@@ -27,5 +27,6 @@
       "@test/*": ["src/test/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/sw.ts"]
 }

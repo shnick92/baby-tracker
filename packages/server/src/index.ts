@@ -16,6 +16,9 @@ import { sleepRouter } from './routes/sleep'
 import { diaperRouter } from './routes/diaper'
 import { errorHandler } from './middleware/errorHandler'
 import { setupSocket } from './socket/index'
+import pushRouter from './routes/push'
+import settingsRouter from './routes/settings'
+import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
 const app = express()
 const server = http.createServer(app)
@@ -46,6 +49,14 @@ app.get('/api/health', (_req, res) => {
   res.json({ data: { status: 'ok' }, error: null })
 })
 
+if (process.env.NODE_ENV !== 'production') {
+  app.post('/api/debug/wake-check', async (_req, res) => {
+    console.log('[debug] manual wake-window check triggered')
+    await runWakeWindowCheck()
+    res.json({ data: { ok: true }, error: null })
+  })
+}
+
 app.use('/api/auth', authRouter)
 app.use('/api/auth/passkey', passkeyRouter)
 app.use('/api/checklist', checklistRouter)
@@ -56,8 +67,12 @@ app.use('/api/feeding', feedingRouter)
 app.use('/api/sleep', sleepRouter)
 app.use('/api/diaper', diaperRouter)
 app.use('/s', shortLinkRouter)
+app.use('/api/push', pushRouter)
+app.use('/api/settings', settingsRouter)
 
 app.use(errorHandler)
+
+startCronJobs()
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

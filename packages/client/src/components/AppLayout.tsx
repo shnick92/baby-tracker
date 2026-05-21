@@ -63,7 +63,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className="md:flex md:min-h-screen">
+    <div className="md:flex md:h-screen">
       {/* Sidebar — tablet only */}
       <aside className="hidden md:flex md:flex-col md:w-56 md:flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700">
         <div className="px-4 py-4 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
@@ -130,7 +130,9 @@ export function AppLayout() {
           </div>
         )}
 
-        <Outlet />
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <Outlet />
+        </div>
 
         {/* Bottom nav — mobile only */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex safe-bottom">

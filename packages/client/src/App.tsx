@@ -8,6 +8,7 @@ import { api } from '@lib/axios'
 import { connectSocket, disconnectSocket, getSocket } from '@lib/socket'
 import { useAuthStore, type AuthUser } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
+import { usePushSubscription } from '@hooks/usePushSubscription'
 import { ProtectedRoute, AppLayout } from '@components'
 import { LoginPage } from '@features/auth'
 import { Dashboard } from '@features/dashboard'
@@ -41,6 +42,8 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isError) setBootstrapped()
   }, [isError, setBootstrapped])
+
+  usePushSubscription(!!accessToken)
 
   // Connect socket when authenticated, disconnect on logout
   useEffect(() => {
