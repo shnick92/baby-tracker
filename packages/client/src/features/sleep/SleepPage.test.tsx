@@ -31,7 +31,7 @@ describe('SleepPage', () => {
       },
     })
     renderWithProviders(<SleepPage />)
-    expect(await screen.findByText('Wake')).toBeInTheDocument()
+    expect(await screen.findByText('Wake up')).toBeInTheDocument()
     expect(screen.getByText('Napping')).toBeInTheDocument()
   })
 

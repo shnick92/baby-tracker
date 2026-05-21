@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { useAuthStore } from '@stores/authStore'
-import { formatDuration, formatTimeAgo, toDatetimeLocal } from '@lib/utils'
-import { useElapsedSeconds } from '@hooks/useElapsedSeconds'
+import { formatDuration, toDatetimeLocal } from '@lib/utils'
+import { useElapsedMinutes } from '@hooks/useElapsedMinutes'
 import { TrashIcon, PencilIcon } from '@components/icons'
 
 import { useSleepLogs } from './useSleepLogs'
@@ -21,20 +21,52 @@ const editSleepSchema = z.object({
 type EditSleepForm = z.infer<typeof editSleepSchema>
 
 const inputCls =
-  'w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500'
+  'w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500'
+
+function fmtMin(minutes: number): string {
+  if (minutes < 60) return `${minutes}m`
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m > 0 ? `${h}h ${m}m` : `${h}h`
+}
+
+const IDEAL_MIN_SEC: Record<'NAP' | 'NIGHT', number> = {
+  NAP: 45 * 60,     // 45 min
+  NIGHT: 3 * 3600,  // 3 hours
+}
+
+function sleepBarColor(durSec: number, type: 'NAP' | 'NIGHT'): string {
+  const pct = (durSec / IDEAL_MIN_SEC[type]) * 100
+  if (pct >= 80) return 'bg-green-400 dark:bg-green-500'
+  if (pct >= 50) return 'bg-amber-400 dark:bg-amber-500'
+  return 'bg-rose-400 dark:bg-rose-500'
+}
+
+function formatTimeRange(startedAt: string, endedAt: string | null): string {
+  const fmt = (d: Date) =>
+    d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  return endedAt
+    ? `${fmt(new Date(startedAt))} – ${fmt(new Date(endedAt))}`
+    : `Started ${fmt(new Date(startedAt))}`
+}
 
 export function SleepPage() {
   const { babyId } = useAuthStore()
-  const { logs, isLoading, activeSession, lastEnded, startMutation, endMutation, editMutation, deleteMutation } = useSleepLogs(babyId!)
+  const {
+    logs, isLoading, activeSession, lastEnded,
+    totalSleepTodaySec, longestStretchSec,
+    startMutation, endMutation, editMutation, deleteMutation,
+  } = useSleepLogs(babyId!)
 
   const [editingId, setEditingId] = useState<string | null>(null)
-
   const editForm = useForm<EditSleepForm>({ resolver: zodResolver(editSleepSchema) })
 
-  const sleepElapsed = useElapsedSeconds(activeSession?.startedAt)
-  const awakeElapsed = useElapsedSeconds(lastEnded?.endedAt ?? undefined)
+  const sleepMinutes = useElapsedMinutes(activeSession?.startedAt)
+  const awakeMinutes = useElapsedMinutes(lastEnded?.endedAt ?? undefined)
 
   const completedLogs = logs.filter((l) => l.endedAt)
+
+  const napWindowApproaching = awakeMinutes > 75 // approaching 90 min ideal window
 
   const handleStartEdit = (log: (typeof completedLogs)[0]) => {
     setEditingId(log.id)
@@ -68,105 +100,176 @@ export function SleepPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Sleep</h1>
-        {!activeSession && lastEnded && (
-          <span className="text-xs text-gray-400 dark:text-gray-500">
-            Awake {formatDuration(awakeElapsed)}
+        <div>
+          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Sleep</h1>
+          {totalSleepTodaySec > 0 && (
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Today · {formatDuration(totalSleepTodaySec)} total
+            </p>
+          )}
+        </div>
+        {activeSession && (
+          <span className="text-xs text-purple-500 dark:text-purple-400 font-medium">
+            Sleeping · {fmtMin(sleepMinutes)}
           </span>
         )}
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-4 md:max-w-2xl md:px-8">
-        {isLoading ? (
+      {isLoading ? (
+        <div className="max-w-lg mx-auto px-4 py-4">
           <SleepSkeleton />
-        ) : (
-          <>
+        </div>
+      ) : (
+        <div className="max-w-lg mx-auto px-4 py-4 md:max-w-5xl md:px-6 md:grid md:grid-cols-2 md:gap-6 md:items-start">
+
+          {/* Left column: controls */}
+          <div className="space-y-4">
+
             {/* Active sleep timer */}
             {activeSession && (
-              <div className="bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-100 dark:border-indigo-800 px-4 py-4 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-800/50 px-4 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-purple-600 dark:text-purple-400">
                     {activeSession.type === 'NAP' ? 'Napping' : 'Night sleep'}
                   </p>
-                  <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-300 tabular-nums mt-0.5">
-                    {formatDuration(sleepElapsed)}
-                  </p>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-medium">
+                    In progress
+                  </span>
                 </div>
-                <div className="flex flex-col items-end gap-1.5">
+                <div className="flex items-baseline gap-2 mb-4">
+                  <p className="text-[40px] font-thin tabular-nums text-gray-900 dark:text-gray-100 leading-none">
+                    {fmtMin(sleepMinutes)}
+                  </p>
+                  <span className="text-sm text-gray-400 dark:text-gray-500">sleeping</span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => deleteMutation.mutate(activeSession.id)}
+                    disabled={endMutation.isPending || deleteMutation.isPending}
+                    className="flex-1 py-3.5 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold disabled:opacity-40"
+                  >
+                    Cancel
+                  </button>
                   <button
                     onClick={() => endMutation.mutate(activeSession.id)}
                     disabled={endMutation.isPending || deleteMutation.isPending}
-                    className="h-12 px-5 rounded-2xl bg-indigo-600 text-white text-sm font-semibold disabled:opacity-50"
+                    className="flex-1 py-3.5 rounded-xl bg-purple-600 text-white text-sm font-semibold disabled:opacity-50"
                   >
-                    Wake
+                    Wake up
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Wake window card — not sleeping */}
+            {!activeSession && lastEnded && (
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-800/50 px-4 py-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-purple-600 dark:text-purple-400">
+                    Currently awake
+                  </p>
+                  {napWindowApproaching && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">
+                      Nap window soon
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-2 mb-3">
+                  <p className="text-[40px] font-thin tabular-nums text-gray-900 dark:text-gray-100 leading-none">
+                    {fmtMin(awakeMinutes)}
+                  </p>
+                  <span className="text-sm text-gray-400 dark:text-gray-500">awake</span>
+                </div>
+                <div className="h-1.5 bg-purple-100 dark:bg-purple-900/40 rounded-full overflow-hidden mb-1">
+                  <div
+                    className="h-full rounded-full bg-purple-500 dark:bg-purple-400"
+                    style={{ width: `${Math.min(100, Math.round((awakeMinutes / 90) * 100))}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mb-4">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                    Woke {new Date(lastEnded.endedAt!).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                  <span className="text-[10px] text-purple-500 dark:text-purple-400">Ideal: 90 min window</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => startMutation.mutate('NAP')}
+                    disabled={startMutation.isPending}
+                    className="py-3.5 rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold disabled:opacity-40"
+                  >
+                    Log Nap
                   </button>
                   <button
-                    type="button"
-                    onClick={() => deleteMutation.mutate(activeSession.id)}
-                    disabled={endMutation.isPending || deleteMutation.isPending}
-                    className="text-xs text-indigo-400 dark:text-indigo-500 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-40"
+                    onClick={() => startMutation.mutate('NIGHT')}
+                    disabled={startMutation.isPending}
+                    className="py-3.5 rounded-xl bg-purple-600 text-white text-sm font-semibold disabled:opacity-50"
                   >
-                    Cancel session
+                    Night Sleep
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Wake window indicator */}
-            {!activeSession && lastEnded && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-800/50 px-4 py-3 flex items-center gap-3">
-                <span className="text-lg">☀️</span>
-                <div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    Awake for {formatDuration(awakeElapsed)}
-                  </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-500">
-                    Last {lastEnded.type === 'NAP' ? 'nap' : 'sleep'} was{' '}
-                    {lastEnded.endedAt
-                      ? formatDuration(
-                          Math.round(
-                            (new Date(lastEnded.endedAt).getTime() - new Date(lastEnded.startedAt).getTime()) / 1000,
-                          ),
-                        )
-                      : '—'}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Quick-log buttons */}
-            <div className="grid grid-cols-2 gap-3">
-              {(['NAP', 'NIGHT'] as const).map((type) => {
-                const isActive = activeSession?.type === type
-                return (
+            {/* No sleep yet — fresh state */}
+            {!activeSession && !lastEnded && (
+              <div className="grid grid-cols-2 gap-3">
+                {(['NAP', 'NIGHT'] as const).map((type) => (
                   <button
                     key={type}
-                    onClick={() => (activeSession ? endMutation.mutate(activeSession.id) : startMutation.mutate(type))}
-                    disabled={startMutation.isPending || endMutation.isPending || (!!activeSession && !isActive)}
-                    className={`h-20 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-40 flex flex-col items-center justify-center gap-1 ${
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 shadow-sm'
-                    }`}
+                    onClick={() => startMutation.mutate(type)}
+                    disabled={startMutation.isPending}
+                    className="h-20 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-40 flex flex-col items-center justify-center gap-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 shadow-sm"
                   >
                     <span className="text-xl">{type === 'NAP' ? '😴' : '🌙'}</span>
                     <span>{type === 'NAP' ? 'Nap' : 'Night sleep'}</span>
                   </button>
-                )
-              })}
-            </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* Log list */}
+          {/* Right column: stats + log list */}
+          <div className="space-y-4 mt-4 md:mt-0">
+
+            {/* Stats row */}
+            {(totalSleepTodaySec > 0 || longestStretchSec > 0) && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Total sleep today</p>
+                  <p className="text-xl font-semibold text-purple-600 dark:text-purple-400 tabular-nums leading-none">
+                    {formatDuration(totalSleepTodaySec)}
+                  </p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Goal: 14–17h</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-1">Longest stretch</p>
+                  <p className="text-xl font-semibold text-gray-800 dark:text-gray-100 tabular-nums leading-none">
+                    {longestStretchSec ? formatDuration(longestStretchSec) : '—'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Log list with sleep bar visualization */}
             {completedLogs.length > 0 && (
-              <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2 px-1">
-                  Recent sleep
-                </h2>
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <div className="px-4 pt-4 pb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Last {Math.min(completedLogs.length, 8)} sleep entries
+                  </p>
+                </div>
+                <div className="divide-y divide-gray-50 dark:divide-gray-700">
                   {completedLogs.slice(0, 8).map((log) => {
                     const dur = log.endedAt
-                      ? Math.round((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000)
+                      ? Math.round(
+                          (new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000,
+                        )
                       : null
+                    const logType = log.type as 'NAP' | 'NIGHT'
+                    const idealMin = IDEAL_MIN_SEC[logType]
+                    const barPct = dur != null ? Math.min(100, Math.max(3, Math.round((dur / idealMin) * 100))) : 0
+                    const barColor = dur != null ? sleepBarColor(dur, logType) : 'bg-gray-300'
 
                     if (editingId === log.id) {
                       return (
@@ -179,42 +282,28 @@ export function SleepPage() {
                           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                             Edit sleep log
                           </p>
-
                           <select {...editForm.register('type')} className={inputCls}>
                             <option value="NAP">Nap</option>
                             <option value="NIGHT">Night sleep</option>
                           </select>
-
                           <div>
                             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start</label>
-                            <input
-                              type="datetime-local"
-                              {...editForm.register('startedAt')}
-                              className={inputCls}
-                            />
+                            <input type="datetime-local" {...editForm.register('startedAt')} className={inputCls} />
                           </div>
-
                           <div>
                             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End</label>
-                            <input
-                              type="datetime-local"
-                              {...editForm.register('endedAt')}
-                              className={inputCls}
-                            />
+                            <input type="datetime-local" {...editForm.register('endedAt')} className={inputCls} />
                           </div>
-
                           <input
-                            type="text"
-                            placeholder="Notes (optional)"
+                            type="text" placeholder="Notes (optional)"
                             {...editForm.register('notes')}
                             className={inputCls}
                           />
-
                           <div className="flex gap-2 pt-1">
                             <button
                               type="submit"
                               disabled={editMutation.isPending}
-                              className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium disabled:opacity-50"
+                              className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-medium disabled:opacity-50"
                             >
                               {editMutation.isPending ? 'Saving…' : 'Save'}
                             </button>
@@ -231,47 +320,57 @@ export function SleepPage() {
                     }
 
                     return (
-                      <div key={log.id} className="flex items-center gap-3 px-4 py-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-sm flex-shrink-0">
-                          {log.type === 'NAP' ? '😴' : '🌙'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                      <div key={log.id} className="px-4 py-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-medium text-gray-800 dark:text-gray-100">
                             {log.type === 'NAP' ? 'Nap' : 'Night sleep'}
-                            {dur != null && (
-                              <span className="text-gray-500 dark:text-gray-400 font-normal"> · {formatDuration(dur)}</span>
-                            )}
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-xs text-gray-400 dark:text-gray-500 mr-1 tabular-nums">
+                              {dur != null ? formatDuration(dur) : '—'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleStartEdit(log)}
+                              className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-purple-400 dark:hover:text-purple-500 transition-colors"
+                              aria-label="Edit"
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteMutation.mutate(log.id)}
+                              disabled={deleteMutation.isPending}
+                              className="p-1.5 -mr-1 text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-500 disabled:opacity-40 transition-colors"
+                              aria-label="Delete"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
+                          <div
+                            className={`h-full rounded-full ${barColor}`}
+                            style={{ width: `${barPct}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between">
+                          <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                            {formatTimeRange(log.startedAt, log.endedAt)}
                           </p>
-                          <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {formatTimeAgo(log.endedAt ?? log.startedAt)}
+                          <p className="text-[11px] text-gray-300 dark:text-gray-600">
+                            {barPct >= 100 ? '✓ ideal' : `${barPct}% of ${logType === 'NAP' ? '45m' : '3h'} goal`}
                           </p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleStartEdit(log)}
-                          className="p-2 text-gray-300 dark:text-gray-600 hover:text-indigo-400 dark:hover:text-indigo-500 transition-colors flex-shrink-0"
-                          aria-label={`Edit ${log.type === 'NAP' ? 'nap' : 'night sleep'} log`}
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteMutation.mutate(log.id)}
-                          disabled={deleteMutation.isPending}
-                          className="p-2 -mr-1 text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-500 disabled:opacity-40 transition-colors flex-shrink-0"
-                          aria-label={`Delete ${log.type === 'NAP' ? 'nap' : 'night sleep'} log`}
-                        >
-                          <TrashIcon />
-                        </button>
                       </div>
                     )
                   })}
                 </div>
               </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

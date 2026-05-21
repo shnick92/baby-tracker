@@ -21,7 +21,7 @@ describe('DiaperPage', () => {
     renderWithProviders(<DiaperPage />)
     expect(await screen.findByText('Wet')).toBeInTheDocument()
     expect(screen.getByText('Dirty')).toBeInTheDocument()
-    expect(screen.getByText('Wet + Dirty')).toBeInTheDocument()
+    expect(screen.getByText(/wet \+ dirty/i)).toBeInTheDocument()
   })
 
   it('logs a wet diaper immediately on tap without showing a detail panel', async () => {
@@ -41,7 +41,7 @@ describe('DiaperPage', () => {
     await userEvent.click(screen.getByText('Dirty'))
     expect(screen.getByText('Color')).toBeInTheDocument()
     expect(screen.getByText('Consistency')).toBeInTheDocument()
-    expect(screen.getByText('Log diaper')).toBeInTheDocument()
+    expect(screen.getByText('Log Dirty Diaper')).toBeInTheDocument()
   })
 
   it('shows today\'s diaper count when logs exist', async () => {
@@ -56,7 +56,7 @@ describe('DiaperPage', () => {
       },
     })
     renderWithProviders(<DiaperPage />)
-    expect(await screen.findByText('2 diapers today')).toBeInTheDocument()
-    expect(screen.getByText('1 wet · 1 dirty')).toBeInTheDocument()
+    expect(await screen.findByText('Today · 2 changes')).toBeInTheDocument()
+    expect(screen.getByText('Total')).toBeInTheDocument()
   })
 })

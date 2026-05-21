@@ -70,5 +70,17 @@ export function useSleepLogs(babyId: string) {
   const activeSession = logs.find((l) => !l.endedAt) ?? null
   const lastEnded = logs.find((l) => l.endedAt) ?? null
 
-  return { logs, isLoading: query.isLoading, activeSession, lastEnded, startMutation, endMutation, editMutation, deleteMutation }
+  const today = new Date().toDateString()
+  const completedToday = logs.filter(
+    (l) => l.endedAt && new Date(l.startedAt).toDateString() === today,
+  )
+  const totalSleepTodaySec = completedToday.reduce((acc, l) => {
+    return acc + Math.round((new Date(l.endedAt!).getTime() - new Date(l.startedAt).getTime()) / 1000)
+  }, 0)
+  const longestStretchSec = completedToday.reduce((max, l) => {
+    const dur = Math.round((new Date(l.endedAt!).getTime() - new Date(l.startedAt).getTime()) / 1000)
+    return dur > max ? dur : max
+  }, 0)
+
+  return { logs, isLoading: query.isLoading, activeSession, lastEnded, totalSleepTodaySec, longestStretchSec, startMutation, endMutation, editMutation, deleteMutation }
 }

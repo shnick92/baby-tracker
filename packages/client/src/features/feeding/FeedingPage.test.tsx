@@ -16,13 +16,15 @@ const emptyResponse = { data: { data: [], error: null } }
 describe('FeedingPage', () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it('renders the four quick-log buttons', async () => {
+  it('renders the tab selector and side buttons', async () => {
     vi.mocked(api.get).mockResolvedValue(emptyResponse)
     renderWithProviders(<FeedingPage />)
-    expect(await screen.findByText('Left')).toBeInTheDocument()
-    expect(screen.getByText('Right')).toBeInTheDocument()
+    expect(await screen.findByText('Breastfeed')).toBeInTheDocument()
     expect(screen.getByText('Bottle')).toBeInTheDocument()
-    expect(screen.getByText('Pump')).toBeInTheDocument()
+    expect(screen.getByText('Pumping')).toBeInTheDocument()
+    // Breastfeed tab is active by default — side buttons are visible
+    expect(screen.getByText('Left')).toBeInTheDocument()
+    expect(screen.getByText('Right')).toBeInTheDocument()
   })
 
   it('shows an active timer when a breast feed has no endedAt', async () => {
@@ -34,15 +36,15 @@ describe('FeedingPage', () => {
     })
     renderWithProviders(<FeedingPage />)
     expect(await screen.findByText('Stop')).toBeInTheDocument()
-    expect(screen.getByText(/left breast/i)).toBeInTheDocument()
+    expect(screen.getByText(/left side/i)).toBeInTheDocument()
   })
 
-  it('shows the bottle form when Bottle is tapped', async () => {
+  it('shows the bottle form when Bottle tab is tapped', async () => {
     vi.mocked(api.get).mockResolvedValue(emptyResponse)
     renderWithProviders(<FeedingPage />)
     await screen.findByText('Bottle')
-    await userEvent.click(screen.getByText('Bottle'))
-    expect(screen.getByPlaceholderText('oz')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Bottle' }))
+    expect(screen.getByPlaceholderText('0.0')).toBeInTheDocument()
   })
 
   it('calls POST /api/feeding/bottle on bottle submit', async () => {
@@ -51,10 +53,10 @@ describe('FeedingPage', () => {
     vi.mocked(api.post).mockResolvedValue({ data: { data: { id: 'f2', type: 'BOTTLE' }, error: null } })
     renderWithProviders(<FeedingPage />)
     await screen.findByText('Bottle')
-    await user.click(screen.getByText('Bottle'))
-    const ozInput = await screen.findByPlaceholderText('oz')
+    await user.click(screen.getByRole('button', { name: 'Bottle' }))
+    const ozInput = await screen.findByPlaceholderText('0.0')
     await user.type(ozInput, '3')
-    await user.click(screen.getByRole('button', { name: 'Log bottle' }))
+    await user.click(screen.getByRole('button', { name: 'Log Bottle Feed' }))
     expect(api.post).toHaveBeenCalledWith('/api/feeding/bottle', { babyId: 'b1', volumeOz: 3 })
   })
 })

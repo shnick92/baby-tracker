@@ -632,19 +632,35 @@ Push to main
 
 **Goal:** Core tracking screens are polished, fast, and pixel-aligned before the SOS phase begins.
 
-- [ ] Review Dashboard, Feeding, Sleep, and Diaper screens against `mockups.html`
-- [ ] Verify active timer states are visually clear and update every second without layout jank
-- [ ] Verify the avatar sync status ring (connecting/synced/unsynced) renders correctly — amber/green/red
+- [x] Review Dashboard, Feeding, Sleep, and Diaper screens against `mockups.html`
+- [x] Verify active timer states are visually clear and update every second without layout jank
+- [x] Verify the avatar sync status ring (connecting/synced/unsynced) renders correctly — amber/green/red
 - [ ] Test bottom navigation tap targets on an actual Android device (all targets ≥ 44×44px)
-- [ ] Add tablet layout for Dashboard (2-column card grid) and Feeding log list
-- [ ] Add tablet layout for Sleep and Diaper screens
-- [ ] Review offline indicator banner — position, text, and animation
+- [x] Add tablet layout for Dashboard (2-column card grid) and Feeding log list
+- [x] Add tablet layout for Sleep and Diaper screens
+- [x] Review offline indicator banner — position, text, and animation
 - [ ] Verify all Phase 3 screens in dark mode
 
 **Acceptance criteria:**
 - Dashboard loads in < 1 second and shows accurate state without layout shift
 - All core tracking screens work one-handed on a phone
 - Tablet dashboard shows a meaningful 2-column layout, not just a stretched phone UI
+
+---
+
+### Phase 3.Wake: Wake Window & Sleep Timer Polish
+
+**Goal:** More useful sleep-state display — coarse elapsed times, per-type ideal ranges shown at a glance.
+
+- [x] Awake elapsed and active-sleep elapsed update every 5 minutes (not every second)
+- [x] Sleep bars show duration as % of per-type ideal minimum (NAP: 45 min; NIGHT: 3 h), color-coded green / amber / rose
+- [ ] Wake window card shows "Log Nap" / "Night Sleep" quick-start buttons (no confusing "Start Timer" label when a timer is visually already running)
+- [ ] Configurable ideal sleep targets per type stored in a settings table (currently hardcoded: NAP 45 min, NIGHT 3 h)
+- [ ] Background wake-window reminder: push notification if baby has been awake > 2 h with no sleep logged
+
+**Acceptance criteria:**
+- Elapsed times in wake window and active session are never more than 5 minutes stale
+- Sleep bar color correctly reflects short / adequate / ideal duration for both nap and night sleep types
 
 ---
 

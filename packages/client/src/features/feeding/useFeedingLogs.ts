@@ -85,10 +85,17 @@ export function useFeedingLogs(babyId: string) {
     (l) => !l.endedAt && (l.type === 'BREAST_LEFT' || l.type === 'BREAST_RIGHT'),
   ) ?? null
 
+  const today = new Date().toDateString()
+  const feedCountToday = logs.filter((l) => {
+    const ts = l.endedAt ?? l.startedAt
+    return new Date(ts).toDateString() === today
+  }).length
+
   return {
     logs,
     isLoading: query.isLoading,
     activeSession,
+    feedCountToday,
     startMutation,
     endMutation,
     logBottleMutation,
