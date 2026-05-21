@@ -17,6 +17,9 @@ model User {
   babies        BabyUser[]
   refreshTokens RefreshToken[]
   credentials   Credential[]
+  feedingLogs   FeedingLog[]
+  sleepLogs     SleepLog[]
+  diaperLogs    DiaperLog[]
 }
 
 model Credential {
@@ -50,6 +53,9 @@ model Baby {
   purchases    Purchase[]
   visitorSlots VisitorSlot[]
   shortLinks   ShortLink[]
+  feedingLogs  FeedingLog[]
+  sleepLogs    SleepLog[]
+  diaperLogs   DiaperLog[]
 }
 
 model BabyUser {
@@ -71,12 +77,12 @@ model RefreshToken {
 }
 
 model Checklist {
-  id        String        @id @default(cuid())
+  id        String          @id @default(cuid())
   babyId    String
-  baby      Baby          @relation(fields: [babyId], references: [id])
+  baby      Baby            @relation(fields: [babyId], references: [id])
   type      ChecklistType
   items     ChecklistItem[]
-  createdAt DateTime      @default(now())
+  createdAt DateTime        @default(now())
 
   @@unique([babyId, type])
 }
@@ -96,17 +102,17 @@ model ChecklistItem {
 }
 
 model Purchase {
-  id         String         @id @default(cuid())
-  babyId     String
-  baby       Baby           @relation(fields: [babyId], references: [id])
-  name       String
-  category   String
-  status     PurchaseStatus @default(NEEDED)
-  price      Float?
-  notes      String?
-  url        String?
-  shortCode  String?        // 6-char code pointing to a ShortLink record
-  createdAt  DateTime       @default(now())
+  id        String         @id @default(cuid())
+  babyId    String
+  baby      Baby           @relation(fields: [babyId], references: [id])
+  name      String
+  category  String
+  status    PurchaseStatus @default(NEEDED)
+  price     Float?
+  notes     String?
+  url       String?
+  shortCode String?
+  createdAt DateTime       @default(now())
 }
 
 model ShortLink {
@@ -124,11 +130,54 @@ model VisitorSlot {
   babyId    String
   baby      Baby      @relation(fields: [babyId], references: [id])
   name      String
-  date      String    // YYYY-MM-DD, always required
+  date      String
   startTime DateTime?
   endTime   DateTime?
   notes     String?
   createdAt DateTime  @default(now())
+}
+
+model FeedingLog {
+  id          String      @id @default(cuid())
+  babyId      String
+  baby        Baby        @relation(fields: [babyId], references: [id])
+  loggedById  String
+  loggedBy    User        @relation(fields: [loggedById], references: [id])
+  type        FeedingType
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int?
+  volumeOz    Float?
+  notes       String?
+  createdAt   DateTime    @default(now())
+}
+
+model SleepLog {
+  id         String    @id @default(cuid())
+  babyId     String
+  baby       Baby      @relation(fields: [babyId], references: [id])
+  loggedById String
+  loggedBy   User      @relation(fields: [loggedById], references: [id])
+  type       SleepType
+  startedAt  DateTime
+  endedAt    DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+}
+
+model DiaperLog {
+  id                String             @id @default(cuid())
+  babyId            String
+  baby              Baby               @relation(fields: [babyId], references: [id])
+  loggedById        String
+  loggedBy          User               @relation(fields: [loggedById], references: [id])
+  type              DiaperType
+  color             DiaperColor?
+  consistency       DiaperConsistency?
+  customConsistency String?
+  occurredAt        DateTime
+  notes             String?
+  createdAt         DateTime           @default(now())
 }
 
 enum Role {
@@ -148,4 +197,40 @@ enum PurchaseStatus {
   BOUGHT
   GIFTED
   SKIP
+}
+
+enum FeedingType {
+  BREAST_LEFT
+  BREAST_RIGHT
+  BOTTLE
+  PUMP
+}
+
+enum SleepType {
+  NAP
+  NIGHT
+}
+
+enum DiaperType {
+  WET
+  DIRTY
+  BOTH
+}
+
+enum DiaperColor {
+  YELLOW
+  GREEN
+  BROWN
+  BLACK
+  RED
+  OTHER
+}
+
+enum DiaperConsistency {
+  SEEDY
+  PASTY
+  RUNNY
+  FIRM
+  WATERY
+  CUSTOM
 }

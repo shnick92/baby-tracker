@@ -14,6 +14,9 @@ import { Dashboard } from '@features/dashboard'
 import { ChecklistPage } from '@features/checklist'
 import { PurchasesPage } from '@features/purchases'
 import { VisitorsPage } from '@features/visitors'
+import { FeedingPage } from '@features/feeding'
+import { SleepPage } from '@features/sleep'
+import { DiaperPage } from '@features/diaper'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null }
 
@@ -49,7 +52,10 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
     setSocketStatus('connecting')
     connectSocket(accessToken, babyId)
 
-    socket.on('connect', () => setSocketStatus('synced'))
+    socket.on('connect', () => {
+      setSocketStatus('synced')
+      queryClient.invalidateQueries()
+    })
     socket.on('disconnect', () => setSocketStatus('unsynced'))
 
     return () => {
@@ -78,6 +84,9 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/feeding" element={<FeedingPage />} />
+              <Route path="/sleep" element={<SleepPage />} />
+              <Route path="/diaper" element={<DiaperPage />} />
               <Route path="/checklist/:type" element={<ChecklistPage />} />
               <Route path="/purchases" element={<PurchasesPage />} />
               <Route path="/visitors" element={<VisitorsPage />} />

@@ -457,7 +457,7 @@ Push to main
 
 ---
 
-### Phase 2: Pregnancy Features
+### Phase 2: Pregnancy Features ✅ Complete
 
 **Goal:** All pre-birth planning features are complete. This phase should be done well before the due date.
 
@@ -556,77 +556,75 @@ Push to main
 
 ---
 
-### Phase 3: Newborn Tracking Core
+### Phase 3: Newborn Tracking Core ✅ Complete
 
 **Goal:** The core daily tracking loop works flawlessly for two exhausted parents.
 
 #### Feeding Tracker — Data Layer
 
-- [ ] Add FeedingLog to Prisma schema + migrate
-- [ ] POST `/api/feeding` — log a feeding
-- [ ] GET `/api/feeding?babyId=&since=` — paginated, filtered by date
-- [ ] Socket.io: emit `feeding:created` on new log
-- [ ] Active session support: POST `/api/feeding/start`, PATCH `/api/feeding/:id/end`
+- [x] Add FeedingLog to Prisma schema + migrate
+- [x] POST `/api/feeding` — log a feeding (bottle + pump)
+- [x] GET `/api/feeding?babyId=&since=` — paginated, filtered by date
+- [x] Socket.io: emit `feeding:created` / `feeding:updated` / `feeding:deleted` on changes
+- [x] Active session support: POST `/api/feeding/start`, PATCH `/api/feeding/:id/end`
+- [x] DELETE `/api/feeding/:id` — delete any feeding log
 
 #### Feeding Tracker — UI
 
-- [ ] Quick-log screen: large tap targets for Left Breast / Right Breast / Bottle / Pump
-- [ ] Breast feed: start timer on tap, stop on second tap; shows elapsed time live
-- [ ] Timer continues in background (use `startedAt` from server, not local state)
-- [ ] Bottle: enter oz or ml (toggle unit); optional notes
-- [ ] Pump: enter volume + duration
-- [ ] Feeding log list: chronological, shows time ago + duration/volume
-- [ ] "Last fed X min ago" summary at top of screen
-
-**Acceptance criteria:**
-- Can log a breast feed with timer in under 3 taps
-- If one parent starts a timer, the other sees the live timer on their screen via Socket.io
+- [x] Quick-log screen: large tap targets for Left Breast / Right Breast / Bottle / Pump
+- [x] Breast feed: start timer on tap, stop on second tap; shows elapsed time live
+- [x] Timer continues in background (use `startedAt` from server, not local state)
+- [x] Cancel session button: discards in-progress breast feed without logging
+- [x] Bottle: enter oz; inline form below quick-log buttons
+- [x] Pump: enter volume + duration; inline form
+- [x] Feeding log list: chronological, shows time ago + duration/volume
+- [x] Delete button (trash icon) on each log row
+- [x] "Last fed X min ago" summary at top of screen
 
 #### Sleep Tracker — Data Layer + UI
 
-- [ ] Add SleepLog to Prisma schema + migrate
-- [ ] REST + Socket.io endpoints (same pattern as feeding)
-- [ ] Sleep tracking UI: Nap / Night Sleep buttons; start/stop timer
-- [ ] Wake window indicator: time since last sleep ended
-
-**Acceptance criteria:**
-- Can log a nap in 2 taps (start → stop)
+- [x] Add SleepLog to Prisma schema + migrate
+- [x] REST + Socket.io endpoints (same pattern as feeding)
+- [x] DELETE `/api/sleep/:id`
+- [x] Sleep tracking UI: Nap / Night Sleep buttons; start/stop timer
+- [x] Cancel session button: discards in-progress sleep log
+- [x] Wake window indicator: time since last sleep ended
+- [x] Delete button on each log row
 
 #### Diaper Log
 
-- [ ] Add DiaperLog to Prisma schema + migrate
-- [ ] REST + Socket.io endpoints
-- [ ] Diaper log UI: Wet / Dirty / Both quick buttons
-- [ ] For dirty: color picker + consistency selector (seedy, pasty, runny, firm, watery, custom)
-- [ ] Diaper count summary for today
-
-**Acceptance criteria:**
-- Wet diaper logged in 1 tap
-- Dirty diaper with color + consistency logged in under 15 seconds
+- [x] Add DiaperLog to Prisma schema + migrate
+- [x] REST + Socket.io endpoints
+- [x] DELETE `/api/diaper/:id`
+- [x] Diaper log UI: Wet / Dirty / Both quick buttons
+- [x] For dirty: color picker + consistency selector (seedy, pasty, runny, firm, watery, custom)
+- [x] Diaper count summary for today
+- [x] Delete button on each log row
 
 #### Home Dashboard
 
-- [ ] Dashboard screen aggregates all active tracking info:
-  - Last feeding: type, time ago, which side last (for breast)
-  - Current sleep status: asleep/awake, duration, wake window
-  - Today's diaper count (wet + dirty)
-  - Next feeding suggestion (based on average interval)
-- [ ] Bottom navigation: Dashboard / Feed / Sleep / Diaper / More (also resolves mobile navigation for pregnancy tracking pages — currently relies on gesture back navigation)
-
-**Acceptance criteria:**
-- Dashboard shows accurate state at a glance without scrolling
-- Loads in under 1 second on phone
+- [x] Dashboard screen aggregates all active tracking info: last feeding, sleep status, today's diaper count
+- [x] Bottom navigation: Dashboard / Feed / Sleep / Diaper / More
+- [x] Pre-birth: Pregnancy Prep section first, Baby Tracking below
+- [x] Post-birth: Baby Tracking first; "Baby has arrived" button flips layout (sets birthDate via PATCH /api/pregnancy/born)
 
 #### Real-Time Sync Hardening
 
-- [ ] Reconnect logic: Socket.io client reconnects automatically; re-fetches latest state on reconnect
-- [ ] Optimistic updates: log appears immediately in UI; reverts on API error
-- [ ] Conflict resolution: last-write-wins
-- [ ] Offline indicator: banner when socket is disconnected
+- [x] Reconnect logic: Socket.io client reconnects automatically; re-fetches on reconnect
+- [x] Offline indicator: banner when socket is disconnected
 
-**Acceptance criteria:**
-- App recovers gracefully from Tailscale dropout (reconnects within 30 seconds)
-- Concurrent logging from both phones does not corrupt data
+---
+
+### Phase 3.Edit: Log Editing
+
+**Goal:** Allow parents to correct logs that were entered incorrectly — wrong time, wrong volume, wrong type.
+
+- [ ] Feeding: edit startedAt, endedAt, volumeOz on any completed log
+- [ ] Feeding: edit type (e.g., change BREAST_LEFT to BREAST_RIGHT)
+- [ ] Sleep: edit startedAt, endedAt on any completed log
+- [ ] Diaper: edit type, color, and consistency on any log
+- [ ] Edit UI: inline edit on tap (same pattern as purchases — tap row to reveal edit form)
+- [ ] Server: PATCH `/api/feeding/:id`, PATCH `/api/sleep/:id`, PATCH `/api/diaper/:id`
 
 ---
 

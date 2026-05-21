@@ -74,6 +74,7 @@ export default defineConfig({
       '@stores': resolve(__dirname, 'src/stores'),
       '@components': resolve(__dirname, 'src/components'),
       '@features': resolve(__dirname, 'src/features'),
+      '@hooks': resolve(__dirname, 'src/hooks'),
       '@test': resolve(__dirname, 'src/test'),
     },
   },

@@ -11,6 +11,9 @@ import { purchaseRouter } from './routes/purchase'
 import { visitorRouter } from './routes/visitor'
 import { shortLinkRouter } from './routes/shortLink'
 import { pregnancyRouter } from './routes/pregnancy'
+import { feedingRouter } from './routes/feeding'
+import { sleepRouter } from './routes/sleep'
+import { diaperRouter } from './routes/diaper'
 import { errorHandler } from './middleware/errorHandler'
 import { setupSocket } from './socket/index'
 
@@ -49,6 +52,9 @@ app.use('/api/checklist', checklistRouter)
 app.use('/api/purchases', purchaseRouter)
 app.use('/api/visitors', visitorRouter)
 app.use('/api/pregnancy', pregnancyRouter)
+app.use('/api/feeding', feedingRouter)
+app.use('/api/sleep', sleepRouter)
+app.use('/api/diaper', diaperRouter)
 app.use('/s', shortLinkRouter)
 
 app.use(errorHandler)
