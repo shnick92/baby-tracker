@@ -18,6 +18,7 @@ import { errorHandler } from './middleware/errorHandler'
 import { setupSocket } from './socket/index'
 import pushRouter from './routes/push'
 import settingsRouter from './routes/settings'
+import alertsRouter from './routes/alerts'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
 const app = express()
@@ -69,6 +70,7 @@ app.use('/api/diaper', diaperRouter)
 app.use('/s', shortLinkRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/settings', settingsRouter)
+app.use('/api/alerts', alertsRouter)
 
 app.use(errorHandler)
 

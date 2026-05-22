@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import { api } from '@lib/axios'
 import { useAuthStore } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
+import { SOSButton } from '@features/alerts'
 
 const SOCKET_RING: Record<string, string> = {
   connecting: '0 0 0 2px #f59e0b',
@@ -20,6 +21,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
   { to: '/checklist/hospital_bag_mom', label: 'Pregnancy Prep', icon: '🤰', prefix: '/checklist' },
   { to: '/purchases', label: 'Purchases', icon: '🛍', prefix: '/purchases' },
   { to: '/visitors', label: 'Visitors', icon: '👥', prefix: '/visitors' },
+  { to: '/alerts', label: 'Alert History', icon: '🔔', prefix: '/alerts' },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
@@ -34,7 +36,8 @@ function isMoreActive(pathname: string): boolean {
   return (
     pathname.startsWith('/checklist') ||
     pathname.startsWith('/purchases') ||
-    pathname.startsWith('/visitors')
+    pathname.startsWith('/visitors') ||
+    pathname.startsWith('/alerts')
   )
 }
 
@@ -46,6 +49,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/checklist')) return 'Pregnancy Prep'
   if (pathname.startsWith('/purchases')) return 'Purchases'
   if (pathname.startsWith('/visitors')) return 'Visitor Schedule'
+  if (pathname.startsWith('/alerts')) return 'Alert History'
   return 'Baby Tracker'
 }
 
@@ -54,7 +58,7 @@ function formatDate(): string {
 }
 
 export function AppLayout() {
-  const { user, logout } = useAuthStore()
+  const { user, babyId, logout } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
   const location = useLocation()
 
@@ -95,23 +99,26 @@ export function AppLayout() {
           })}
         </nav>
 
-        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3 flex-shrink-0">
-          <div
-            className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300 flex-shrink-0"
-            style={{ boxShadow: SOCKET_RING[socketStatus] }}
-          >
-            {user?.name?.[0]?.toUpperCase() ?? '?'}
+        <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 space-y-2">
+          {babyId && <SOSButton babyId={babyId} variant="full" />}
+          <div className="flex items-center gap-3 px-1">
+            <div
+              className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300 flex-shrink-0"
+              style={{ boxShadow: SOCKET_RING[socketStatus] }}
+            >
+              {user?.name?.[0]?.toUpperCase() ?? '?'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.name}</div>
+              <div className="text-[10px] text-gray-400 dark:text-gray-500">Parent</div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              Out
+            </button>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.name}</div>
-            <div className="text-[10px] text-gray-400 dark:text-gray-500">Parent</div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            Out
-          </button>
         </div>
       </aside>
 

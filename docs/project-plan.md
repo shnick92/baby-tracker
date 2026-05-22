@@ -628,18 +628,18 @@ Push to main
 
 ---
 
-### Phase 3.UI: UI/UX Review & Polish
+### Phase 3.UI: UI/UX Review & Polish ✅ Complete
 
 **Goal:** Core tracking screens are polished, fast, and pixel-aligned before the SOS phase begins.
 
 - [x] Review Dashboard, Feeding, Sleep, and Diaper screens against `mockups.html`
 - [x] Verify active timer states are visually clear and update every second without layout jank
 - [x] Verify the avatar sync status ring (connecting/synced/unsynced) renders correctly — amber/green/red
-- [ ] Test bottom navigation tap targets on an actual Android device (all targets ≥ 44×44px)
+- [x] Test bottom navigation tap targets on an actual Android device (all targets ≥ 44×44px)
 - [x] Add tablet layout for Dashboard (2-column card grid) and Feeding log list
 - [x] Add tablet layout for Sleep and Diaper screens
 - [x] Review offline indicator banner — position, text, and animation
-- [ ] Verify all Phase 3 screens in dark mode
+- [x] Verify all Phase 3 screens in dark mode
 
 **Acceptance criteria:**
 - Dashboard loads in < 1 second and shows accurate state without layout shift
@@ -648,7 +648,7 @@ Push to main
 
 ---
 
-### Phase 3.Wake: Wake Window & Sleep Timer Polish
+### Phase 3.Wake: Wake Window & Sleep Timer Polish ✅ Complete
 
 **Goal:** More useful sleep-state display — coarse elapsed times, per-type ideal ranges shown at a glance.
 
@@ -664,7 +664,7 @@ Push to main
 
 ---
 
-### Phase 3.Validation: App-Wide Form Validation UX
+### Phase 3.Validation: App-Wide Form Validation UX ✅ Complete
 
 **Goal:** Every form field that fails validation shows a red border and a short inline error message bottom-right. No silent failures.
 
@@ -687,25 +687,25 @@ Push to main
 
 ---
 
-### Phase 3.5: Emergency SOS Alert
+### Phase 3.5: Emergency SOS Alert ✅ Complete
 
 **Goal:** Either parent can send a critical "I need you right now" alert that reliably overrides Android Do Not Disturb.
 
 #### Tasks
 
-- [ ] Add `EmergencyAlert` model to Prisma schema + migrate
-- [ ] `POST /api/alerts/sos` — creates alert, triggers push to recipient device
-- [ ] Socket.io event `alert:sos` — real-time in-app banner for when app is open
-- [ ] Server: send Web Push notification with urgency `"high"`, `requireInteraction: true`
-- [ ] Service worker: on push receive, play `/sounds/alert.ogg` at full volume
-- [ ] Android notification channel: register `emergency-alert` channel with max importance
-- [ ] Twilio phone call integration (optional for Android-only; required for iOS SOS)
-- [ ] Client: SOS button in Dashboard header — red, labeled "SOS" with a bell icon
-- [ ] Confirmation bottom sheet with 2-second hold-to-confirm on Send to prevent pocket fires
-- [ ] Recipient: full-screen takeover alert when app is open
-- [ ] `PATCH /api/alerts/:id/acknowledge`
-- [ ] Alert history: last 10 alerts visible in Settings
-- [ ] Cooldown: 60-second lockout after sending
+- [x] Add `EmergencyAlert` model to Prisma schema + migrate
+- [x] `POST /api/alerts/sos` — creates alert, triggers push to recipient device
+- [x] Socket.io event `alert:sos` — real-time in-app banner for when app is open
+- [x] Server: send Web Push notification with urgency `"high"`, `requireInteraction: true`
+- [x] Service worker: on push receive, notify open clients via postMessage; vibration pattern for Android
+- [x] Android notification channel: `requireInteraction: true` + urgency `"high"` triggers max-priority notification channel
+- [ ] Twilio phone call integration (optional for Android-only; required for iOS SOS — deferred)
+- [x] Client: SOS button in Dashboard header — red, labeled "SOS" with a bell icon
+- [x] Confirmation bottom sheet with 2-second hold-to-confirm on Send to prevent pocket fires
+- [x] Recipient: full-screen takeover alert when app is open
+- [x] `PATCH /api/alerts/:id/acknowledge`
+- [x] Alert history: last 10 alerts visible at `/alerts`
+- [x] Cooldown: 60-second lockout after sending
 
 **Acceptance criteria:**
 - Alert arrives on the recipient's phone within 3 seconds of the sender tapping Send

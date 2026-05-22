@@ -8,6 +8,7 @@ import { api } from '@lib/axios'
 import { connectSocket, disconnectSocket, getSocket } from '@lib/socket'
 import { useAuthStore, type AuthUser } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
+import { useSosStore } from '@stores/sosStore'
 import { usePushSubscription } from '@hooks/usePushSubscription'
 import { ProtectedRoute, AppLayout, Toast } from '@components'
 import { LoginPage } from '@features/auth'
@@ -18,12 +19,22 @@ import { VisitorsPage } from '@features/visitors'
 import { FeedingPage } from '@features/feeding'
 import { SleepPage } from '@features/sleep'
 import { DiaperPage } from '@features/diaper'
+import { AlertsPage, SOSAlert } from '@features/alerts'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null }
 
+type SosSocketPayload = {
+  alertId: string
+  senderId: string
+  senderName: string
+  message: string | null
+  sentAt: string
+}
+
 function AuthBootstrap({ children }: { children: React.ReactNode }) {
-  const { setAuth, setBootstrapped, isBootstrapping, accessToken, babyId } = useAuthStore()
+  const { setAuth, setBootstrapped, isBootstrapping, accessToken, babyId, user } = useAuthStore()
   const setSocketStatus = useSocketStore((s) => s.setStatus)
+  const showAlert = useSosStore((s) => s.showAlert)
 
   const { data, isError } = useQuery({
     queryKey: ['auth', 'session'],
@@ -61,11 +72,41 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
     })
     socket.on('disconnect', () => setSocketStatus('unsynced'))
 
+    // Show in-app SOS takeover alert for the recipient
+    socket.on('alert:sos', (payload: SosSocketPayload) => {
+      if (payload.senderId === user?.id) return
+      showAlert({
+        alertId: payload.alertId,
+        senderName: payload.senderName,
+        message: payload.message,
+        sentAt: payload.sentAt,
+      })
+      queryClient.invalidateQueries({ queryKey: ['alerts', babyId] })
+    })
+
+    socket.on('alert:acknowledged', () => {
+      queryClient.invalidateQueries({ queryKey: ['alerts', babyId] })
+    })
+
     return () => {
       socket.off('connect')
       socket.off('disconnect')
+      socket.off('alert:sos')
+      socket.off('alert:acknowledged')
     }
-  }, [accessToken, babyId, setSocketStatus])
+  }, [accessToken, babyId, setSocketStatus, showAlert, user?.id])
+
+  // Listen for SW postMessage when SOS push arrives while app is open
+  useEffect(() => {
+    if (!accessToken) return
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'sos' && event.data?.alertId) {
+        queryClient.invalidateQueries({ queryKey: ['alerts', babyId] })
+      }
+    }
+    navigator.serviceWorker?.addEventListener('message', handler)
+    return () => navigator.serviceWorker?.removeEventListener('message', handler)
+  }, [accessToken, babyId])
 
   if (isBootstrapping) {
     return (
@@ -93,8 +134,10 @@ export default function App() {
               <Route path="/checklist/:type" element={<ChecklistPage />} />
               <Route path="/purchases" element={<PurchasesPage />} />
               <Route path="/visitors" element={<VisitorsPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
             </Route>
           </Routes>
+          <SOSAlert />
         </AuthBootstrap>
       </BrowserRouter>
       <Toast />

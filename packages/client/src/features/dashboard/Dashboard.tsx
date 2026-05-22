@@ -14,6 +14,7 @@ import { usePregnancyStatus } from '../pregnancy'
 import { useFeedingLogs } from '../feeding'
 import { useSleepLogs } from '../sleep'
 import { useDiaperLogs } from '../diaper'
+import { SOSButton } from '../alerts'
 
 const SOCKET_RING: Record<string, string> = {
   connecting: '0 0 0 2px #f59e0b',
@@ -309,11 +310,12 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile header */}
-      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+      <header className="md:hidden fixed top-0 inset-x-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">{greeting(firstName)}</h1>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatHeaderDate()}</p>
         </div>
+        {babyId && <SOSButton babyId={babyId} />}
         <div
           className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold"
           style={{ boxShadow: SOCKET_RING[socketStatus] }}
@@ -322,8 +324,8 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Mobile layout */}
-      <main className="md:hidden max-w-lg mx-auto px-4 py-6 space-y-4">
+      {/* Mobile layout — pt-[65px] clears the fixed header */}
+      <main className="md:hidden max-w-lg mx-auto px-4 pt-[65px] pb-6 space-y-4">
         <PregnancyProgressWidget />
 
         {born ? (

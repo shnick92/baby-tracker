@@ -21,6 +21,8 @@ model User {
   sleepLogs         SleepLog[]
   diaperLogs        DiaperLog[]
   pushSubscriptions PushSubscription[]
+  alertsSent        EmergencyAlert[]   @relation("AlertsSent")
+  alertsReceived    EmergencyAlert[]   @relation("AlertsReceived")
 }
 
 model Credential {
@@ -57,7 +59,8 @@ model Baby {
   feedingLogs   FeedingLog[]
   sleepLogs     SleepLog[]
   diaperLogs    DiaperLog[]
-  sleepSettings SleepSettings?
+  sleepSettings   SleepSettings?
+  emergencyAlerts EmergencyAlert[]
 }
 
 model BabyUser {
@@ -201,6 +204,26 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+model EmergencyAlert {
+  id         String      @id @default(cuid())
+  babyId     String
+  baby       Baby        @relation(fields: [babyId], references: [id])
+  sentById   String
+  sentBy     User        @relation("AlertsSent", fields: [sentById], references: [id])
+  sentToId   String
+  sentTo     User        @relation("AlertsReceived", fields: [sentToId], references: [id])
+  message    String?
+  status     AlertStatus @default(SENT)
+  sentAt     DateTime    @default(now())
+  seenAt     DateTime?
+}
+
+enum AlertStatus {
+  SENT
+  SEEN
+  ACKNOWLEDGED
 }
 
 enum Role {

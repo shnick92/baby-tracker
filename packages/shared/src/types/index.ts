@@ -38,6 +38,19 @@ export type MilestoneCategory =
 
 export type AlertStatus = 'SENT' | 'SEEN' | 'ACKNOWLEDGED'
 
+export type EmergencyAlert = {
+  id: string
+  babyId: string
+  sentById: string
+  sentBy: { id: string; name: string }
+  sentToId: string
+  sentTo: { id: string; name: string }
+  message: string | null
+  status: AlertStatus
+  sentAt: string
+  seenAt: string | null
+}
+
 export type SocketStatus = 'connecting' | 'synced' | 'unsynced'
 
 export type SleepSettings = {
