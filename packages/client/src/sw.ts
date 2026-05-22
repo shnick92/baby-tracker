@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
     renotify: true,
     requireInteraction: payload.requireInteraction ?? false,
     data: payload.data ?? {},
-    ...(isSOS && { vibrate: [300, 100, 300, 100, 300] }),
+    ...(isSOS && { vibrate: [500, 200, 500, 200, 500, 200, 500, 200, 500] }),
   }
 
   event.waitUntil(

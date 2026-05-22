@@ -324,8 +324,8 @@ export function Dashboard() {
         </div>
       </header>
 
-      {/* Mobile layout — pt-[65px] clears the fixed header */}
-      <main className="md:hidden max-w-lg mx-auto px-4 pt-[65px] pb-6 space-y-4">
+      {/* Mobile layout — pt-[76px] clears the fixed header with breathing room */}
+      <main className="md:hidden max-w-lg mx-auto px-4 pt-[76px] pb-6 space-y-4">
         <PregnancyProgressWidget />
 
         {born ? (

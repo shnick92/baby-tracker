@@ -51,14 +51,14 @@ describe('SOSButton (icon variant)', () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: { alerts: [] }, error: null } })
     renderWithProviders(<SOSButton babyId="b1" />)
     await userEvent.click(screen.getByRole('button', { name: /sos/i }))
-    expect(screen.getByText('Send emergency alert?')).toBeInTheDocument()
+    expect(screen.getByText('Send SOS?')).toBeInTheDocument()
   })
 
   it('does not open confirm sheet when on cooldown', async () => {
     useSosStore.setState({ cooldownUntil: Date.now() + 30_000 })
     renderWithProviders(<SOSButton babyId="b1" />)
     await userEvent.click(screen.getByRole('button'))
-    expect(screen.queryByText('Send emergency alert?')).not.toBeInTheDocument()
+    expect(screen.queryByText('Send SOS?')).not.toBeInTheDocument()
   })
 })
 

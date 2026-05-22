@@ -34,10 +34,10 @@ describe('SOSAlert', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders EMERGENCY ALERT when an alert is active', () => {
+  it('renders SOS ALERT when an alert is active', () => {
     useSosStore.setState({ incomingAlert: stubAlert })
     renderWithProviders(<SOSAlert />)
-    expect(screen.getByText('EMERGENCY ALERT')).toBeInTheDocument()
+    expect(screen.getByText('SOS ALERT')).toBeInTheDocument()
   })
 
   it('shows the sender first name', () => {

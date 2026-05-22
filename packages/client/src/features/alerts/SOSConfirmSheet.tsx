@@ -87,11 +87,11 @@ export function SOSConfirmSheet({ babyId, onClose }: Props) {
         <div className="text-center text-5xl leading-none">🚨</div>
 
         {/* Title */}
-        <h2 className="text-center text-lg font-bold text-white">Send emergency alert?</h2>
+        <h2 className="text-center text-lg font-bold text-white">Send SOS?</h2>
 
         {/* Subtitle */}
         <p className="text-center text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
-          Your partner will be notified immediately and their Do Not Disturb will be overridden.
+          Your partner will receive a push notification immediately.
         </p>
 
         {/* Optional message */}

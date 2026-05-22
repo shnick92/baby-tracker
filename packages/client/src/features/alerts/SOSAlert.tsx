@@ -55,7 +55,7 @@ export function SOSAlert() {
   return (
     <div
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-6 safe-top safe-bottom"
-      style={{ background: 'rgba(180,0,0,0.95)' }}
+      style={{ background: 'rgba(70,0,0,0.97)' }}
     >
       <div className="flex flex-col items-center gap-4 w-full max-w-sm">
         {/* Pulsing ring around siren */}
@@ -82,7 +82,7 @@ export function SOSAlert() {
           className="text-white text-center font-extrabold tracking-widest uppercase"
           style={{ fontSize: 22 }}
         >
-          EMERGENCY ALERT
+          SOS ALERT
         </p>
 
         {/* "From X" */}
