@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@stores/authStore'
+import { useToastStore } from '@stores/toastStore'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '',
@@ -18,14 +19,20 @@ let isRefreshing = false
 let refreshQueue: Array<(token: string) => void> = []
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const serverError = (response.data as { error?: string | null })?.error
+    if (serverError) useToastStore.getState().show(serverError)
+    return response
+  },
   async (error: unknown) => {
     const axiosError = error as {
-      response?: { status: number }
+      response?: { status: number; data?: { error?: string } }
       config?: { _retry?: boolean; headers: Record<string, string> } & Record<string, unknown>
     }
 
     if (axiosError.response?.status !== 401 || axiosError.config?._retry) {
+      const message = axiosError.response?.data?.error ?? 'Something went wrong'
+      useToastStore.getState().show(message)
       return Promise.reject(error)
     }
 

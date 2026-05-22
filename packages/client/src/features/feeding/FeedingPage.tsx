@@ -13,16 +13,16 @@ import { FeedingSkeleton } from './FeedingSkeleton'
 
 type Tab = 'BREAST' | 'BOTTLE' | 'PUMP'
 
-const bottleSchema = z.object({ volumeOz: z.coerce.number().min(0.1).max(16) })
+const bottleSchema = z.object({ volumeOz: z.coerce.number().min(0.1, 'Min 0.1 oz').max(16, 'Max 16 oz') })
 const pumpSchema = z.object({
-  volumeOz: z.coerce.number().min(0).max(32),
-  durationMin: z.coerce.number().min(0).optional(),
+  volumeOz: z.coerce.number().min(0, 'Min 0 oz').max(32, 'Max 32 oz'),
+  durationMin: z.coerce.number().min(0, 'Min 0').optional(),
 })
 const editFeedingSchema = z.object({
   type: z.enum(['BREAST_LEFT', 'BREAST_RIGHT', 'BOTTLE', 'PUMP']),
   startedAt: z.string().min(1, 'Required'),
   endedAt: z.string().optional(),
-  volumeOz: z.coerce.number().min(0).max(32).optional(),
+  volumeOz: z.coerce.number().min(0, 'Min 0 oz').max(32, 'Max 32 oz').optional(),
   notes: z.string().optional(),
 })
 
@@ -286,10 +286,13 @@ export function FeedingPage() {
                       placeholder="0.0"
                       autoFocus
                       {...bottleForm.register('volumeOz')}
-                      className={inputCls}
+                      className={`${inputCls} ${bottleForm.formState.errors.volumeOz ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
                     />
                     <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 font-medium">oz</span>
                   </div>
+                  {bottleForm.formState.errors.volumeOz && (
+                    <p className="text-xs text-red-500 mt-1 text-right">{bottleForm.formState.errors.volumeOz.message}</p>
+                  )}
                 </div>
                 <button
                   type="submit"
@@ -323,10 +326,13 @@ export function FeedingPage() {
                         placeholder="0.0"
                         autoFocus
                         {...pumpForm.register('volumeOz')}
-                        className={inputCls}
+                        className={`${inputCls} ${pumpForm.formState.errors.volumeOz ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
                       />
                       <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">oz</span>
                     </div>
+                    {pumpForm.formState.errors.volumeOz && (
+                      <p className="text-xs text-red-500 mt-1 text-right">{pumpForm.formState.errors.volumeOz.message}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Duration</label>
@@ -337,10 +343,13 @@ export function FeedingPage() {
                         min="0"
                         placeholder="0"
                         {...pumpForm.register('durationMin')}
-                        className={inputCls}
+                        className={`${inputCls} ${pumpForm.formState.errors.durationMin ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
                       />
                       <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">min</span>
                     </div>
+                    {pumpForm.formState.errors.durationMin && (
+                      <p className="text-xs text-red-500 mt-1 text-right">{pumpForm.formState.errors.durationMin.message}</p>
+                    )}
                   </div>
                 </div>
                 <button
@@ -385,7 +394,14 @@ export function FeedingPage() {
 
                         <div>
                           <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start</label>
-                          <input type="datetime-local" {...editForm.register('startedAt')} className={inputCls} />
+                          <input
+                            type="datetime-local"
+                            {...editForm.register('startedAt')}
+                            className={`${inputCls} ${editForm.formState.errors.startedAt ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                          />
+                          {editForm.formState.errors.startedAt && (
+                            <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.startedAt.message}</p>
+                          )}
                         </div>
 
                         <div>
@@ -394,13 +410,18 @@ export function FeedingPage() {
                         </div>
 
                         {(watchedType === 'BOTTLE' || watchedType === 'PUMP') && (
-                          <div className="flex gap-2 items-center">
-                            <input
-                              type="number" step="0.5" min="0" max="32" placeholder="oz"
-                              {...editForm.register('volumeOz')}
-                              className={inputCls}
-                            />
-                            <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">oz</span>
+                          <div>
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="number" step="0.5" min="0" max="32" placeholder="oz"
+                                {...editForm.register('volumeOz')}
+                                className={`${inputCls} ${editForm.formState.errors.volumeOz ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                              />
+                              <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">oz</span>
+                            </div>
+                            {editForm.formState.errors.volumeOz && (
+                              <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.volumeOz.message}</p>
+                            )}
                           </div>
                         )}
 

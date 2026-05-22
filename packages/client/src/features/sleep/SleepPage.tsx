@@ -410,7 +410,14 @@ export function SleepPage() {
                           </select>
                           <div>
                             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start</label>
-                            <input type="datetime-local" {...editForm.register('startedAt')} className={inputCls} />
+                            <input
+                              type="datetime-local"
+                              {...editForm.register('startedAt')}
+                              className={`${inputCls} ${editForm.formState.errors.startedAt ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                            />
+                            {editForm.formState.errors.startedAt && (
+                              <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.startedAt.message}</p>
+                            )}
                           </div>
                           <div>
                             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End</label>

@@ -155,18 +155,28 @@ export function VisitorsPage() {
                       onSubmit={onEditSubmit}
                       className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-800 p-4 space-y-3"
                     >
-                      <input
-                        autoFocus
-                        type="text"
-                        placeholder="Visitor name *"
-                        {...editForm.register('name')}
-                        className={inputCls}
-                      />
-                      <input
-                        type="date"
-                        {...editForm.register('date')}
-                        className={inputCls}
-                      />
+                      <div>
+                        <input
+                          autoFocus
+                          type="text"
+                          placeholder="Visitor name *"
+                          {...editForm.register('name')}
+                          className={`${inputCls} ${editForm.formState.errors.name ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                        />
+                        {editForm.formState.errors.name && (
+                          <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.name.message}</p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="date"
+                          {...editForm.register('date')}
+                          className={`${inputCls} ${editForm.formState.errors.date ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                        />
+                        {editForm.formState.errors.date && (
+                          <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.date.message}</p>
+                        )}
+                      </div>
                       <div className="flex gap-2">
                         <input
                           type="time"
@@ -253,19 +263,29 @@ export function VisitorsPage() {
             onSubmit={onAddSubmit}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3"
           >
-            <input
-              autoFocus
-              type="text"
-              placeholder="Visitor name *"
-              {...addForm.register('name')}
-              className={inputCls}
-            />
-            <input
-              type="date"
-              data-testid="visit-date"
-              {...addForm.register('date')}
-              className={inputCls}
-            />
+            <div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Visitor name *"
+                {...addForm.register('name')}
+                className={`${inputCls} ${addForm.formState.errors.name ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+              />
+              {addForm.formState.errors.name && (
+                <p className="text-xs text-red-500 mt-1 text-right">{addForm.formState.errors.name.message}</p>
+              )}
+            </div>
+            <div>
+              <input
+                type="date"
+                data-testid="visit-date"
+                {...addForm.register('date')}
+                className={`${inputCls} ${addForm.formState.errors.date ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+              />
+              {addForm.formState.errors.date && (
+                <p className="text-xs text-red-500 mt-1 text-right">{addForm.formState.errors.date.message}</p>
+              )}
+            </div>
             <div className="flex gap-2">
               <input
                 type="time"

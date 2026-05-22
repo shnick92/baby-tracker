@@ -42,7 +42,7 @@ export function ChecklistPage() {
   const { data, isLoading, toggleMutation, addMutation } = useChecklist(activeType)
   const { data: pregnancy } = usePregnancyStatus()
 
-  const { register, handleSubmit, reset, watch } = useForm<AddItemForm>({
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<AddItemForm>({
     resolver: zodResolver(addItemSchema),
     defaultValues: { label: '', category: '' },
   })
@@ -169,13 +169,18 @@ export function ChecklistPage() {
             onSubmit={onSubmit}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3"
           >
-            <input
-              autoFocus
-              type="text"
-              placeholder="Item name"
-              {...register('label')}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Item name"
+                {...register('label')}
+                className={`w-full rounded-xl border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${errors.label ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'}`}
+              />
+              {errors.label && (
+                <p className="text-xs text-red-500 mt-1 text-right">{errors.label.message}</p>
+              )}
+            </div>
             <input
               type="text"
               placeholder="Category (optional)"

@@ -9,7 +9,7 @@ import { connectSocket, disconnectSocket, getSocket } from '@lib/socket'
 import { useAuthStore, type AuthUser } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
 import { usePushSubscription } from '@hooks/usePushSubscription'
-import { ProtectedRoute, AppLayout } from '@components'
+import { ProtectedRoute, AppLayout, Toast } from '@components'
 import { LoginPage } from '@features/auth'
 import { Dashboard } from '@features/dashboard'
 import { ChecklistPage } from '@features/checklist'
@@ -97,6 +97,7 @@ export default function App() {
           </Routes>
         </AuthBootstrap>
       </BrowserRouter>
+      <Toast />
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   )

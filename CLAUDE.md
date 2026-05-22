@@ -196,6 +196,32 @@ BottleFeedSchema.parse(req.body)
 
 Never use controlled `<input value={state} onChange={...} />` patterns for forms — RHF's uncontrolled approach is required for mobile performance.
 
+### Form Error Display (canonical pattern)
+
+Every form field with a Zod constraint must show a red border and inline error message on violation. No silent failures.
+
+**Field-level errors:**
+```tsx
+<input
+  {...form.register('fieldName')}
+  className={`${inputCls} ${form.formState.errors.fieldName ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+/>
+{form.formState.errors.fieldName && (
+  <p className="text-xs text-red-500 mt-1 text-right">{form.formState.errors.fieldName.message}</p>
+)}
+```
+
+**Zod messages must be human-readable strings** — never rely on Zod's auto-generated defaults:
+```ts
+// ✅ Correct
+volumeOz: z.number().min(0.1, 'Min 0.1 oz').max(16, 'Max 16 oz')
+
+// ❌ Wrong — TS default message, not user-facing
+volumeOz: z.number().min(0.1).max(16)
+```
+
+**Server-side errors** (4xx responses or `{ data: null, error: "..." }`) are automatically surfaced as a top-center toast via the axios response interceptor in `lib/axios.ts`. The `<Toast />` component is mounted at the root in `App.tsx`. Components that need to handle server errors inline can do so in addition to, or instead of, the toast.
+
 ---
 
 ## Real-Time Sync — Socket.io (ADR-003)

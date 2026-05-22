@@ -164,13 +164,18 @@ export function PurchasesPage() {
                       onSubmit={onEditSubmit}
                       className="px-4 py-3 space-y-2.5"
                     >
-                      <input
-                        autoFocus
-                        type="text"
-                        placeholder="Item name *"
-                        {...editForm.register('name')}
-                        className={inputCls}
-                      />
+                      <div>
+                        <input
+                          autoFocus
+                          type="text"
+                          placeholder="Item name *"
+                          {...editForm.register('name')}
+                          className={`${inputCls} ${editForm.formState.errors.name ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                        />
+                        {editForm.formState.errors.name && (
+                          <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.name.message}</p>
+                        )}
+                      </div>
                       <input
                         type="text"
                         placeholder="Category"
@@ -301,13 +306,18 @@ export function PurchasesPage() {
             onSubmit={onAddSubmit}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 space-y-3"
           >
-            <input
-              autoFocus
-              type="text"
-              placeholder="Item name *"
-              {...addForm.register('name')}
-              className={inputCls}
-            />
+            <div>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Item name *"
+                {...addForm.register('name')}
+                className={`${inputCls} ${addForm.formState.errors.name ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+              />
+              {addForm.formState.errors.name && (
+                <p className="text-xs text-red-500 mt-1 text-right">{addForm.formState.errors.name.message}</p>
+              )}
+            </div>
             <input
               type="text"
               placeholder="Category (e.g. Nursery, Feeding)"

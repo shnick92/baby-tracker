@@ -675,11 +675,11 @@ Push to main
 - Server-side 4xx responses with `{ data: null, error: "..." }` should surface as a toast or inline banner — never silently swallowed
 
 **Tasks:**
-- [ ] Add the border+helper-text pattern to all existing form inputs that currently have no error display: FeedingPage (edit form), SleepPage (edit form), DiaperPage (edit form), VisitorsPage (add form), ChecklistPage (add item), PurchasesPage (add/edit forms)
-- [ ] Add human-readable messages to all existing Zod schema constraints in `packages/shared/src/schemas/` and any inline schemas
-- [ ] Add a lightweight `<Toast>` component (top-center, auto-dismiss 4 s) for server-side errors that don't map to a specific field
-- [ ] Wire the axios response interceptor to fire the toast on any `{ error: string }` response that isn't handled inline
-- [ ] Document the pattern in CLAUDE.md as the canonical form-error convention
+- [x] Add the border+helper-text pattern to all existing form inputs that currently have no error display: FeedingPage (edit form), SleepPage (edit form), DiaperPage (edit form), VisitorsPage (add form), ChecklistPage (add item), PurchasesPage (add/edit forms)
+- [x] Add human-readable messages to all existing Zod schema constraints in `packages/shared/src/schemas/` and any inline schemas
+- [x] Add a lightweight `<Toast>` component (top-center, auto-dismiss 4 s) for server-side errors that don't map to a specific field
+- [x] Wire the axios response interceptor to fire the toast on any `{ error: string }` response that isn't handled inline
+- [x] Document the pattern in CLAUDE.md as the canonical form-error convention
 
 **Acceptance criteria:**
 - Entering an out-of-range value in any form field shows a red border and readable message without submitting

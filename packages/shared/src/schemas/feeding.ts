@@ -12,14 +12,14 @@ export const endFeedSchema = z.object({
 
 export const logBottleSchema = z.object({
   babyId: z.string().min(1),
-  volumeOz: z.number().min(0.1).max(16),
+  volumeOz: z.number().min(0.1, 'Min 0.1 oz').max(16, 'Max 16 oz'),
   fedAt: z.string().datetime().optional(),
   notes: z.string().optional(),
 })
 
 export const logPumpSchema = z.object({
   babyId: z.string().min(1),
-  volumeOz: z.number().min(0).max(32),
+  volumeOz: z.number().min(0, 'Min 0 oz').max(32, 'Max 32 oz'),
   durationSec: z.number().int().min(0).optional(),
   fedAt: z.string().datetime().optional(),
   notes: z.string().optional(),
@@ -29,7 +29,7 @@ export const updateFeedingSchema = z.object({
   type: z.enum(['BREAST_LEFT', 'BREAST_RIGHT', 'BOTTLE', 'PUMP']).optional(),
   startedAt: z.string().datetime().optional(),
   endedAt: z.string().datetime().nullable().optional(),
-  volumeOz: z.number().min(0).max(32).nullable().optional(),
+  volumeOz: z.number().min(0, 'Min 0 oz').max(32, 'Max 32 oz').nullable().optional(),
   notes: z.string().nullable().optional(),
 })
 
