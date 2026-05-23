@@ -108,6 +108,30 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
     return () => navigator.serviceWorker?.removeEventListener('message', handler)
   }, [accessToken, babyId])
 
+  // Deep-link handler: notification tap opens /?sos=<alertId> when app is closed.
+  // Once auth resolves, fetch the alert and show the overlay so the user can acknowledge.
+  useEffect(() => {
+    if (!accessToken || !user) return
+    const params = new URLSearchParams(window.location.search)
+    const sosAlertId = params.get('sos')
+    if (!sosAlertId) return
+
+    window.history.replaceState({}, '', window.location.pathname)
+
+    api
+      .get<{ data: { alert: { id: string; sentById: string; sentToId: string; sentBy: { name: string }; message: string | null; sentAt: string; status: string } }; error: null }>(
+        `/api/alerts/${sosAlertId}`,
+      )
+      .then((r) => {
+        const alert = r.data.data?.alert
+        if (!alert) return
+        if (alert.sentToId !== user.id) return
+        if (alert.status === 'ACKNOWLEDGED') return
+        showAlert({ alertId: alert.id, senderName: alert.sentBy.name, message: alert.message, sentAt: alert.sentAt })
+      })
+      .catch(() => {})
+  }, [accessToken, user, showAlert])
+
   if (isBootstrapping) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">

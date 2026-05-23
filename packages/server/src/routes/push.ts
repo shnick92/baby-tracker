@@ -11,6 +11,7 @@ const SubscribeSchema = z.object({
     p256dh: z.string(),
     auth: z.string(),
   }),
+  platform: z.enum(['ios', 'android', 'other']).optional(),
 })
 
 router.post('/subscribe', authMiddleware, async (req, res) => {
@@ -19,7 +20,7 @@ router.post('/subscribe', authMiddleware, async (req, res) => {
     return res.json({ data: null, error: 'Invalid subscription payload' })
   }
 
-  const { endpoint, keys } = parsed.data
+  const { endpoint, keys, platform } = parsed.data
   const userId = req.user!.userId
 
   // Remove any stale endpoints for this user before registering the new one.
@@ -31,8 +32,8 @@ router.post('/subscribe', authMiddleware, async (req, res) => {
 
   await prisma.pushSubscription.upsert({
     where: { endpoint },
-    create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
-    update: { userId, p256dh: keys.p256dh, auth: keys.auth },
+    create: { userId, endpoint, p256dh: keys.p256dh, auth: keys.auth, platform: platform ?? 'other' },
+    update: { userId, p256dh: keys.p256dh, auth: keys.auth, platform: platform ?? 'other' },
   })
 
   res.json({ data: { ok: true }, error: null })

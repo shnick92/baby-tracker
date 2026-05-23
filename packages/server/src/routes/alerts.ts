@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth'
 import { prisma } from '../lib/prisma'
 import { sendPush } from '../lib/push'
 import { calcCooldownRemainingSec } from '../services/alerts'
+import { scheduleSosCall, cancelSosCall } from '../services/sosCall'
 
 const router = Router()
 
@@ -102,6 +103,12 @@ router.post('/sos', authMiddleware, async (req, res) => {
     }),
   )
 
+  // Schedule Twilio call fallback — fires after delay unless acknowledged first.
+  // iOS gets a shorter delay (5 s) since web push is unreliable when locked;
+  // Android gets 20 s to give push a chance to arrive first.
+  const hasIos = subs.some((s) => s.platform === 'ios')
+  scheduleSosCall(alert.id, recipient.phone ?? '', senderMembership.user.name, hasIos)
+
   // Emit socket event to family room
   const io = req.app.get('io') as Server
   io.to(`family:${babyId}`).emit('alert:sos', {
@@ -139,10 +146,33 @@ router.patch('/:id/acknowledge', authMiddleware, async (req, res) => {
     },
   })
 
+  // Cancel any pending Twilio call since the alert was acknowledged
+  await cancelSosCall(id)
+
   const io = req.app.get('io') as Server
   io.to(`family:${alert.babyId}`).emit('alert:acknowledged', { alertId: id, acknowledgedById: userId })
 
   res.json({ data: { alert: updated }, error: null })
+})
+
+router.get('/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params
+  const userId = req.user!.userId
+
+  const alert = await prisma.emergencyAlert.findUnique({
+    where: { id },
+    include: {
+      sentBy: { select: { id: true, name: true } },
+      sentTo: { select: { id: true, name: true } },
+    },
+  })
+
+  if (!alert) return res.status(404).json({ data: null, error: 'Alert not found' })
+  if (alert.sentById !== userId && alert.sentToId !== userId) {
+    return res.status(403).json({ data: null, error: 'Forbidden' })
+  }
+
+  res.json({ data: { alert }, error: null })
 })
 
 router.get('/', authMiddleware, async (req, res) => {

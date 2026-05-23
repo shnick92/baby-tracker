@@ -12,6 +12,7 @@ model User {
   email             String             @unique
   name              String
   passwordHash      String
+  phone             String?
   role              Role               @default(PARENT)
   createdAt         DateTime           @default(now())
   babies            BabyUser[]
@@ -203,6 +204,7 @@ model PushSubscription {
   endpoint  String   @unique
   p256dh    String
   auth      String
+  platform  String   @default("other")
   createdAt DateTime @default(now())
 }
 

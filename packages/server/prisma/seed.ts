@@ -96,23 +96,25 @@ async function main() {
   const u1Name = process.env.SEED_USER_1_NAME ?? 'Nick'
   const u1Email = process.env.SEED_USER_1_EMAIL ?? 'nick@example.com'
   const u1Password = process.env.SEED_USER_1_PASSWORD ?? 'changeme'
+  const u1Phone = process.env.SEED_USER_1_PHONE ?? null
 
   const u2Name = process.env.SEED_USER_2_NAME ?? 'Jess'
   const u2Email = process.env.SEED_USER_2_EMAIL ?? 'jess@example.com'
   const u2Password = process.env.SEED_USER_2_PASSWORD ?? 'changeme'
+  const u2Phone = process.env.SEED_USER_2_PHONE ?? null
 
   const [hash1, hash2] = await Promise.all([bcrypt.hash(u1Password, 12), bcrypt.hash(u2Password, 12)])
 
   const [user1, user2] = await Promise.all([
     prisma.user.upsert({
       where: { email: u1Email },
-      update: {},
-      create: { name: u1Name, email: u1Email, passwordHash: hash1 },
+      update: { phone: u1Phone },
+      create: { name: u1Name, email: u1Email, passwordHash: hash1, phone: u1Phone },
     }),
     prisma.user.upsert({
       where: { email: u2Email },
-      update: {},
-      create: { name: u2Name, email: u2Email, passwordHash: hash2 },
+      update: { phone: u2Phone },
+      create: { name: u2Name, email: u2Email, passwordHash: hash2, phone: u2Phone },
     }),
   ])
 

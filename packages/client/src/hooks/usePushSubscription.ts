@@ -47,7 +47,10 @@ export function usePushSubscription(enabled: boolean): void {
               applicationServerKey: urlBase64ToUint8Array(vapidKey) as BufferSource,
             }))
             console.log('[push] subscription obtained, registering with server...')
-            await api.post('/api/push/subscribe', sub.toJSON())
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream
+            const isAndroid = /Android/.test(navigator.userAgent)
+            const platform: 'ios' | 'android' | 'other' = isIOS ? 'ios' : isAndroid ? 'android' : 'other'
+            await api.post('/api/push/subscribe', { ...sub.toJSON(), platform })
             console.log('[push] registered successfully')
           } catch (err) {
             console.error('[push] subscription or registration failed:', err)
