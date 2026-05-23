@@ -29,11 +29,12 @@ const BOTTOM_NAV: NavItem[] = [
   { to: '/feeding', label: 'Feed', icon: '🍼', prefix: '/feeding' },
   { to: '/sleep', label: 'Sleep', icon: '😴', prefix: '/sleep' },
   { to: '/diaper', label: 'Diaper', icon: '💧', prefix: '/diaper' },
-  { to: '/checklist/hospital_bag_mom', label: 'More', icon: '⋯', prefix: '/checklist' },
+  { to: '/more', label: 'More', icon: '⋯', prefix: '/more' },
 ]
 
 function isMoreActive(pathname: string): boolean {
   return (
+    pathname.startsWith('/more') ||
     pathname.startsWith('/checklist') ||
     pathname.startsWith('/purchases') ||
     pathname.startsWith('/visitors') ||
@@ -46,6 +47,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/feeding')) return 'Feeding'
   if (pathname.startsWith('/sleep')) return 'Sleep'
   if (pathname.startsWith('/diaper')) return 'Diapers'
+  if (pathname === '/more') return 'More'
   if (pathname.startsWith('/checklist')) return 'Pregnancy Prep'
   if (pathname.startsWith('/purchases')) return 'Purchases'
   if (pathname.startsWith('/visitors')) return 'Visitor Schedule'
@@ -145,7 +147,7 @@ export function AppLayout() {
         <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex safe-bottom">
           {BOTTOM_NAV.map((item) => {
             const isActive =
-              item.prefix === '/checklist'
+              item.prefix === '/more'
                 ? isMoreActive(location.pathname)
                 : item.exact
                   ? location.pathname === item.prefix

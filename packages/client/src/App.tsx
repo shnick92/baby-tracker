@@ -20,6 +20,7 @@ import { FeedingPage } from '@features/feeding'
 import { SleepPage } from '@features/sleep'
 import { DiaperPage } from '@features/diaper'
 import { AlertsPage, SOSAlert } from '@features/alerts'
+import { MorePage } from '@features/more'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null }
 
@@ -159,6 +160,7 @@ export default function App() {
               <Route path="/purchases" element={<PurchasesPage />} />
               <Route path="/visitors" element={<VisitorsPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/more" element={<MorePage />} />
             </Route>
           </Routes>
           <SOSAlert />

@@ -699,7 +699,10 @@ Push to main
 - [x] Server: send Web Push notification with urgency `"high"`, `requireInteraction: true`
 - [x] Service worker: on push receive, notify open clients via postMessage; vibration pattern for Android
 - [x] Android notification channel: `requireInteraction: true` + urgency `"high"` triggers max-priority notification channel
-- [ ] Twilio phone call integration (optional for Android-only; required for iOS SOS — deferred)
+- [x] Twilio voice call fallback — calls recipient phone number when push alone may not bypass DND (required for iOS)
+  - Phone numbers stored as `User.phone` in DB; seeded via `SEED_USER_1_PHONE` / `SEED_USER_2_PHONE` env vars
+  - `scheduleSosCall` service places an outbound Twilio call 5 s after push (iOS) / 20 s (Android); `cancelSosCall` cancels it if app-acknowledged first
+  - Notification deep-link: tap opens `/?sos=<alertId>`; auth bootstrap fetches alert and shows takeover overlay
 - [x] Client: SOS button in Dashboard header — red, labeled "SOS" with a bell icon
 - [x] Confirmation bottom sheet with 2-second hold-to-confirm on Send to prevent pocket fires
 - [x] Recipient: full-screen takeover alert when app is open
@@ -709,7 +712,7 @@ Push to main
 
 **Acceptance criteria:**
 - Alert arrives on the recipient's phone within 3 seconds of the sender tapping Send
-- Notification plays audible alarm even if phone is on vibrate/silent
+- Notification plays audible alarm even if phone is on vibrate/silent; Twilio call fires 5 s later (iOS) / 20 s (Android) as fallback
 - Accidental sends prevented: requires 2-second hold or explicit confirmation
 - Alert is acknowledged with a single tap; sender sees "Seen" status in real time
 
@@ -718,9 +721,25 @@ Push to main
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_FROM_NUMBER=+1xxxxxxxxxx
-NICK_PHONE_NUMBER=+1xxxxxxxxxx
-JESS_PHONE_NUMBER=+1xxxxxxxxxx
+SEED_USER_1_PHONE=+1xxxxxxxxxx   # stored on User.phone; used for Twilio call fallback
+SEED_USER_2_PHONE=+1xxxxxxxxxx
 ```
+
+---
+
+### Phase 3.Nav: Mobile "More" Navigation ✅ Complete
+
+**Goal:** Mobile "More" tab is a proper menu — not a direct jump to one page — so secondary features (and future pages like Calendar) are all reachable on mobile.
+
+- [x] Create `/more` route and `MorePage` component — menu listing Pregnancy Prep, Purchases, Visitors, Alert History with icon + description rows
+- [x] Bottom nav "More" links to `/more` instead of directly to `/checklist/hospital_bag_mom`
+- [x] `isMoreActive` activates the "More" tab for `/more`, `/checklist`, `/purchases`, `/visitors`, `/alerts`
+- [x] `getPageTitle` returns "More" when pathname is `/more`
+
+**Acceptance criteria:**
+- Tapping "More" on mobile opens the More menu
+- Selecting any item navigates to the correct page
+- "More" tab stays highlighted while on any secondary page
 
 ---
 
