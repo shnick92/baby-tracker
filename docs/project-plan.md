@@ -786,6 +786,18 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - Logging Bath with a Happy qualifier requires exactly 2 taps
 - Custom activity appears in the grid immediately after inline add
 
+#### Feeding Refinements
+
+- [ ] Bottle feed: add milk type radio group (Breast Milk default / Formula); formula option reveals name field with autocomplete from recent formula names in logs (same pattern as medication name autocomplete)
+- [ ] `milkType String?` and `formulaName String?` fields added to `FeedingLog` Prisma schema + migration
+- [ ] Update `logBottleSchema` in `packages/shared` to include `milkType` and `formulaName`
+- [ ] Update bottle POST route to persist the new fields
+- [ ] Display milk type in feeding log list rows (e.g., "Similac" instead of just "Bottle")
+
+**Acceptance criteria:**
+- Breast milk is the default and requires no extra tap
+- Selecting Formula reveals a name field; previously used formula names autocomplete as you type
+
 #### History & Reporting Views
 
 - [ ] Daily summary view: all logs for a selected date on one screen
@@ -816,7 +828,31 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 ### Phase 4.UI: UI/UX Review & Polish
 
-**Goal:** Health and history screens are clear, data-dense but not overwhelming, and aligned across phone and tablet.
+**Goal:** Health and history screens are clear, data-dense but not overwhelming, and aligned across phone and tablet. Also covers app-wide navigation and icon cleanup.
+
+#### Icon & Navigation Overhaul
+
+- [ ] Install `lucide-react` in `packages/client`; replace hand-coded SVGs in `components/icons.tsx` with Lucide re-exports (keep same export names for backward compat)
+- [ ] Change `NavItem.icon` in `AppLayout` from `string` to `React.ReactNode`; update SIDEBAR_ITEMS and BOTTOM_NAV to use Lucide icons where appropriate (keep emoji for 🍼 Feeding, 🤰 Pregnancy Prep, 🐢 Tummy Time, face emojis)
+  - Dashboard → `LayoutDashboard`, Sleep → `Moon`, Diapers → `Droplets`, Purchases → `ShoppingBag`, Visitors → `Users`, Medication → `Pill`, Weight → `Scale`, Alerts → `Bell`, Settings → `Settings`, More → `MoreHorizontal`
+- [ ] Restructure sidebar into labeled sections: Dashboard (ungrouped, always at top), **Daily** (Feeding, Sleep, Diapers), **Health** (Medication, Weight & Growth, Tummy Time, Mood & Activity, Vaccinations), **Planning** (Pregnancy Prep, Purchases, Visitors), **System** (Alert History, Settings)
+- [ ] Update `isMoreActive` in AppLayout to include `/settings`
+- [ ] Update `MorePage` to use Lucide icons where applicable and add a Settings link
+
+#### Sticky Mobile Headers
+
+- [ ] Make every non-dashboard page's mobile header sticky: add `fixed top-0 inset-x-0 z-10` and the appropriate `pt-[XX]` content offset to all 12 pages (Feeding, Sleep, Diaper, Medication, Weight, Tummy Time, Mood, Alerts, More, Purchases, Visitors, Checklist)
+
+#### Dashboard Upgrade
+
+- [ ] Review dashboard mockups (to be added to parent directory) and implement upgraded layout; specific scope TBD from mockups
+
+#### Swipe-to-Close Drawers
+
+- [ ] Create `useSwipeDown(onClose, threshold?)` hook — touchstart/touchmove/touchend; calls `onClose` when downward drag exceeds threshold (~80px)
+- [ ] Apply to `MoodPage` `QualifierSheet` and `SOSConfirmSheet`
+
+#### Screen Reviews
 
 - [ ] Review Medication Log, Weight Entry, and Tummy Time screens against `mockups.html`
 - [ ] Review Growth Chart on mobile — verify WHO percentile lines are legible at small sizes
@@ -827,6 +863,10 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - [ ] Spot-check all Phase 4 screens with an accessibility scanner
 
 **Acceptance criteria:**
+- All nav icons use Lucide SVGs where applicable; no raw Unicode emoji in the nav bar
+- Sidebar groups are visually distinct with section labels
+- Every page header stays visible at the top while scrolling on mobile
+- Bottom drawers (Mood qualifier sheet, SOS confirm sheet) can be dismissed by swiping down
 - Calendar view filter chips are clearly selectable and show distinct active state
 - Growth chart is readable on a 393px viewport without horizontal scroll
 - All Phase 4 screens have a functional tablet layout
@@ -910,14 +950,64 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - All CDC milestones for 0–6 months pre-populated
 - Marking a milestone takes 2 taps
 
-#### Data Export
+#### Vaccination Tracker
 
-- [ ] PDF export: daily log for a date range (for pediatrician visits)
-- [ ] CSV export: raw log data for all types
-- [ ] Export UI: date range picker + format selector + download button
+Not a replacement for official records — a quick reference to track which doses have been administered and when.
+
+**Data model:**
+- `VaccinationRecord`: `id`, `babyId`, `vaccineKey` (string reference to hardcoded schedule), `administeredAt`, `lotNumber?`, `provider?`, `notes?`, `createdAt`
+- No enum for `vaccineKey` — kept as a plain string so the hardcoded list can evolve without migrations
+
+**Hardcoded vaccine schedule** (`packages/shared/src/vaccines.ts`):
+CDC-recommended schedule for 0–18 months, each entry with a key, display name, dose number, and recommended age window. Includes:
+- HepB (Doses 1–3), RV (Doses 1–3), DTaP (Doses 1–4), Hib (Doses 1–4), PCV (Doses 1–4), IPV (Doses 1–3), COVID-19, Influenza, MMR (Dose 1), Varicella (Dose 1), HepA (Dose 1)
+
+**Tasks:**
+- [ ] Add `VaccinationRecord` to Prisma schema + migrate; add `vaccinationRecords` relation to `Baby`
+- [ ] Shared vaccine schedule list in `packages/shared/src/vaccines.ts` — array of `{ key, name, doseNumber, recommendedAge }` objects
+- [ ] REST endpoints: `POST /api/vaccinations` (log a dose), `GET /api/vaccinations?babyId=`, `PATCH /api/vaccinations/:id`, `DELETE /api/vaccinations/:id`
+- [ ] Vaccination page UI at `/vaccination` (accessible from Health section in sidebar + More page)
+  - Full schedule displayed grouped by age window (Birth, 2 months, 4 months, etc.)
+  - Administered doses: shown with date, greyed out, non-selectable — full schedule always visible so parents can see what's upcoming
+  - Not-yet-administered doses: selectable from a dropdown/picker or inline tap
+  - Tapping an unadministered dose opens a small form: date (defaults to today), lot number (optional), provider (optional), notes (optional)
+  - Edit and delete buttons on each administered row
+- [ ] Loading skeleton; no layout shift
+- [ ] Socket.io: emit `vaccination:created` / `vaccination:updated` / `vaccination:deleted` for real-time sync
 
 **Acceptance criteria:**
-- PDF export for a 7-day window generates in under 10 seconds
+- Full CDC schedule visible at a glance; administered doses clearly distinguished from pending
+- Logging a dose takes ≤ 3 taps from the vaccination page
+- Record does not claim to be an official document — no language suggesting legal validity
+
+#### Data Export Page (`/settings/export`)
+
+Standalone export page linked from the Settings Data section. Two distinct export modes: raw data export and the health summary report.
+
+**Raw Data Export:**
+- [ ] **Data type selector** — multi-select checkboxes: Feeding, Sleep, Diapers, Medication, Weight, Tummy Time, Mood & Activity (default: all)
+- [ ] **Date range picker** — presets (Last 7 days, Last 30 days, Last 3 months, Custom) + custom date range inputs
+- [ ] **Format selector** — PDF (formatted, readable) and CSV (raw, for spreadsheets)
+- [ ] **Download button** — triggers server-side generation; shows a loading state; downloads file
+- [ ] Server: `GET /api/export?babyId=&types=&from=&to=&format=` — streams PDF or ZIP of CSVs
+- [ ] PDF format: one section per data type, chronological, formatted for readability
+- [ ] CSV format: one file per data type, standard columns, UTC timestamps
+
+**Health Summary Report:**
+- [ ] Separate "Health Summary" tab or section on the export page
+- [ ] Customizable sections (checkboxes): Vaccinations Received, Current Medications, Recent Weight & Growth, Feeding Overview (last 30 days), Sleep Overview (last 30 days)
+- [ ] Single-page (or short multi-page) PDF output — clean, readable, suitable for handing to a pediatrician or daycare
+- [ ] Baby info header: name (if set), date of birth, report generated date
+- [ ] Prominent disclaimer on every page: *"This is an informal record generated by a private family app — not an official medical document."*
+- [ ] Server: `GET /api/export/health-summary?babyId=&sections=` — generates PDF
+- [ ] No date range needed for vaccinations/medications; feeding/sleep use last 30 days by default
+
+**Acceptance criteria:**
+- Raw PDF export for a 7-day window generates in under 10 seconds
+- CSV export opens in Google Sheets without transformation
+- Health Summary PDF fits on 1–2 pages and clearly shows vaccination history + current meds
+- Disclaimer is visible on every page of the health summary; no language implying official status
+- Empty sections are omitted from the health summary without error
 
 #### Push Notifications + Offline Support
 
@@ -931,17 +1021,20 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - Core log views load in airplane mode (from cache)
 - Offline logs sync correctly when connection restores
 
-#### Account Settings Page
+#### Settings Page
 
-- [ ] Settings screen accessible from the tablet sidebar footer and (future) bottom nav "More" tab
-- [ ] Display: user name and email (read-only for now)
-- [ ] Sign out button
-- [ ] Passkey management: list registered devices, add new passkey, remove a passkey
-- [ ] Dark/light/system theme toggle
+Centralized `/settings` route — one page with feature-scoped sections. Accessible from the sidebar (tablet) and More page (mobile). Settings gear icon added to sidebar System group and MorePage.
+
+- [ ] **Account** — display name (read-only), email (read-only), sign out button; passkey management: list registered devices with registration date, add new passkey, remove a passkey
+- [ ] **Notifications** — push notification toggle, SOS alert preferences
+- [ ] **Feeding** — default milk type (Breast Milk / Formula); saved formula names (editable list of autocomplete presets)
+- [ ] **Display** — dark/light/system theme toggle; unit preference (oz vs mL for feeding volumes)
+- [ ] **Data** — link to `/settings/export` data export page
 
 **Acceptance criteria:**
-- Can sign out from the settings page in ≤ 2 taps from any screen
+- Can sign out in ≤ 2 taps from any screen
 - Passkey list shows device name and registration date
+- Theme and unit preferences persist across sessions
 
 #### Final QA
 
@@ -974,6 +1067,81 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - A family receiving the repo can see what the app looks like before committing to setup
 - All screenshots reflect the final shipped design
 - README has at least 3 inline screenshots
+
+---
+
+### Phase 7.Distribution: Forking & Self-Hosting Readiness
+
+**Goal:** Someone we personally share this with can fork the repo, swap in their own icon, stand it up on hardware they already own, and have it running with minimal guesswork.
+
+> This is a personal share, not a public release. Guides are best-effort; we've only tested our own Unraid + Tailscale path. Docker Compose is Docker Compose — whether the host is Unraid, a Pi, a Synology, or a Linux box, the same Compose file runs on all of them.
+
+#### PWA Icon Strategy
+
+Personal icons stay on `main` (private repo, no reason to hide them). A `forkable` branch holds the generic icons and is kept automatically in sync with `main` via a GitHub Action — zero manual maintenance.
+
+**Branch setup (one-time):**
+- [ ] Create `forkable` branch from `main`
+- [ ] Source or design a clean generic icon (simple vector — baby bottle, heart, or abstract mark) at 192×192, 512×512, and 512×512 maskable
+- [ ] Commit the generic icons to `packages/client/public/icons/` on `forkable` — this is the only commit ever made directly to this branch
+
+**Auto-sync action (`.github/workflows/sync-forkable.yml`):**
+- [ ] Create a workflow that triggers on every push to `main` and runs:
+  ```bash
+  git checkout forkable
+  git merge main -X ours --no-edit
+  git push origin forkable
+  ```
+  `git merge -X ours` automatically resolves any conflict by taking `forkable`'s version — the generic icons are always preserved; all code changes flow through from `main` untouched. Since code is never committed directly to `forkable`, real conflicts cannot occur.
+
+**Documentation:**
+- [ ] Add a short **"Customising the icon"** section to the README on `forkable`: where the files live, required sizes (192px, 512px, maskable 512px), and where the manifest references them in `vite.config.ts`
+- [ ] README on `forkable` notes that this branch tracks `main` automatically and is the intended fork target
+
+**Result:** `main` deploys personal icons to production via the existing CI pipeline. `forkable` always has the latest code with generic icons within seconds of a `main` push. Forkers get working icons with no extra steps.
+
+#### Self-Hosting Guide
+
+One guide covers all local hosting options because Unraid, Raspberry Pi, Synology, and a Linux box all just run Docker Compose.
+
+- [ ] Create `docs/self-hosting/docker-compose.md` — the primary guide:
+  - Prerequisites: Docker Engine + Docker Compose plugin (or Docker Desktop); Git
+  - Clone the repo, copy `.env.example` files, fill in required values (DB credentials, JWT secrets, VAPID keys, `APP_URL`)
+  - `docker compose up -d` — explain what each service is (client/Nginx, server, Postgres)
+  - First-run seed: `docker compose exec server npm run seed`
+  - How to reach the app: `http://localhost` or over the network
+  - Platform notes (callout boxes, not separate guides):
+    - **Unraid**: run the Compose stack via Unraid's Docker Compose manager or the community Compose plugin; everything else is identical
+    - **Raspberry Pi 4+**: multi-arch images are already built by CI; note swap config for Postgres on low-RAM boards
+    - **Synology NAS**: import the Compose file via Container Manager; use Synology's built-in reverse proxy for HTTPS
+  - Troubleshooting section: DB connection refused, CORS errors, push notifications not working, Watchtower not pulling new images
+  - **Privacy callout**: running without Tailscale means the app is LAN-only unless you open a port — if you open it to the internet, add firewall rules or HTTP basic auth at the Nginx layer
+
+- [ ] Create `docs/self-hosting/cloud.md` — short optional note for people without a home server:
+  - One paragraph on Fly.io / Railway / Render as an option
+  - Honest trade-off: data leaves the home network; fine for some families, not the intent of this project
+  - No step-by-step (too platform-specific and untested); just enough to point someone in the right direction
+
+#### Tailscale Setup Guide
+
+Tailscale is optional but gives the cleanest remote access story — app stays on the home network, accessible from anywhere, with a valid HTTPS cert and no port forwarding.
+
+- [ ] Create `docs/self-hosting/tailscale.md`:
+  - What Tailscale does and why it's the recommended remote access option for this app (stays private, no port forwarding, valid HTTPS cert)
+  - Create a Tailscale account; free tier supports 2 users + 1 server
+  - Install Tailscale on the host machine (Linux package or Unraid plugin)
+  - Install Tailscale on both phones (Android + iOS); note phones must be in the same tailnet as the server
+  - Enable **MagicDNS** for a stable hostname instead of a changing IP
+  - Enable **HTTPS** in the Tailscale admin console; update `APP_URL` in `.env` to use the `https://` hostname
+  - Update Nginx to serve on 443 with the Tailscale-issued cert (`/var/lib/tailscale/certs/`)
+  - Test: open the app from each phone on both WiFi and mobile data
+  - Optional: lock down the tailnet ACL so only the two parent devices can reach the server
+
+**Acceptance criteria:**
+- Someone with a Docker-capable home server can follow the Docker Compose guide and reach the app on their phone with no prior questions answered by us
+- The Tailscale guide is self-contained; someone can set up remote access from scratch using it alone
+- README has a "Self-Hosting" section linking both guides
+- Repo contains no personally identifiable icons
 
 ---
 
