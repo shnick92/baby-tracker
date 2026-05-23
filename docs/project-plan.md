@@ -747,35 +747,44 @@ SEED_USER_2_PHONE=+1xxxxxxxxxx
 
 **Goal:** Complete health tracking to support pediatrician visits.
 
-#### Medication Log
+#### Medication Log ✅ Complete
 
-- [ ] Add MedicationLog to Prisma schema + migrate
-- [ ] REST + Socket.io endpoints
-- [ ] Medication log UI: name (with autocomplete from history), dosage, time
-- [ ] Today's medication summary
+- [x] Add MedicationLog to Prisma schema + migrate
+- [x] REST + Socket.io endpoints
+- [x] Medication log UI: name (with autocomplete from history), dosage, time
+- [x] Today's medication summary
 
 **Acceptance criteria:**
 - Can log Vitamin D drops in under 10 seconds after the first time
 
-#### Weight Tracking + Growth Charts
+#### Weight Tracking + Growth Charts ✅ Complete
 
-- [ ] Add WeightLog to Prisma schema + migrate
-- [ ] Weight entry UI: lb/oz
-- [ ] Growth chart: line chart of weight over time (use Recharts)
-- [ ] WHO percentile overlay (hardcode percentile curves for 0–6 months)
+- [x] Add WeightLog to Prisma schema + migrate
+- [x] Weight entry UI: lb/oz
+- [x] Growth chart: line chart of weight over time (use Recharts)
+- [x] WHO percentile overlay (hardcode percentile curves for 0–6 months)
 
 **Acceptance criteria:**
 - Weight chart renders correctly on mobile
 - WHO percentile lines are visually distinct from actual data
 
-#### Tummy Time + Mood/Activity Log
+#### Tummy Time + Mood/Activity Tracker ✅ Complete
 
-- [ ] Add TummyTimeLog, MoodLog to Prisma schema + migrate
-- [ ] Tummy time: start/stop timer UI; today's total duration summary
-- [ ] Mood/activity log: icon grid (Happy, Fussy, Crying, Alert, Bath, Walk, etc.)
+Scope expanded beyond original plan to include activity+mood combining, custom activities, and a unified cross-tracker activity feed.
+
+- [x] Add TummyTimeLog, MoodLog to Prisma schema + migrate
+- [x] Tummy time: start/stop timer UI; live MM:SS counter; today's total vs. 20–30 min/day goal; session history
+- [x] Mood log: tap-to-log instantly (Happy, Alert, Fussy, Crying)
+- [x] Activity+mood combining: tapping an activity (Bath, Walk) opens a qualifier bottom sheet to optionally attach a mood; tapping a mood button logs immediately with no extra step
+- [x] Custom activities per-baby: inline quick-add card (emoji + name); stored in new `CustomActivity` DB table; `[x]` delete on hover
+- [x] `MoodLog.qualifier` and `MoodLog.customActivityId` added to schema; migration `20260523060155_mood_qualifier_custom_activities`
+- [x] Unified activity feed on Mood page: merges mood, feeding, diaper, sleep, and tummy time logs into a single chronological feed; feeding/diaper/sleep/tummy time entries are read-only (CUD stays on their own pages)
+- [x] Tablet layout: sticky left column (mood/activity buttons) + scrollable right column (activity feed) — applied globally to all six two-column tracker pages (Feeding, Sleep, Diaper, Medication, Tummy Time, Mood)
 
 **Acceptance criteria:**
 - Tummy time timer is as simple as sleep timer (2 taps)
+- Logging Bath with a Happy qualifier requires exactly 2 taps
+- Custom activity appears in the grid immediately after inline add
 
 #### History & Reporting Views
 

@@ -92,6 +92,91 @@ async function seedChecklists(babyId: string) {
   console.log('Seeded default checklist items')
 }
 
+// Sample weight measurements — roughly tracks a typical newborn growth curve
+async function seedWeightLogs(babyId: string, loggedById: string) {
+  const existing = await prisma.weightLog.count({ where: { babyId } })
+  if (existing > 0) return
+
+  // Birth on Oct 1; measurements at 0, 3, 7, 14, 21, 30, 45, 60, 90, 120, 150, 180 days
+  const birthDate = new Date('2026-10-01')
+  const samples: { daysAfterBirth: number; lbs: number; oz: number; notes?: string }[] = [
+    { daysAfterBirth: 0,   lbs: 7, oz: 6,  notes: 'Birth weight' },
+    { daysAfterBirth: 3,   lbs: 7, oz: 1,  notes: 'Day 3 checkup — typical drop' },
+    { daysAfterBirth: 7,   lbs: 7, oz: 8 },
+    { daysAfterBirth: 14,  lbs: 7, oz: 14 },
+    { daysAfterBirth: 21,  lbs: 8, oz: 5 },
+    { daysAfterBirth: 30,  lbs: 9, oz: 1,  notes: '1-month checkup' },
+    { daysAfterBirth: 45,  lbs: 9, oz: 14 },
+    { daysAfterBirth: 60,  lbs: 10, oz: 11, notes: '2-month checkup' },
+    { daysAfterBirth: 90,  lbs: 12, oz: 2,  notes: '3-month checkup' },
+    { daysAfterBirth: 120, lbs: 13, oz: 8,  notes: '4-month checkup' },
+    { daysAfterBirth: 150, lbs: 14, oz: 12, notes: '5-month checkup' },
+    { daysAfterBirth: 180, lbs: 15, oz: 10, notes: '6-month checkup' },
+  ]
+
+  for (const s of samples) {
+    const recordedAt = new Date(birthDate)
+    recordedAt.setDate(birthDate.getDate() + s.daysAfterBirth)
+    await prisma.weightLog.create({
+      data: { babyId, loggedById, lbs: s.lbs, oz: s.oz, recordedAt, notes: s.notes },
+    })
+  }
+  console.log('Seeded sample weight logs')
+}
+
+async function seedTummyTimeLogs(babyId: string, loggedById: string) {
+  const existing = await prisma.tummyTimeLog.count({ where: { babyId } })
+  if (existing > 0) return
+
+  const now = new Date()
+  const samples: { minutesAgo: number; durationSec: number; notes?: string }[] = [
+    { minutesAgo: 30,  durationSec: 5 * 60 },
+    { minutesAgo: 150, durationSec: 7 * 60, notes: 'Lifted head!' },
+    { minutesAgo: 300, durationSec: 4 * 60 },
+    { minutesAgo: 1500, durationSec: 6 * 60 }, // yesterday
+    { minutesAgo: 1620, durationSec: 8 * 60, notes: 'Really enjoyed it' },
+    { minutesAgo: 2880, durationSec: 5 * 60 }, // 2 days ago
+    { minutesAgo: 3000, durationSec: 3 * 60 },
+  ]
+
+  for (const s of samples) {
+    const startedAt = new Date(now.getTime() - s.minutesAgo * 60 * 1000)
+    const endedAt = new Date(startedAt.getTime() + s.durationSec * 1000)
+    await prisma.tummyTimeLog.create({
+      data: { babyId, loggedById, startedAt, endedAt, durationSec: s.durationSec, notes: s.notes },
+    })
+  }
+  console.log('Seeded sample tummy time logs')
+}
+
+async function seedMoodLogs(babyId: string, loggedById: string) {
+  const existing = await prisma.moodLog.count({ where: { babyId } })
+  if (existing > 0) return
+
+  const now = new Date()
+  const samples: { minutesAgo: number; mood: 'HAPPY' | 'FUSSY' | 'CRYING' | 'SLEEPING' | 'ALERT' | 'BATH' | 'WALK'; notes?: string }[] = [
+    { minutesAgo: 20,   mood: 'HAPPY' },
+    { minutesAgo: 90,   mood: 'ALERT', notes: 'Wide awake after feed' },
+    { minutesAgo: 180,  mood: 'SLEEPING' },
+    { minutesAgo: 300,  mood: 'FUSSY', notes: 'Gassy' },
+    { minutesAgo: 480,  mood: 'BATH' },
+    { minutesAgo: 600,  mood: 'HAPPY' },
+    { minutesAgo: 1440, mood: 'WALK', notes: 'Morning walk around the block' },
+    { minutesAgo: 1560, mood: 'CRYING', notes: 'Hungry' },
+    { minutesAgo: 1620, mood: 'HAPPY' },
+    { minutesAgo: 2880, mood: 'ALERT' },
+    { minutesAgo: 2940, mood: 'SLEEPING' },
+  ]
+
+  for (const s of samples) {
+    const occurredAt = new Date(now.getTime() - s.minutesAgo * 60 * 1000)
+    await prisma.moodLog.create({
+      data: { babyId, loggedById, mood: s.mood, occurredAt, notes: s.notes },
+    })
+  }
+  console.log('Seeded sample mood logs')
+}
+
 async function main() {
   const u1Name = process.env.SEED_USER_1_NAME ?? 'Nick'
   const u1Email = process.env.SEED_USER_1_EMAIL ?? 'nick@example.com'
@@ -120,8 +205,8 @@ async function main() {
 
   const baby = await prisma.baby.upsert({
     where: { id: SEED_BABY_ID },
-    update: {},
-    create: { id: SEED_BABY_ID, dueDate: new Date('2026-10-01') },
+    update: { birthDate: new Date('2026-10-01') },
+    create: { id: SEED_BABY_ID, dueDate: new Date('2026-10-01'), birthDate: new Date('2026-10-01') },
   })
 
   await Promise.all([
@@ -138,6 +223,9 @@ async function main() {
   ])
 
   await seedChecklists(baby.id)
+  await seedWeightLogs(baby.id, user1.id)
+  await seedTummyTimeLogs(baby.id, user1.id)
+  await seedMoodLogs(baby.id, user1.id)
 
   console.log(`Seeded: ${user1.name} (${user1.email}), ${user2.name} (${user2.email}), baby ${baby.id}`)
 }

@@ -123,7 +123,7 @@ export function DiaperPage() {
         <div className="max-w-lg mx-auto px-4 py-4 md:max-w-5xl md:px-6 md:grid md:grid-cols-2 md:gap-6 md:items-start">
 
           {/* Left column: quick-log */}
-          <div className="space-y-4">
+          <div className="space-y-4 md:sticky md:top-4 md:self-start">
 
             {/* Count strip */}
             {totalToday > 0 && (

@@ -47,19 +47,25 @@ model Challenge {
 }
 
 model Baby {
-  id            String         @id @default(cuid())
-  name          String?
-  dueDate       DateTime?
-  birthDate     DateTime?
-  createdAt     DateTime       @default(now())
-  parents       BabyUser[]
-  checklists    Checklist[]
-  purchases     Purchase[]
-  visitorSlots  VisitorSlot[]
-  shortLinks    ShortLink[]
-  feedingLogs   FeedingLog[]
-  sleepLogs     SleepLog[]
-  diaperLogs    DiaperLog[]
+  id              String           @id @default(cuid())
+  name            String?
+  dueDate         DateTime?
+  birthDate       DateTime?
+  createdAt       DateTime         @default(now())
+  parents         BabyUser[]
+  checklists      Checklist[]
+  purchases       Purchase[]
+  visitorSlots    VisitorSlot[]
+  shortLinks      ShortLink[]
+  feedingLogs     FeedingLog[]
+  sleepLogs       SleepLog[]
+  diaperLogs      DiaperLog[]
+  weightLogs      WeightLog[]
+  medicationLogs  MedicationLog[]
+  tummyTimeLogs   TummyTimeLog[]
+  moodLogs        MoodLog[]
+  customActivities CustomActivity[]
+  milestones      Milestone[]
   sleepSettings   SleepSettings?
   emergencyAlerts EmergencyAlert[]
 }
@@ -208,6 +214,81 @@ model PushSubscription {
   createdAt DateTime @default(now())
 }
 
+model WeightLog {
+  id         String   @id @default(cuid())
+  babyId     String
+  baby       Baby     @relation(fields: [babyId], references: [id])
+  loggedById String
+  lbs        Int
+  oz         Float
+  recordedAt DateTime
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+model MedicationLog {
+  id         String   @id @default(cuid())
+  babyId     String
+  baby       Baby     @relation(fields: [babyId], references: [id])
+  loggedById String
+  name       String
+  dosageMg   Float?
+  dosageNote String?
+  givenAt    DateTime
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+model TummyTimeLog {
+  id          String   @id @default(cuid())
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  loggedById  String
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model MoodLog {
+  id               String          @id @default(cuid())
+  babyId           String
+  baby             Baby            @relation(fields: [babyId], references: [id])
+  loggedById       String
+  mood             MoodType?
+  qualifier        MoodType?
+  customActivityId String?
+  customActivity   CustomActivity? @relation(fields: [customActivityId], references: [id])
+  occurredAt       DateTime
+  notes            String?
+  createdAt        DateTime        @default(now())
+}
+
+model CustomActivity {
+  id        String    @id @default(cuid())
+  babyId    String
+  baby      Baby      @relation(fields: [babyId], references: [id])
+  name      String
+  emoji     String
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  moodLogs  MoodLog[]
+
+  @@unique([babyId, name])
+}
+
+model Milestone {
+  id         String            @id @default(cuid())
+  babyId     String
+  baby       Baby              @relation(fields: [babyId], references: [id])
+  category   MilestoneCategory
+  label      String
+  achievedAt DateTime?
+  notes      String?
+  createdAt  DateTime          @default(now())
+}
+
 model EmergencyAlert {
   id         String      @id @default(cuid())
   babyId     String
@@ -280,5 +361,25 @@ enum DiaperConsistency {
   RUNNY
   FIRM
   WATERY
+  CUSTOM
+}
+
+enum MoodType {
+  HAPPY
+  FUSSY
+  CRYING
+  SLEEPING
+  ALERT
+  BATH
+  WALK
+}
+
+enum MilestoneCategory {
+  MOTOR_GROSS
+  MOTOR_FINE
+  SOCIAL
+  LANGUAGE
+  COGNITIVE
+  FEEDING
   CUSTOM
 }

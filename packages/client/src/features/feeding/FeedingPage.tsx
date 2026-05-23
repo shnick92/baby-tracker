@@ -161,7 +161,7 @@ export function FeedingPage() {
         <div className="max-w-lg mx-auto px-4 py-4 md:max-w-5xl md:px-6 md:grid md:grid-cols-2 md:gap-6 md:items-start">
 
           {/* Left column: action controls */}
-          <div className="space-y-4">
+          <div className="space-y-4 md:sticky md:top-4 md:self-start">
 
             {/* Tab selector */}
             <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">

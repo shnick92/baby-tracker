@@ -26,13 +26,17 @@ authRouter.post('/login', async (req, res) => {
   }
 
   const rawToken = await issueRefreshToken(user.id)
-  const babyUser = await prisma.babyUser.findFirst({ where: { userId: user.id } })
+  const babyUser = await prisma.babyUser.findFirst({
+    where: { userId: user.id },
+    include: { baby: { select: { birthDate: true } } },
+  })
 
   res.cookie('rt', rawToken, COOKIE_OPTS).json({
     data: {
       accessToken: signAccess(user.id, user.email, user.role),
       user: { id: user.id, name: user.name, email: user.email, role: user.role, hasPasskey: user._count.credentials > 0 },
       babyId: babyUser?.babyId ?? null,
+      birthDate: babyUser?.baby?.birthDate?.toISOString() ?? null,
     },
     error: null,
   })
@@ -60,13 +64,17 @@ authRouter.post('/refresh', async (req, res) => {
   // Rotate refresh token
   await prisma.refreshToken.delete({ where: { id: stored.id } })
   const newRaw = await issueRefreshToken(stored.userId)
-  const babyUser = await prisma.babyUser.findFirst({ where: { userId: stored.userId } })
+  const babyUser = await prisma.babyUser.findFirst({
+    where: { userId: stored.userId },
+    include: { baby: { select: { birthDate: true } } },
+  })
 
   res.cookie('rt', newRaw, COOKIE_OPTS).json({
     data: {
       accessToken: signAccess(stored.user.id, stored.user.email, stored.user.role),
       user: { id: stored.user.id, name: stored.user.name, email: stored.user.email, role: stored.user.role, hasPasskey: stored.user._count.credentials > 0 },
       babyId: babyUser?.babyId ?? null,
+      birthDate: babyUser?.baby?.birthDate?.toISOString() ?? null,
     },
     error: null,
   })

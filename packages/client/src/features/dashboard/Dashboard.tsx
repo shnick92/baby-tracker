@@ -14,6 +14,7 @@ import { usePregnancyStatus } from '../pregnancy'
 import { useFeedingLogs } from '../feeding'
 import { useSleepLogs } from '../sleep'
 import { useDiaperLogs } from '../diaper'
+import { useActivityFeed } from '../mood'
 import { SOSButton } from '../alerts'
 
 const SOCKET_RING: Record<string, string> = {
@@ -29,11 +30,12 @@ const FEEDING_LABEL: Record<string, string> = {
   PUMP: 'Pump',
 }
 
-const FEEDING_ICON: Record<string, string> = {
-  BREAST_LEFT: '👈',
-  BREAST_RIGHT: '👉',
-  BOTTLE: '🍼',
-  PUMP: '🔄',
+const SOURCE_DOT: Record<string, string> = {
+  mood:      'bg-purple-400',
+  feeding:   'bg-blue-400',
+  diaper:    'bg-amber-400',
+  sleep:     'bg-indigo-400',
+  tummytime: 'bg-green-400',
 }
 
 function WakeWindowCard({ lastSleep }: { lastSleep: { endedAt: string | null; startedAt: string; type: string } | null }) {
@@ -76,17 +78,6 @@ function WakeWindowCard({ lastSleep }: { lastSleep: { endedAt: string | null; st
   )
 }
 
-type AnyLog =
-  | { _type: 'feed'; ts: string; label: string; icon: string; meta: string }
-  | { _type: 'sleep'; ts: string; label: string; icon: string; meta: string }
-  | { _type: 'diaper'; ts: string; label: string; icon: string; meta: string }
-
-const DOT_COLOR: Record<string, string> = {
-  feed: 'bg-blue-400',
-  sleep: 'bg-indigo-400',
-  diaper: 'bg-amber-400',
-}
-
 export function Dashboard() {
   const { user, babyId, markPasskeyAdded } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
@@ -107,44 +98,13 @@ export function Dashboard() {
   })
 
   const { logs: feedingLogs, isLoading: feedingLoading, activeSession: activeFeeding, feedCountToday } = useFeedingLogs(babyId!)
-  const { logs: sleepLogs, activeSession: activeSleep, lastEnded: lastSleep, isLoading: sleepLoading, totalSleepTodaySec } = useSleepLogs(babyId!)
-  const { logs: diaperLogs, wetCount, dirtyCount, isLoading: diaperLoading } = useDiaperLogs(babyId!)
+  const { activeSession: activeSleep, lastEnded: lastSleep, isLoading: sleepLoading, totalSleepTodaySec } = useSleepLogs(babyId!)
+  const { wetCount, dirtyCount, isLoading: diaperLoading } = useDiaperLogs(babyId!)
+  const { feedItems } = useActivityFeed(babyId!)
 
   const firstName = user?.name?.split(' ')[0] ?? ''
   const lastFed = feedingLogs.find((l) => l.endedAt || l.type === 'BOTTLE' || l.type === 'PUMP') ?? null
   const totalDiapers = wetCount + dirtyCount
-
-  const recentActivity: AnyLog[] = []
-  for (const log of feedingLogs.slice(0, 3)) {
-    recentActivity.push({
-      _type: 'feed',
-      ts: log.endedAt ?? log.startedAt,
-      label: FEEDING_LABEL[log.type],
-      icon: FEEDING_ICON[log.type],
-      meta: log.durationSec ? formatDuration(log.durationSec) : log.volumeOz ? `${log.volumeOz} oz` : '',
-    })
-  }
-  for (const log of sleepLogs.filter((l) => l.endedAt).slice(0, 3)) {
-    const dur = Math.round((new Date(log.endedAt!).getTime() - new Date(log.startedAt).getTime()) / 1000)
-    recentActivity.push({
-      _type: 'sleep',
-      ts: log.endedAt!,
-      label: log.type === 'NAP' ? 'Nap' : 'Night sleep',
-      icon: log.type === 'NAP' ? '😴' : '🌙',
-      meta: formatDuration(dur),
-    })
-  }
-  for (const log of diaperLogs.slice(0, 3)) {
-    recentActivity.push({
-      _type: 'diaper',
-      ts: log.occurredAt,
-      label: log.type === 'WET' ? 'Wet diaper' : log.type === 'DIRTY' ? 'Dirty diaper' : 'Wet + Dirty',
-      icon: log.type === 'WET' ? '💧' : '💩',
-      meta: log.color ? log.color.charAt(0) + log.color.slice(1).toLowerCase() : '',
-    })
-  }
-  recentActivity.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
-  const topActivity = recentActivity.slice(0, 5)
 
   const chevron = (
     <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -219,23 +179,28 @@ export function Dashboard() {
     </div>
   )
 
-  const activityFeed = topActivity.length > 0 ? (
+  const activityFeed = feedItems.length > 0 ? (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 px-1 mb-2">
-        Recent activity
-      </p>
+      <div className="flex items-center justify-between px-1 mb-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+          Recent activity
+        </p>
+        <Link to="/mood" className="text-xs text-blue-500 dark:text-blue-400 hover:underline">
+          View all →
+        </Link>
+      </div>
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700/60">
-        {topActivity.map((item, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT_COLOR[item._type]}`} />
-            <span className="text-sm flex-shrink-0">{item.icon}</span>
+        {feedItems.slice(0, 3).map((item) => (
+          <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${SOURCE_DOT[item.source] ?? 'bg-gray-400'}`} />
+            <span className="text-sm flex-shrink-0">{item.emoji}</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
                 {item.label}
-                {item.meta && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {item.meta}</span>}
+                {item.detail && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {item.detail}</span>}
               </p>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{formatTimeAgo(item.ts)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{formatTimeAgo(item.time)}</p>
           </div>
         ))}
       </div>
@@ -349,7 +314,7 @@ export function Dashboard() {
       </main>
 
       {/* Tablet layout — 2-column */}
-      <main className="hidden md:grid md:grid-cols-2 md:gap-6 md:px-6 md:py-6 md:items-start max-w-4xl">
+      <main className="hidden md:grid md:grid-cols-2 md:gap-6 md:px-6 md:py-6 md:items-start max-w-4xl mx-auto">
         {/* Left column */}
         <div className="space-y-4">
           <PregnancyProgressWidget />

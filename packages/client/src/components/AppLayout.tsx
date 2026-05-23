@@ -21,6 +21,10 @@ const SIDEBAR_ITEMS: NavItem[] = [
   { to: '/checklist/hospital_bag_mom', label: 'Pregnancy Prep', icon: '🤰', prefix: '/checklist' },
   { to: '/purchases', label: 'Purchases', icon: '🛍', prefix: '/purchases' },
   { to: '/visitors', label: 'Visitors', icon: '👥', prefix: '/visitors' },
+  { to: '/medication', label: 'Medication', icon: '💊', prefix: '/medication' },
+  { to: '/weight', label: 'Weight', icon: '⚖️', prefix: '/weight' },
+  { to: '/tummy-time', label: 'Tummy Time', icon: '🐢', prefix: '/tummy-time' },
+  { to: '/mood', label: 'Mood', icon: '😊', prefix: '/mood' },
   { to: '/alerts', label: 'Alert History', icon: '🔔', prefix: '/alerts' },
 ]
 
@@ -38,7 +42,11 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/checklist') ||
     pathname.startsWith('/purchases') ||
     pathname.startsWith('/visitors') ||
-    pathname.startsWith('/alerts')
+    pathname.startsWith('/alerts') ||
+    pathname.startsWith('/medication') ||
+    pathname.startsWith('/weight') ||
+    pathname.startsWith('/tummy-time') ||
+    pathname.startsWith('/mood')
   )
 }
 
@@ -52,6 +60,10 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/purchases')) return 'Purchases'
   if (pathname.startsWith('/visitors')) return 'Visitor Schedule'
   if (pathname.startsWith('/alerts')) return 'Alert History'
+  if (pathname.startsWith('/medication')) return 'Medication'
+  if (pathname.startsWith('/weight')) return 'Weight'
+  if (pathname.startsWith('/tummy-time')) return 'Tummy Time'
+  if (pathname.startsWith('/mood')) return 'Mood & Activity'
   return 'Baby Tracker'
 }
 

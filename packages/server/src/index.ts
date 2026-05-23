@@ -14,6 +14,10 @@ import { pregnancyRouter } from './routes/pregnancy'
 import { feedingRouter } from './routes/feeding'
 import { sleepRouter } from './routes/sleep'
 import { diaperRouter } from './routes/diaper'
+import { medicationRouter } from './routes/medication'
+import { weightRouter } from './routes/weight'
+import { tummyTimeRouter } from './routes/tummyTime'
+import { moodRouter } from './routes/mood'
 import { errorHandler } from './middleware/errorHandler'
 import { setupSocket } from './socket/index'
 import pushRouter from './routes/push'
@@ -67,6 +71,10 @@ app.use('/api/pregnancy', pregnancyRouter)
 app.use('/api/feeding', feedingRouter)
 app.use('/api/sleep', sleepRouter)
 app.use('/api/diaper', diaperRouter)
+app.use('/api/medication', medicationRouter)
+app.use('/api/weight', weightRouter)
+app.use('/api/tummy-time', tummyTimeRouter)
+app.use('/api/mood', moodRouter)
 app.use('/s', shortLinkRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/settings', settingsRouter)

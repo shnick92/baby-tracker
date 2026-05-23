@@ -27,6 +27,30 @@ const MORE_ITEMS: MoreItem[] = [
     description: 'Schedule and manage visitor time slots',
   },
   {
+    to: '/medication',
+    icon: '💊',
+    label: 'Medication',
+    description: 'Track medications, doses, and timing',
+  },
+  {
+    to: '/weight',
+    icon: '⚖️',
+    label: 'Weight & Growth',
+    description: 'Weight log and growth chart with WHO reference',
+  },
+  {
+    to: '/tummy-time',
+    icon: '🐢',
+    label: 'Tummy Time',
+    description: 'Track tummy time sessions and daily totals',
+  },
+  {
+    to: '/mood',
+    icon: '😊',
+    label: 'Mood & Activity',
+    description: 'Log mood, bath, walks, and other activities',
+  },
+  {
     to: '/alerts',
     icon: '🔔',
     label: 'Alert History',

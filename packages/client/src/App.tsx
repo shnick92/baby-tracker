@@ -21,8 +21,12 @@ import { SleepPage } from '@features/sleep'
 import { DiaperPage } from '@features/diaper'
 import { AlertsPage, SOSAlert } from '@features/alerts'
 import { MorePage } from '@features/more'
+import { MedicationPage } from '@features/medication'
+import { WeightPage } from '@features/weight'
+import { TummyTimePage } from '@features/tummyTime'
+import { MoodPage } from '@features/mood'
 
-type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null }
+type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null; birthDate: string | null }
 
 type SosSocketPayload = {
   alertId: string
@@ -48,7 +52,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
-    if (data) setAuth(data.accessToken, data.user, data.babyId)
+    if (data) setAuth(data.accessToken, data.user, data.babyId, data.birthDate)
   }, [data, setAuth])
 
   useEffect(() => {
@@ -161,6 +165,10 @@ export default function App() {
               <Route path="/visitors" element={<VisitorsPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/more" element={<MorePage />} />
+              <Route path="/medication" element={<MedicationPage />} />
+              <Route path="/weight" element={<WeightPage />} />
+              <Route path="/tummy-time" element={<TummyTimePage />} />
+              <Route path="/mood" element={<MoodPage />} />
             </Route>
           </Routes>
           <SOSAlert />

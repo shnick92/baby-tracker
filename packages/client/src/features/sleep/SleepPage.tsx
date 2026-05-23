@@ -154,7 +154,7 @@ export function SleepPage() {
         <div className="max-w-lg mx-auto px-4 py-4 md:max-w-5xl md:px-6 md:grid md:grid-cols-2 md:gap-6 md:items-start">
 
           {/* Left column: controls */}
-          <div className="space-y-4">
+          <div className="space-y-4 md:sticky md:top-4 md:self-start">
 
             {/* Gear button — tablet only (mobile has it in the header above) */}
             <div className="hidden md:flex justify-end">
