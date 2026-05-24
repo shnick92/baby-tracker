@@ -106,7 +106,7 @@ export function DiaperPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-10 md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
         <div>
           <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Diapers</h1>
           {totalToday > 0 && (

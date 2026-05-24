@@ -8,12 +8,15 @@ export type DailyLog = {
   feedings: {
     id: string; type: string; startedAt: string; endedAt: string | null
     durationSec: number | null; volumeOz: number | null; milkType: string | null; formulaName: string | null; notes: string | null
+    loggedBy: { name: string }
   }[]
   sleeps: {
     id: string; type: string; startedAt: string; endedAt: string | null; notes: string | null
+    loggedBy: { name: string }
   }[]
   diapers: {
     id: string; type: string; color: string | null; occurredAt: string; notes: string | null
+    loggedBy: { name: string }
   }[]
   medications: {
     id: string; name: string; dosageNote: string | null; givenAt: string; notes: string | null
@@ -23,6 +26,9 @@ export type DailyLog = {
   }[]
   moods: {
     id: string; mood: string | null; occurredAt: string; customActivity: { name: string; emoji: string } | null
+  }[]
+  visitors: {
+    id: string; name: string; date: string; startTime: string | null; endTime: string | null; notes: string | null
   }[]
 }
 

@@ -62,7 +62,7 @@ export function ChecklistPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile-only header — AppLayout sidebar replaces this on tablet */}
-      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
             {TYPE_LABELS[activeType] ?? activeType}

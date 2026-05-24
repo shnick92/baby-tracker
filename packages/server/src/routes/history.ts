@@ -18,18 +18,21 @@ historyRouter.get('/daily', async (req, res) => {
   const start = new Date(`${dateStr}T00:00:00.000Z`)
   const end = new Date(`${dateStr}T23:59:59.999Z`)
 
-  const [feedings, sleeps, diapers, medications, tummyTimes, moods] = await Promise.all([
+  const [feedings, sleeps, diapers, medications, tummyTimes, moods, visitors] = await Promise.all([
     prisma.feedingLog.findMany({
       where: { babyId, startedAt: { gte: start, lte: end } },
       orderBy: { startedAt: 'asc' },
+      include: { loggedBy: { select: { name: true } } },
     }),
     prisma.sleepLog.findMany({
       where: { babyId, startedAt: { gte: start, lte: end } },
       orderBy: { startedAt: 'asc' },
+      include: { loggedBy: { select: { name: true } } },
     }),
     prisma.diaperLog.findMany({
       where: { babyId, occurredAt: { gte: start, lte: end } },
       orderBy: { occurredAt: 'asc' },
+      include: { loggedBy: { select: { name: true } } },
     }),
     prisma.medicationLog.findMany({
       where: { babyId, givenAt: { gte: start, lte: end } },
@@ -44,9 +47,13 @@ historyRouter.get('/daily', async (req, res) => {
       orderBy: { occurredAt: 'asc' },
       include: { customActivity: true },
     }),
+    prisma.visitorSlot.findMany({
+      where: { babyId, date: dateStr },
+      orderBy: { date: 'asc' },
+    }),
   ])
 
-  res.json({ data: { feedings, sleeps, diapers, medications, tummyTimes, moods }, error: null })
+  res.json({ data: { feedings, sleeps, diapers, medications, tummyTimes, moods, visitors }, error: null })
 })
 
 // GET /api/history/weekly?babyId=

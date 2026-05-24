@@ -62,12 +62,18 @@ const MORE_ITEMS: MoreItem[] = [
     label: 'History & Reports',
     description: 'Daily logs view and 7-day feeding, sleep & diaper summaries',
   },
+  {
+    to: '/calendar',
+    icon: '📅',
+    label: 'Calendar',
+    description: 'Monthly view of all tracked events — feedings, sleep, diapers & visitors',
+  },
 ]
 
 export function MorePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3">
+      <header className="sticky top-0 z-10 md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3">
         <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">More</h1>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Planning & history</p>
       </header>

@@ -805,17 +805,17 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - [x] 7-day sleep summary: average sleep/day, longest stretch
 - [x] Diaper count history: chart of wet + dirty counts per day
 
-#### Calendar View
+#### Calendar View ✅ Complete
 
-- [ ] Unified calendar screen showing all tracked events in a single timeline view
-- [ ] Filter bar at top: defaults to "All" — toggleable filter chips for Visits, Feedings, Diapers, and Naps/Sleep
-- [ ] Month view: each day shows coloured indicator dots for event categories present (blue = feeding, green = sleep/nap, amber = diaper, purple = visitor)
-- [ ] Tapping a day opens a day-detail panel: chronological list of all events that day
-- [ ] Filter chips persist across sessions (stored in Zustand or localStorage)
-- [ ] Smooth swipe-left/right to navigate months on mobile
-- [ ] Tablet layout: split-panel — month grid on left, day detail on right
-- [ ] New aggregated API endpoint: `GET /api/calendar?babyId=&from=YYYY-MM-DD&to=YYYY-MM-DD`
-- [ ] React Query caches responses by month — navigating back to a previous month does not re-fetch
+- [x] Unified calendar screen showing all tracked events in a single timeline view
+- [x] Filter bar at top: defaults to "All" — toggleable filter chips for Visits, Feedings, Diapers, and Naps/Sleep
+- [x] Month view: each day shows coloured indicator dots for event categories present (blue = feeding, green = sleep/nap, amber = diaper, purple = visitor)
+- [x] Tapping a day opens a day-detail panel: chronological list of all events that day
+- [x] Filter chips persist across sessions (stored in localStorage)
+- [x] Smooth swipe-left/right to navigate months on mobile
+- [x] Tablet layout: split-panel — month grid on left, day detail on right
+- [x] New aggregated API endpoint: `GET /api/calendar?babyId=&from=YYYY-MM-DD&to=YYYY-MM-DD`
+- [x] React Query caches responses by month — navigating back to a previous month does not re-fetch
 
 **Acceptance criteria:**
 - All four category types visible in a single month view without UI degradation
@@ -841,7 +841,7 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 #### Sticky Mobile Headers
 
-- [ ] Make every non-dashboard page's mobile header sticky: add `fixed top-0 inset-x-0 z-10` and the appropriate `pt-[XX]` content offset to all 12 pages (Feeding, Sleep, Diaper, Medication, Weight, Tummy Time, Mood, Alerts, More, Purchases, Visitors, Checklist)
+- [x] Make every non-dashboard page's mobile header sticky: `sticky top-0 z-10` applied to all 13 pages (Feeding, Sleep, Diaper, Medication, Weight, Tummy Time, Mood, Alerts, More, Purchases, Visitors, Checklist, History, Calendar)
 
 #### Dashboard Upgrade
 
