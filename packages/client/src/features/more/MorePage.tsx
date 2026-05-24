@@ -56,6 +56,12 @@ const MORE_ITEMS: MoreItem[] = [
     label: 'Alert History',
     description: 'Recent SOS alerts sent and received',
   },
+  {
+    to: '/history',
+    icon: '📊',
+    label: 'History & Reports',
+    description: 'Daily logs view and 7-day feeding, sleep & diaper summaries',
+  },
 ]
 
 export function MorePage() {

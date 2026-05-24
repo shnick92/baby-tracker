@@ -18,6 +18,7 @@ import { medicationRouter } from './routes/medication'
 import { weightRouter } from './routes/weight'
 import { tummyTimeRouter } from './routes/tummyTime'
 import { moodRouter } from './routes/mood'
+import { historyRouter } from './routes/history'
 import { errorHandler } from './middleware/errorHandler'
 import { setupSocket } from './socket/index'
 import pushRouter from './routes/push'
@@ -75,6 +76,7 @@ app.use('/api/medication', medicationRouter)
 app.use('/api/weight', weightRouter)
 app.use('/api/tummy-time', tummyTimeRouter)
 app.use('/api/mood', moodRouter)
+app.use('/api/history', historyRouter)
 app.use('/s', shortLinkRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/settings', settingsRouter)

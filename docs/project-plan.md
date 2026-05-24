@@ -786,24 +786,24 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - Logging Bath with a Happy qualifier requires exactly 2 taps
 - Custom activity appears in the grid immediately after inline add
 
-#### Feeding Refinements
+#### Feeding Refinements ✅ Complete
 
-- [ ] Bottle feed: add milk type radio group (Breast Milk default / Formula); formula option reveals name field with autocomplete from recent formula names in logs (same pattern as medication name autocomplete)
-- [ ] `milkType String?` and `formulaName String?` fields added to `FeedingLog` Prisma schema + migration
-- [ ] Update `logBottleSchema` in `packages/shared` to include `milkType` and `formulaName`
-- [ ] Update bottle POST route to persist the new fields
-- [ ] Display milk type in feeding log list rows (e.g., "Similac" instead of just "Bottle")
+- [x] Bottle feed: add milk type radio group (Breast Milk default / Formula); formula option reveals name field with autocomplete from recent formula names in logs (same pattern as medication name autocomplete)
+- [x] `milkType String?` and `formulaName String?` fields added to `FeedingLog` Prisma schema + migration
+- [x] Update `logBottleSchema` in `packages/shared` to include `milkType` and `formulaName`
+- [x] Update bottle POST route to persist the new fields
+- [x] Display milk type in feeding log list rows (e.g., "Similac" instead of just "Bottle")
 
 **Acceptance criteria:**
 - Breast milk is the default and requires no extra tap
 - Selecting Formula reveals a name field; previously used formula names autocomplete as you type
 
-#### History & Reporting Views
+#### History & Reporting Views ✅ Complete
 
-- [ ] Daily summary view: all logs for a selected date on one screen
-- [ ] 7-day feeding summary: average feeds/day, average duration, total volume
-- [ ] 7-day sleep summary: average sleep/day, longest stretch
-- [ ] Diaper count history: chart of wet + dirty counts per day
+- [x] Daily summary view: all logs for a selected date on one screen
+- [x] 7-day feeding summary: average feeds/day, average duration, total volume
+- [x] 7-day sleep summary: average sleep/day, longest stretch
+- [x] Diaper count history: chart of wet + dirty counts per day
 
 #### Calendar View
 

@@ -57,6 +57,11 @@ describe('FeedingPage', () => {
     const ozInput = await screen.findByPlaceholderText('0.0')
     await user.type(ozInput, '3')
     await user.click(screen.getByRole('button', { name: 'Log Bottle Feed' }))
-    expect(api.post).toHaveBeenCalledWith('/api/feeding/bottle', { babyId: 'b1', volumeOz: 3 })
+    expect(api.post).toHaveBeenCalledWith('/api/feeding/bottle', {
+      babyId: 'b1',
+      volumeOz: 3,
+      milkType: 'BREAST_MILK',
+      formulaName: undefined,
+    })
   })
 })

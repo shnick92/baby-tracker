@@ -26,6 +26,7 @@ const SIDEBAR_ITEMS: NavItem[] = [
   { to: '/tummy-time', label: 'Tummy Time', icon: '🐢', prefix: '/tummy-time' },
   { to: '/mood', label: 'Mood', icon: '😊', prefix: '/mood' },
   { to: '/alerts', label: 'Alert History', icon: '🔔', prefix: '/alerts' },
+  { to: '/history', label: 'History & Reports', icon: '📊', prefix: '/history' },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
@@ -46,7 +47,8 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/medication') ||
     pathname.startsWith('/weight') ||
     pathname.startsWith('/tummy-time') ||
-    pathname.startsWith('/mood')
+    pathname.startsWith('/mood') ||
+    pathname.startsWith('/history')
   )
 }
 
@@ -64,6 +66,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/weight')) return 'Weight'
   if (pathname.startsWith('/tummy-time')) return 'Tummy Time'
   if (pathname.startsWith('/mood')) return 'Mood & Activity'
+  if (pathname.startsWith('/history')) return 'History & Reports'
   return 'Baby Tracker'
 }
 

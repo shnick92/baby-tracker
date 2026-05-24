@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -13,7 +13,11 @@ import { FeedingSkeleton } from './FeedingSkeleton'
 
 type Tab = 'BREAST' | 'BOTTLE' | 'PUMP'
 
-const bottleSchema = z.object({ volumeOz: z.coerce.number().min(0.1, 'Min 0.1 oz').max(16, 'Max 16 oz') })
+const bottleSchema = z.object({
+  volumeOz: z.coerce.number().min(0.1, 'Min 0.1 oz').max(16, 'Max 16 oz'),
+  milkType: z.enum(['BREAST_MILK', 'FORMULA']).default('BREAST_MILK'),
+  formulaName: z.string().max(100, 'Max 100 characters').optional(),
+})
 const pumpSchema = z.object({
   volumeOz: z.coerce.number().min(0, 'Min 0 oz').max(32, 'Max 32 oz'),
   durationMin: z.coerce.number().min(0, 'Min 0').optional(),
@@ -27,6 +31,7 @@ const editFeedingSchema = z.object({
 })
 
 type BottleForm = z.infer<typeof bottleSchema>
+type MilkType = 'BREAST_MILK' | 'FORMULA'
 type PumpForm = z.infer<typeof pumpSchema>
 type EditFeedingForm = z.infer<typeof editFeedingSchema>
 
@@ -58,14 +63,16 @@ function FeedDot({ type }: { type: string }) {
 export function FeedingPage() {
   const { babyId } = useAuthStore()
   const {
-    logs, isLoading, activeSession, feedCountToday,
+    logs, isLoading, activeSession, feedCountToday, knownFormulaNames,
     startMutation, endMutation, logBottleMutation, logPumpMutation, editMutation, deleteMutation,
   } = useFeedingLogs(babyId!)
 
   const [activeTab, setActiveTab] = useState<Tab>('BREAST')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [formulaSuggestions, setFormulaSuggestions] = useState<string[]>([])
+  const formulaInputRef = useRef<HTMLInputElement | null>(null)
 
-  const bottleForm = useForm<BottleForm>({ resolver: zodResolver(bottleSchema) })
+  const bottleForm = useForm<BottleForm>({ resolver: zodResolver(bottleSchema), defaultValues: { milkType: 'BREAST_MILK' } })
   const pumpForm = useForm<PumpForm>({ resolver: zodResolver(pumpSchema) })
   const editForm = useForm<EditFeedingForm>({ resolver: zodResolver(editFeedingSchema) })
 
@@ -83,6 +90,29 @@ export function FeedingPage() {
         ? true
         : false
 
+  const handleTabChange = (tab: Tab) => {
+    if (tab !== 'BOTTLE') bottleForm.reset({ milkType: 'BREAST_MILK' })
+    if (tab !== 'PUMP') pumpForm.reset()
+    setFormulaSuggestions([])
+    setActiveTab(tab)
+  }
+
+  const handleFormulaFocus = () => {
+    setFormulaSuggestions(knownFormulaNames)
+  }
+
+  const handleFormulaInput = (value: string) => {
+    if (!value.trim()) { setFormulaSuggestions(knownFormulaNames); return }
+    const lower = value.toLowerCase()
+    setFormulaSuggestions(knownFormulaNames.filter((n) => n.toLowerCase().includes(lower)))
+  }
+
+  const handleFormulaSuggestionPick = (name: string) => {
+    bottleForm.setValue('formulaName', name, { shouldValidate: true })
+    setFormulaSuggestions([])
+    formulaInputRef.current?.blur()
+  }
+
   const handleBreastTap = (side: 'BREAST_LEFT' | 'BREAST_RIGHT') => {
     if (activeSession) {
       endMutation.mutate(activeSession.id)
@@ -91,17 +121,24 @@ export function FeedingPage() {
     }
   }
 
+  const watchedMilkType = bottleForm.watch('milkType') as MilkType
+
   const onBottleSubmit = bottleForm.handleSubmit((values) => {
-    logBottleMutation.mutate(values.volumeOz, {
-      onSuccess: () => { bottleForm.reset() },
+    logBottleMutation.mutate({
+      volumeOz: values.volumeOz,
+      milkType: values.milkType,
+      formulaName: values.milkType === 'FORMULA' ? (values.formulaName || undefined) : undefined,
     })
+    bottleForm.reset({ milkType: 'BREAST_MILK' })
+    setFormulaSuggestions([])
   })
 
   const onPumpSubmit = pumpForm.handleSubmit((values) => {
-    logPumpMutation.mutate(
-      { volumeOz: values.volumeOz, durationSec: values.durationMin ? values.durationMin * 60 : undefined },
-      { onSuccess: () => { pumpForm.reset() } },
-    )
+    logPumpMutation.mutate({
+      volumeOz: values.volumeOz,
+      durationSec: values.durationMin ? values.durationMin * 60 : undefined,
+    })
+    pumpForm.reset()
   })
 
   const handleStartEdit = (log: (typeof completedLogs)[0]) => {
@@ -168,7 +205,7 @@ export function FeedingPage() {
               {(['BREAST', 'BOTTLE', 'PUMP'] as Tab[]).map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => handleTabChange(tab)}
                   className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
                     activeTab === tab
                       ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
@@ -273,8 +310,75 @@ export function FeedingPage() {
                 className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-4"
               >
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                  Bottle / pumping log
+                  Bottle feed
                 </p>
+
+                {/* Milk type radio */}
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Milk type</label>
+                  <div className="flex gap-2">
+                    {(['BREAST_MILK', 'FORMULA'] as const).map((type) => (
+                      <label
+                        key={type}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-[1.5px] text-sm font-medium cursor-pointer transition-colors ${
+                          watchedMilkType === type
+                            ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                            : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value={type}
+                          {...bottleForm.register('milkType')}
+                          className="sr-only"
+                        />
+                        {type === 'BREAST_MILK' ? 'Breast Milk' : 'Formula'}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Formula name autocomplete — shown only when Formula selected */}
+                {watchedMilkType === 'FORMULA' && (
+                  <div className="relative">
+                    <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Formula name</label>
+                    {(() => {
+                      const { ref, onChange, onBlur, ...rest } = bottleForm.register('formulaName')
+                      return (
+                        <input
+                          type="text"
+                          placeholder="e.g. Similac"
+                          autoComplete="off"
+                          ref={(el) => { ref(el); formulaInputRef.current = el }}
+                          onChange={(e) => { onChange(e); handleFormulaInput(e.target.value) }}
+                          onFocus={handleFormulaFocus}
+                          onBlur={(e) => { onBlur(e); setTimeout(() => setFormulaSuggestions([]), 150) }}
+                          {...rest}
+                          className={`${inputCls} ${bottleForm.formState.errors.formulaName ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                        />
+                      )
+                    })()}
+                    {formulaSuggestions.length > 0 && (
+                      <ul className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg overflow-hidden">
+                        {formulaSuggestions.map((name) => (
+                          <li key={name}>
+                            <button
+                              type="button"
+                              onMouseDown={() => handleFormulaSuggestionPick(name)}
+                              className="w-full text-left px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                            >
+                              {name}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {bottleForm.formState.errors.formulaName && (
+                      <p className="text-xs text-red-500 mt-1 text-right">{bottleForm.formState.errors.formulaName.message}</p>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">Amount</label>
                   <div className="flex gap-2 items-center">
@@ -455,7 +559,9 @@ export function FeedingPage() {
                           <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                             {log.type === 'BREAST_LEFT' || log.type === 'BREAST_RIGHT'
                               ? `Breastfeed · ${FEEDING_TYPE_LABEL[log.type]}`
-                              : FEEDING_TYPE_LABEL[log.type]}
+                              : log.type === 'BOTTLE'
+                                ? (log.formulaName || (log.milkType === 'FORMULA' ? 'Formula' : 'Breast Milk'))
+                                : FEEDING_TYPE_LABEL[log.type]}
                             {log.volumeOz != null && (
                               <span className="text-gray-500 dark:text-gray-400 font-normal">
                                 {' · '}{formatOz(log.volumeOz)}

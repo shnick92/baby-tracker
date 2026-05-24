@@ -16,6 +16,8 @@ export type FeedingLog = {
   endedAt: string | null
   durationSec: number | null
   volumeOz: number | null
+  milkType: string | null
+  formulaName: string | null
   notes: string | null
   createdAt: string
 }
@@ -58,8 +60,8 @@ export function useFeedingLogs(babyId: string) {
   })
 
   const logBottleMutation = useMutation({
-    mutationFn: (volumeOz: number) =>
-      api.post('/api/feeding/bottle', { babyId, volumeOz }).then((r) => r.data.data as FeedingLog),
+    mutationFn: ({ volumeOz, milkType, formulaName }: { volumeOz: number; milkType?: string; formulaName?: string }) =>
+      api.post('/api/feeding/bottle', { babyId, volumeOz, milkType, formulaName }).then((r) => r.data.data as FeedingLog),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: feedingKeys.list(babyId) }),
   })
 
@@ -91,11 +93,20 @@ export function useFeedingLogs(babyId: string) {
     return new Date(ts).toDateString() === today
   }).length
 
+  const knownFormulaNames = Array.from(
+    new Set(
+      logs
+        .filter((l) => l.type === 'BOTTLE' && l.milkType === 'FORMULA' && l.formulaName)
+        .map((l) => l.formulaName!),
+    ),
+  )
+
   return {
     logs,
     isLoading: query.isLoading,
     activeSession,
     feedCountToday,
+    knownFormulaNames,
     startMutation,
     endMutation,
     logBottleMutation,

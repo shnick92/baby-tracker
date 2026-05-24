@@ -25,6 +25,7 @@ import { MedicationPage } from '@features/medication'
 import { WeightPage } from '@features/weight'
 import { TummyTimePage } from '@features/tummyTime'
 import { MoodPage } from '@features/mood'
+import { HistoryPage } from '@features/history'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null; birthDate: string | null }
 
@@ -169,6 +170,7 @@ export default function App() {
               <Route path="/weight" element={<WeightPage />} />
               <Route path="/tummy-time" element={<TummyTimePage />} />
               <Route path="/mood" element={<MoodPage />} />
+              <Route path="/history" element={<HistoryPage />} />
             </Route>
           </Routes>
           <SOSAlert />

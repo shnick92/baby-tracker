@@ -78,6 +78,8 @@ feedingRouter.post('/bottle', async (req, res) => {
       type: 'BOTTLE',
       startedAt: parsed.data.fedAt ? new Date(parsed.data.fedAt) : new Date(),
       volumeOz: parsed.data.volumeOz,
+      milkType: parsed.data.milkType ?? 'BREAST_MILK',
+      formulaName: parsed.data.formulaName ?? null,
       notes: parsed.data.notes,
     },
   })
@@ -119,7 +121,7 @@ feedingRouter.patch('/:id', async (req, res) => {
   const parsed = updateFeedingSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
-  const { type, startedAt, endedAt, volumeOz, notes } = parsed.data
+  const { type, startedAt, endedAt, volumeOz, milkType, formulaName, notes } = parsed.data
 
   const newStartedAt = startedAt ? new Date(startedAt) : existing.startedAt
   const newEndedAt = endedAt !== undefined ? (endedAt ? new Date(endedAt) : null) : existing.endedAt
@@ -137,6 +139,8 @@ feedingRouter.patch('/:id', async (req, res) => {
       ...(startedAt !== undefined && { startedAt: newStartedAt }),
       ...(endedAt !== undefined && { endedAt: newEndedAt }),
       ...(volumeOz !== undefined && { volumeOz }),
+      ...(milkType !== undefined && { milkType }),
+      ...(formulaName !== undefined && { formulaName }),
       ...(notes !== undefined && { notes }),
       durationSec,
     },

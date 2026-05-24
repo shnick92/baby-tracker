@@ -160,6 +160,8 @@ model FeedingLog {
   endedAt     DateTime?
   durationSec Int?
   volumeOz    Float?
+  milkType    String?
+  formulaName String?
   notes       String?
   createdAt   DateTime    @default(now())
 }
