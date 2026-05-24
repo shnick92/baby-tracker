@@ -32,9 +32,21 @@ export function scheduleSosCall(
 ): void {
   const client = getTwilioClient()
   const from = process.env.TWILIO_FROM_NUMBER
-  if (!client || !from || !recipientPhone) return
+  if (!client) {
+    console.warn('[sos-call] Twilio client unavailable — check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN env vars')
+    return
+  }
+  if (!from) {
+    console.warn('[sos-call] TWILIO_FROM_NUMBER env var not set — skipping call')
+    return
+  }
+  if (!recipientPhone) {
+    console.warn('[sos-call] Recipient has no phone number — skipping call')
+    return
+  }
 
   const delayMs = hasIosSubscription ? IOS_DELAY_MS : ANDROID_DELAY_MS
+  console.log(`[sos-call] Scheduling call to ${recipientPhone} in ${delayMs}ms (alertId=${alertId})`)
   const twiml = buildTwiml(senderName.split(' ')[0])
   const entry: PendingCall = { timeout: null as unknown as ReturnType<typeof setTimeout>, callSid: null }
 
@@ -42,6 +54,7 @@ export function scheduleSosCall(
     try {
       const call = await client.calls.create({ to: recipientPhone, from, twiml })
       entry.callSid = call.sid
+      console.log(`[sos-call] Call placed — SID=${call.sid}`)
     } catch (err) {
       console.error('[sos-call] Twilio call failed:', err)
     } finally {
