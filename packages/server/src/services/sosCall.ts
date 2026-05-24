@@ -14,7 +14,7 @@ function buildTwiml(senderFirstName: string): string {
   const escaped = senderFirstName.replace(/[<>&'"]/g, (c) =>
     ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c] ?? c),
   )
-  const line = `S. O. S. from ${escaped}. You're needed urgently.`
+  const line = `SOS from ${escaped}. You're needed urgently.`
   return [
     '<Response>',
     `<Say voice="Polly.Joanna">${line}</Say>`,

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
@@ -35,6 +35,12 @@ type SosSocketPayload = {
   senderName: string
   message: string | null
   sentAt: string
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
 }
 
 function AuthBootstrap({ children }: { children: React.ReactNode }) {
@@ -153,6 +159,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
         <AuthBootstrap>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
