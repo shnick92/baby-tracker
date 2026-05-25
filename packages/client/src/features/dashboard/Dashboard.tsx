@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Moon, Droplets, MoreHorizontal } from 'lucide-react'
 
+import { BabyBottleIcon } from '@components/icons'
 import { useAuthStore } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
-import { formatHeaderDate, greeting } from '@lib/utils/formatDate'
-import { formatDuration, formatTimeAgo } from '@lib/utils'
+import { formatTimeAgo, formatDuration } from '@lib/utils'
 import { api } from '@lib/axios'
 import { useElapsedSeconds } from '@hooks/useElapsedSeconds'
 import { AddPasskeyButton } from '../auth/AddPasskeyButton'
@@ -14,7 +15,9 @@ import { usePregnancyStatus } from '../pregnancy'
 import { useFeedingLogs } from '../feeding'
 import { useSleepLogs } from '../sleep'
 import { useDiaperLogs } from '../diaper'
-import { useActivityFeed } from '../mood'
+import { useChecklist } from '../checklist'
+import { usePurchases } from '../purchases'
+import { useVisitors } from '../visitors'
 import { SOSButton } from '../alerts'
 
 const SOCKET_RING: Record<string, string> = {
@@ -24,59 +27,418 @@ const SOCKET_RING: Record<string, string> = {
 }
 
 const FEEDING_LABEL: Record<string, string> = {
-  BREAST_LEFT: 'Left breast',
-  BREAST_RIGHT: 'Right breast',
+  BREAST_LEFT: 'Breast · Left',
+  BREAST_RIGHT: 'Breast · Right',
   BOTTLE: 'Bottle',
   PUMP: 'Pump',
 }
 
-const SOURCE_DOT: Record<string, string> = {
-  mood:      'bg-purple-400',
-  feeding:   'bg-blue-400',
-  diaper:    'bg-amber-400',
-  sleep:     'bg-indigo-400',
-  tummytime: 'bg-green-400',
-}
+// ── Sub-components ─────────────────────────────────────────────────────────
 
-function WakeWindowCard({ lastSleep }: { lastSleep: { endedAt: string | null; startedAt: string; type: string } | null }) {
-  const awakeElapsed = useElapsedSeconds(lastSleep?.endedAt ?? undefined)
-
-  if (!lastSleep?.endedAt) return null
-
-  const idealWindowSec = 90 * 60
-  const pct = Math.min((awakeElapsed / idealWindowSec) * 100, 100)
-  const approaching = awakeElapsed > idealWindowSec * 0.6
-
+function PrepCard({
+  label,
+  checked,
+  total,
+  color,
+  isLoading,
+}: {
+  label: string
+  checked: number
+  total: number
+  color: string
+  isLoading: boolean
+}) {
+  const pct = total > 0 ? Math.round((checked / total) * 100) : 0
   return (
-    <div className={`rounded-2xl border px-4 py-4 ${approaching ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/50' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
-      <div className="flex items-center justify-between mb-2">
-        <p className={`text-xs font-semibold uppercase tracking-wide ${approaching ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'}`}>
-          Wake window
-        </p>
-        {approaching && (
-          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
-            Nap window soon
-          </span>
-        )}
-      </div>
-      <div className="flex items-baseline gap-2 mb-3">
-        <span className={`text-3xl font-semibold tabular-nums ${approaching ? 'text-amber-800 dark:text-amber-300' : 'text-gray-800 dark:text-gray-100'}`}>
-          {formatDuration(awakeElapsed)}
-        </span>
-        <span className="text-xs text-gray-400 dark:text-gray-500">
-          awake since {new Date(lastSleep.endedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all ${approaching ? 'bg-amber-400 dark:bg-amber-500' : 'bg-indigo-400 dark:bg-indigo-500'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">Ideal nap window: ~90 min</p>
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-3 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{label}</p>
+      {isLoading ? (
+        <div className="space-y-2">
+          <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+          <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" />
+        </div>
+      ) : (
+        <>
+          <p className="text-xl font-bold text-gray-800 dark:text-gray-100 leading-tight">
+            {checked}
+            <span className="text-sm font-normal text-gray-400 dark:text-gray-500">/{total}</span>
+          </p>
+          <div className="mt-2 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+          </div>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{pct}% done</p>
+        </>
+      )}
     </div>
   )
 }
+
+function LastFeedingCard({
+  lastFed,
+  activeFeeding,
+  currentUserId,
+  isLoading,
+}: {
+  lastFed: { type: string; startedAt: string; endedAt: string | null; durationSec: number | null; volumeOz: number | null; loggedById: string } | null
+  activeFeeding: { type: string; startedAt: string } | null
+  currentUserId: string | undefined
+  isLoading: boolean
+}) {
+  const activeElapsed = useElapsedSeconds(activeFeeding?.startedAt)
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-3 animate-pulse">
+        <div className="flex justify-between">
+          <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded" />
+          <div className="h-5 w-20 bg-gray-100 dark:bg-gray-700 rounded-full" />
+        </div>
+        <div className="h-10 w-40 bg-gray-100 dark:bg-gray-700 rounded" />
+        <div className="h-10 bg-gray-100 dark:bg-gray-700 rounded-xl" />
+      </div>
+    )
+  }
+
+  if (activeFeeding) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-blue-100 dark:border-blue-900/50 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Feeding Now</p>
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-blue-400 animate-pulse" />
+            {FEEDING_LABEL[activeFeeding.type]}
+          </span>
+        </div>
+        <p className="text-4xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">
+          {formatDuration(activeElapsed)}
+        </p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+          Started {formatTimeAgo(activeFeeding.startedAt)}
+        </p>
+      </div>
+    )
+  }
+
+  if (!lastFed) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">Last Feeding</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">No feedings logged yet</p>
+      </div>
+    )
+  }
+
+  const fedAt = lastFed.endedAt ?? lastFed.startedAt
+  const secAgo = Math.max(0, Math.floor((Date.now() - new Date(fedAt).getTime()) / 1000))
+  const nextSuggestedSec = 2 * 3600 - secAgo
+  const loggedByMe = lastFed.loggedById === currentUserId
+  const loggedByLabel = loggedByMe ? 'You' : 'Partner'
+  const timeLabel = new Date(fedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Last Feeding</p>
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+          {FEEDING_LABEL[lastFed.type]}
+        </span>
+      </div>
+
+      <div className="flex items-end justify-between">
+        <div>
+          <p className="text-4xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">
+            {formatTimeAgo(fedAt)}
+          </p>
+          {nextSuggestedSec > 0 ? (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+              Next suggested{' '}
+              <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                in {formatDuration(nextSuggestedSec)}
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 font-medium">Feeding time</p>
+          )}
+        </div>
+        {lastFed.durationSec && (
+          <div className="text-right">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500">Duration</p>
+            <p className="text-base font-semibold text-gray-800 dark:text-gray-100">{formatDuration(lastFed.durationSec)}</p>
+          </div>
+        )}
+        {lastFed.volumeOz && (
+          <div className="text-right">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500">Volume</p>
+            <p className="text-base font-semibold text-gray-800 dark:text-gray-100">{lastFed.volumeOz} oz</p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2 flex items-center justify-between">
+        <p className="text-[10px] text-gray-400 dark:text-gray-500">Logged by</p>
+        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+          {loggedByLabel} · {timeLabel}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function SleepCard({
+  activeSleep,
+  lastSleep,
+  isLoading,
+}: {
+  activeSleep: { type: string; startedAt: string } | null
+  lastSleep: { type: string; startedAt: string; endedAt: string | null } | null
+  isLoading: boolean
+}) {
+  const awakeElapsed = useElapsedSeconds(
+    !activeSleep && lastSleep?.endedAt ? lastSleep.endedAt : undefined,
+  )
+  const activeElapsed = useElapsedSeconds(activeSleep?.startedAt)
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-2 animate-pulse">
+        <div className="h-3 w-16 bg-gray-100 dark:bg-gray-700 rounded" />
+        <div className="h-5 w-20 bg-gray-100 dark:bg-gray-700 rounded-full" />
+        <div className="h-7 w-24 bg-gray-100 dark:bg-gray-700 rounded" />
+        <div className="h-3 w-32 bg-gray-100 dark:bg-gray-700 rounded" />
+      </div>
+    )
+  }
+
+  if (activeSleep) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-indigo-100 dark:border-indigo-900/50 p-4 flex flex-col gap-2">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Sleep Status</p>
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 w-fit">
+          <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
+          {activeSleep.type === 'NAP' ? 'Napping' : 'Sleeping'}
+        </span>
+        <p className="text-[22px] font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-tight">
+          {formatDuration(activeElapsed)}
+        </p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          Started {formatTimeAgo(activeSleep.startedAt)}
+        </p>
+      </div>
+    )
+  }
+
+  const lastDuration =
+    lastSleep?.endedAt && lastSleep.startedAt
+      ? Math.round((new Date(lastSleep.endedAt).getTime() - new Date(lastSleep.startedAt).getTime()) / 1000)
+      : null
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Sleep Status</p>
+      {lastSleep?.endedAt ? (
+        <>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400 w-fit">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            Awake
+          </span>
+          <p className="text-[22px] font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-tight">
+            {formatDuration(awakeElapsed)}
+            <span className="text-sm font-normal text-gray-400 dark:text-gray-500"> awake</span>
+          </p>
+          {lastDuration && (
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              Last {lastSleep.type === 'NAP' ? 'nap' : 'sleep'}: {formatDuration(lastDuration)}
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-gray-400 dark:text-gray-500">No sleep logged yet</p>
+      )}
+    </div>
+  )
+}
+
+function DiapersCard({
+  wetCount,
+  dirtyCount,
+  todayLogs,
+  isLoading,
+}: {
+  wetCount: number
+  dirtyCount: number
+  todayLogs: Array<{ occurredAt: string; type: string }>
+  isLoading: boolean
+}) {
+  const lastDiaper = todayLogs.length > 0 ? todayLogs[0] : null
+
+  if (isLoading) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-2 animate-pulse">
+        <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded" />
+        <div className="h-8 w-28 bg-gray-100 dark:bg-gray-700 rounded" />
+        <div className="h-3 w-36 bg-gray-100 dark:bg-gray-700 rounded" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Diapers Today</p>
+        {(wetCount + dirtyCount) > 0 && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+            {wetCount + dirtyCount} total
+          </span>
+        )}
+      </div>
+      <div className="flex items-end gap-3">
+        <div>
+          <p className="text-[26px] font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{wetCount}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">wet</p>
+        </div>
+        <p className="text-gray-300 dark:text-gray-600 text-lg mb-1">+</p>
+        <div>
+          <p className="text-[26px] font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{dirtyCount}</p>
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">dirty</p>
+        </div>
+      </div>
+      {lastDiaper ? (
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          Last: {lastDiaper.type === 'WET' ? 'wet' : lastDiaper.type === 'DIRTY' ? 'dirty' : 'wet+dirty'},{' '}
+          {formatTimeAgo(lastDiaper.occurredAt)}
+        </p>
+      ) : (
+        <p className="text-xs text-gray-400 dark:text-gray-500">No diapers logged today</p>
+      )}
+    </div>
+  )
+}
+
+function QuickLogRow() {
+  const items: { to: string; label: string; bg: string; icon: React.ReactNode; color: string }[] = [
+    { to: '/feeding', label: 'Feed', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <BabyBottleIcon size={20} />, color: 'text-blue-600 dark:text-blue-400' },
+    { to: '/sleep', label: 'Sleep', bg: 'bg-indigo-50 dark:bg-indigo-900/20', icon: <Moon size={20} />, color: 'text-indigo-600 dark:text-indigo-400' },
+    { to: '/diaper', label: 'Diaper', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <Droplets size={20} />, color: 'text-amber-600 dark:text-amber-400' },
+    { to: '/more', label: 'More', bg: 'bg-gray-50 dark:bg-gray-700/50', icon: <MoreHorizontal size={20} />, color: 'text-gray-500 dark:text-gray-400' },
+  ]
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {items.map((item) => (
+        <Link
+          key={item.to}
+          to={item.to}
+          className={`${item.bg} rounded-xl py-3 px-1 flex flex-col items-center gap-1.5 active:scale-95 transition-transform`}
+        >
+          <span className={item.color}>{item.icon}</span>
+          <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400">{item.label}</span>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+function VisitorsCard() {
+  const { slots, isLoading } = useVisitors()
+  const today = new Date().toISOString().slice(0, 10)
+  const upcoming = slots
+    .filter((s) => s.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 3)
+
+  if (isLoading) return null
+  if (upcoming.length === 0) return null
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Visitors</p>
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+          {upcoming.length} upcoming
+        </span>
+      </div>
+      <div className="space-y-2">
+        {upcoming.map((slot) => {
+          const [sy, sm, sd] = slot.date.split('-').map(Number)
+          const dateLabel = new Date(sy, sm - 1, sd).toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          })
+          return (
+            <div
+              key={slot.id}
+              className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{slot.name}</p>
+                {slot.notes && <p className="text-xs text-gray-400 dark:text-gray-500">{slot.notes}</p>}
+              </div>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                {dateLabel}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Prep stats grid (pregnancy mode) ────────────────────────────────────────
+
+function PrepStatsGrid() {
+  const { data: momBag, isLoading: momLoading } = useChecklist('HOSPITAL_BAG_MOM')
+  const { data: babyBag, isLoading: babyLoading } = useChecklist('HOSPITAL_BAG_BABY')
+  const { data: homePrepData, isLoading: prepLoading } = useChecklist('HOME_PREP')
+  const { data: purchasesData, isLoading: purchasesLoading } = usePurchases()
+
+  const momItems = momBag?.items ?? []
+  const babyItems = babyBag?.items ?? []
+  const bagItems = [...momItems, ...babyItems]
+  const bagChecked = bagItems.filter((i) => i.isChecked).length
+
+  const prepItems = homePrepData?.items ?? []
+  const prepChecked = prepItems.filter((i) => i.isChecked).length
+
+  const purchasesTotal = purchasesData?.meta?.total ?? 0
+  const purchasesBought = purchasesData?.meta?.bought ?? 0
+
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      <PrepCard
+        label="Hospital Bag"
+        checked={bagChecked}
+        total={bagItems.length}
+        color="bg-blue-500 dark:bg-blue-400"
+        isLoading={momLoading || babyLoading}
+      />
+      <PrepCard
+        label="Purchases"
+        checked={purchasesBought}
+        total={purchasesTotal}
+        color="bg-purple-500 dark:bg-purple-400"
+        isLoading={purchasesLoading}
+      />
+      <PrepCard
+        label="Home Prep"
+        checked={prepChecked}
+        total={prepItems.length}
+        color="bg-green-500 dark:bg-green-400"
+        isLoading={prepLoading}
+      />
+      <Link
+        to="/visitors"
+        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-3 py-3 flex flex-col gap-1 active:scale-95 transition-transform"
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Visitors</p>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Schedule</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">Plan visits →</p>
+      </Link>
+    </div>
+  )
+}
+
+// ── Main export ─────────────────────────────────────────────────────────────
 
 export function Dashboard() {
   const { user, babyId, markPasskeyAdded } = useAuthStore()
@@ -97,251 +459,200 @@ export function Dashboard() {
     },
   })
 
-  const { logs: feedingLogs, isLoading: feedingLoading, activeSession: activeFeeding, feedCountToday } = useFeedingLogs(babyId!)
-  const { activeSession: activeSleep, lastEnded: lastSleep, isLoading: sleepLoading, totalSleepTodaySec } = useSleepLogs(babyId!)
-  const { wetCount, dirtyCount, isLoading: diaperLoading } = useDiaperLogs(babyId!)
-  const { feedItems } = useActivityFeed(babyId!)
+  const { logs: feedingLogs, isLoading: feedingLoading, activeSession: activeFeeding } = useFeedingLogs(babyId!)
+  const { activeSession: activeSleep, lastEnded: lastSleep, isLoading: sleepLoading } = useSleepLogs(babyId!)
+  const { wetCount, dirtyCount, todayLogs: diaperTodayLogs, isLoading: diaperLoading } = useDiaperLogs(babyId!)
 
-  const firstName = user?.name?.split(' ')[0] ?? ''
   const lastFed = feedingLogs.find((l) => l.endedAt || l.type === 'BOTTLE' || l.type === 'PUMP') ?? null
-  const totalDiapers = wetCount + dirtyCount
 
-  const chevron = (
-    <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
-  )
-
-  const statsStrip = (
-    <div className="grid grid-cols-3 gap-2">
-      {[
-        { label: 'Feeds', value: feedCountToday, color: 'text-blue-500 dark:text-blue-400', loading: feedingLoading },
-        { label: 'Diapers', value: totalDiapers, color: 'text-amber-500 dark:text-amber-400', loading: diaperLoading },
-        { label: 'Sleep', value: totalSleepTodaySec > 0 ? formatDuration(totalSleepTodaySec) : '—', color: 'text-indigo-500 dark:text-indigo-400', loading: sleepLoading },
-      ].map((item) => (
-        <div key={item.label} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-3 py-3 text-center">
-          {item.loading ? (
-            <div className="h-7 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-1" />
-          ) : (
-            <p className={`text-2xl font-bold tabular-nums leading-tight ${item.color}`}>{item.value}</p>
-          )}
-          <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-0.5">{item.label}</p>
-        </div>
-      ))}
-    </div>
-  )
-
-  const trackingLinks = (
-    <div className="space-y-2">
-      <Link to="/feeding" className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-4 active:scale-[0.98] transition-all">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center text-xl flex-shrink-0">🍼</div>
-        <div className="flex-1 min-w-0">
-          {feedingLoading ? (
-            <div className="space-y-1.5 animate-pulse"><div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-2/3" /><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" /></div>
-          ) : activeFeeding ? (
-            <><p className="text-sm font-semibold text-blue-600 dark:text-blue-400">Feeding now</p><p className="text-xs text-gray-400 dark:text-gray-500">{FEEDING_LABEL[activeFeeding.type]} · started {formatTimeAgo(activeFeeding.startedAt)}</p></>
-          ) : lastFed ? (
-            <><p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Last fed {formatTimeAgo(lastFed.endedAt ?? lastFed.startedAt)}</p><p className="text-xs text-gray-400 dark:text-gray-500">{FEEDING_LABEL[lastFed.type]}</p></>
-          ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">No feeds logged yet</p>
-          )}
-        </div>
-        {chevron}
-      </Link>
-      <Link to="/sleep" className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-4 active:scale-[0.98] transition-all">
-        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-xl flex-shrink-0">😴</div>
-        <div className="flex-1 min-w-0">
-          {sleepLoading ? (
-            <div className="space-y-1.5 animate-pulse"><div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-2/3" /><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" /></div>
-          ) : activeSleep ? (
-            <><p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{activeSleep.type === 'NAP' ? 'Napping' : 'Sleeping'}</p><p className="text-xs text-gray-400 dark:text-gray-500">Started {formatTimeAgo(activeSleep.startedAt)}</p></>
-          ) : lastSleep?.endedAt ? (
-            <><p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Awake {formatDuration(Math.max(0, Math.floor((Date.now() - new Date(lastSleep.endedAt).getTime()) / 1000)))}</p><p className="text-xs text-gray-400 dark:text-gray-500">Last {lastSleep.type === 'NAP' ? 'nap' : 'sleep'} {formatTimeAgo(lastSleep.endedAt)}</p></>
-          ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">No sleep logged yet</p>
-          )}
-        </div>
-        {chevron}
-      </Link>
-      <Link to="/diaper" className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-4 active:scale-[0.98] transition-all">
-        <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/40 flex items-center justify-center text-xl flex-shrink-0">💧</div>
-        <div className="flex-1 min-w-0">
-          {diaperLoading ? (
-            <div className="space-y-1.5 animate-pulse"><div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-1/2" /><div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4" /></div>
-          ) : totalDiapers > 0 ? (
-            <><p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{totalDiapers} diaper{totalDiapers !== 1 ? 's' : ''} today</p><p className="text-xs text-gray-400 dark:text-gray-500">{wetCount} wet · {dirtyCount} dirty</p></>
-          ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-500">No diapers logged today</p>
-          )}
-        </div>
-        {chevron}
-      </Link>
-    </div>
-  )
-
-  const activityFeed = feedItems.length > 0 ? (
-    <div>
-      <div className="flex items-center justify-between px-1 mb-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-          Recent activity
-        </p>
-        <Link to="/mood" className="text-xs text-blue-500 dark:text-blue-400 hover:underline">
-          View all →
-        </Link>
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700/60">
-        {feedItems.slice(0, 3).map((item) => (
-          <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${SOURCE_DOT[item.source] ?? 'bg-gray-400'}`} />
-            <span className="text-sm flex-shrink-0">{item.emoji}</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
-                {item.label}
-                {item.detail && <span className="text-gray-400 dark:text-gray-500 font-normal"> · {item.detail}</span>}
-              </p>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{formatTimeAgo(item.time)}</p>
-          </div>
-        ))}
-      </div>
+  const passkeyCard = !user?.hasPasskey ? (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 space-y-3">
+      <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Set up biometric login</h2>
+      {showAddPasskey ? (
+        <AddPasskeyButton deviceName={`${user?.name}'s device`} onSuccess={markPasskeyAdded} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowAddPasskey(true)}
+          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+        >
+          Add a passkey (faster login)
+        </button>
+      )}
     </div>
   ) : null
 
-  const bornLabel = born ? (
-    <div className="flex items-center justify-between px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Baby Tracking</h2>
-      <button type="button" onClick={() => markBornMutation.mutate(true)} disabled={markBornMutation.isPending}
-        className="text-xs text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 disabled:opacity-40 transition-colors">
+  const bornToggle = born ? (
+    <div className="flex items-center justify-between">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Baby Tracking</p>
+      <button
+        type="button"
+        onClick={() => markBornMutation.mutate(true)}
+        disabled={markBornMutation.isPending}
+        className="text-xs text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 disabled:opacity-40 transition-colors"
+      >
         not yet? undo
       </button>
     </div>
   ) : (
-    <div className="flex items-center justify-between px-1">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Baby Tracking</h2>
+    <div className="flex items-center justify-between">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Baby Tracking</p>
       {confirmBorn ? (
         <span className="flex items-center gap-2">
-          <button type="button" onClick={() => markBornMutation.mutate(undefined)} disabled={markBornMutation.isPending}
-            className="text-xs font-medium text-green-600 dark:text-green-400 disabled:opacity-40">
+          <button
+            type="button"
+            onClick={() => markBornMutation.mutate(undefined)}
+            disabled={markBornMutation.isPending}
+            className="text-xs font-medium text-green-600 dark:text-green-400 disabled:opacity-40"
+          >
             {markBornMutation.isPending ? 'saving…' : 'confirm'}
           </button>
-          <button type="button" onClick={() => setConfirmBorn(false)}
-            className="text-xs text-gray-400 dark:text-gray-500">cancel</button>
+          <button type="button" onClick={() => setConfirmBorn(false)} className="text-xs text-gray-400 dark:text-gray-500">
+            cancel
+          </button>
         </span>
       ) : (
-        <button type="button" onClick={() => setConfirmBorn(true)}
-          className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+        <button
+          type="button"
+          onClick={() => setConfirmBorn(true)}
+          className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+        >
           baby here?
         </button>
       )}
     </div>
   )
 
-  const prepLinks = (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 px-1">Pregnancy Prep</p>
-      {[
-        { to: '/checklist/hospital_bag_mom', label: 'Hospital Bags', sub: "Mom's & Baby's packing lists", icon: '📋' },
-        { to: '/checklist/home_prep', label: 'Home Prep', sub: 'Get ready before arrival', icon: '🏠' },
-        { to: '/checklist/before_home', label: 'Before We Get Home', sub: 'Hospital discharge checklist', icon: '📋' },
-        { to: '/purchases', label: 'Purchases', sub: 'Track what you still need', icon: '🛍️' },
-        { to: '/visitors', label: 'Visitor Schedule', sub: 'Plan who comes and when', icon: '👥' },
-      ].map((card) => (
-        <Link key={card.to} to={card.to} className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-4 active:scale-[0.98] transition-all">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center text-xl flex-shrink-0">{card.icon}</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{card.label}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{card.sub}</p>
-          </div>
-          {chevron}
-        </Link>
-      ))}
+  // ── Mobile content ─────────────────────────────────────────────────────
+
+  const mobileNewborn = (
+    <div className="space-y-3">
+      <LastFeedingCard
+        lastFed={lastFed}
+        activeFeeding={activeFeeding}
+        currentUserId={user?.id}
+        isLoading={feedingLoading}
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <SleepCard activeSleep={activeSleep} lastSleep={lastSleep} isLoading={sleepLoading} />
+        <DiapersCard
+          wetCount={wetCount}
+          dirtyCount={dirtyCount}
+          todayLogs={diaperTodayLogs}
+          isLoading={diaperLoading}
+        />
+      </div>
+      <QuickLogRow />
+      {born && <VisitorsCard />}
     </div>
   )
 
-  const passkeyCard = !user?.hasPasskey ? (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 space-y-3">
-      <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Security</h2>
-      {showAddPasskey ? (
-        <AddPasskeyButton deviceName={`${user?.name}'s device`} onSuccess={markPasskeyAdded} />
-      ) : (
-        <button type="button" onClick={() => setShowAddPasskey(true)}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-          Add a passkey (biometric login)
-        </button>
-      )}
+  const mobilePregnancy = (
+    <div className="space-y-3">
+      <PregnancyProgressWidget />
+      <PrepStatsGrid />
     </div>
-  ) : null
+  )
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Mobile header */}
-      <header className="md:hidden fixed top-0 inset-x-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3 flex items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">{greeting(firstName)}</h1>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatHeaderDate()}</p>
+      <header className="md:hidden sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🌙</span>
+          <span className="text-base font-bold text-gray-900 dark:text-gray-100 tracking-tight">Tracker</span>
         </div>
-        {babyId && <SOSButton babyId={babyId} />}
-        <div
-          className="flex-shrink-0 w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-700 dark:text-blue-300 text-sm font-semibold"
-          style={{ boxShadow: SOCKET_RING[socketStatus] }}
-        >
-          {user?.name?.[0]?.toUpperCase() ?? '?'}
+        <div className="flex items-center gap-2">
+          {babyId && born && <SOSButton babyId={babyId} />}
+          <div
+            className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300"
+            style={{ boxShadow: SOCKET_RING[socketStatus] }}
+          >
+            {user?.name?.[0]?.toUpperCase() ?? '?'}
+          </div>
         </div>
       </header>
 
-      {/* Mobile layout — pt-[76px] clears the fixed header with breathing room */}
-      <main className="md:hidden max-w-lg mx-auto px-4 pt-[76px] pb-6 space-y-4">
-        <PregnancyProgressWidget />
-
+      {/* Mobile layout */}
+      <main className="md:hidden max-w-lg mx-auto px-4 pt-4 pb-6 space-y-3">
         {born ? (
           <>
-            {bornLabel}
-            {statsStrip}
-            <WakeWindowCard lastSleep={lastSleep} />
-            {trackingLinks}
-            {activityFeed}
-            {prepLinks}
+            {mobileNewborn}
+            {bornToggle}
+            {passkeyCard}
           </>
         ) : (
           <>
-            {prepLinks}
-            {bornLabel}
-            {trackingLinks}
+            {mobilePregnancy}
+            {bornToggle}
+            <div className="space-y-2">
+              {[
+                { to: '/feeding', label: 'Feeding', sub: 'Bottle & breast tracking', icon: <BabyBottleIcon size={20} />, color: 'text-blue-500 dark:text-blue-400' },
+                { to: '/sleep', label: 'Sleep', sub: 'Nap & overnight tracking', icon: <Moon size={20} />, color: 'text-indigo-500 dark:text-indigo-400' },
+                { to: '/diaper', label: 'Diapers', sub: 'Log wet & dirty', icon: <Droplets size={20} />, color: 'text-amber-500 dark:text-amber-400' },
+              ].map((card) => (
+                <Link
+                  key={card.to}
+                  to={card.to}
+                  className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-3 active:scale-[0.98] transition-transform"
+                >
+                  <span className={card.color}>{card.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{card.label}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{card.sub}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            {passkeyCard}
           </>
         )}
-
-        {passkeyCard}
       </main>
 
-      {/* Tablet layout — 2-column */}
-      <main className="hidden md:grid md:grid-cols-2 md:gap-6 md:px-6 md:py-6 md:items-start max-w-4xl mx-auto">
-        {/* Left column */}
-        <div className="space-y-4">
-          <PregnancyProgressWidget />
-
-          {born ? (
-            <>
-              {bornLabel}
-              {statsStrip}
-              <WakeWindowCard lastSleep={lastSleep} />
-              {trackingLinks}
-            </>
-          ) : (
-            <>
-              {prepLinks}
-              {bornLabel}
-              {trackingLinks}
-            </>
-          )}
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-4">
-          {born && activityFeed}
-          {born && prepLinks}
-          {!born && activityFeed}
-          {passkeyCard}
-        </div>
+      {/* Tablet layout — 2-column grid */}
+      <main className="hidden md:grid md:grid-cols-2 md:gap-5 md:px-6 md:py-6 md:items-start max-w-5xl mx-auto">
+        {born ? (
+          <>
+            {/* Left column */}
+            <div className="space-y-4">
+              <LastFeedingCard
+                lastFed={lastFed}
+                activeFeeding={activeFeeding}
+                currentUserId={user?.id}
+                isLoading={feedingLoading}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <SleepCard activeSleep={activeSleep} lastSleep={lastSleep} isLoading={sleepLoading} />
+                <DiapersCard
+                  wetCount={wetCount}
+                  dirtyCount={dirtyCount}
+                  todayLogs={diaperTodayLogs}
+                  isLoading={diaperLoading}
+                />
+              </div>
+              <QuickLogRow />
+            </div>
+            {/* Right column */}
+            <div className="space-y-4">
+              {born && <VisitorsCard />}
+              {bornToggle}
+              {passkeyCard}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Left column */}
+            <div className="space-y-4">
+              <PregnancyProgressWidget />
+              <PrepStatsGrid />
+            </div>
+            {/* Right column */}
+            <div className="space-y-4">
+              {bornToggle}
+              {passkeyCard}
+            </div>
+          </>
+        )}
       </main>
     </div>
   )

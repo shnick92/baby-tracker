@@ -1,9 +1,23 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Moon,
+  Droplets,
+  Users,
+  ShoppingBag,
+  Pill,
+  Scale,
+  Bell,
+  History,
+  CalendarDays,
+  MoreHorizontal,
+} from 'lucide-react'
 
 import { api } from '@lib/axios'
 import { useAuthStore } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
 import { SOSButton } from '@features/alerts'
+import { BabyBottleIcon } from '@components/icons'
 
 const SOCKET_RING: Record<string, string> = {
   connecting: '0 0 0 2px #f59e0b',
@@ -11,31 +25,71 @@ const SOCKET_RING: Record<string, string> = {
   unsynced: '0 0 0 2px #ef4444',
 }
 
-type NavItem = { to: string; label: string; icon: string; prefix: string; exact?: boolean }
+type NavItem = {
+  to: string
+  label: string
+  icon: React.ReactNode
+  prefix: string
+  exact?: boolean
+}
 
-const SIDEBAR_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: '⊞', prefix: '/', exact: true },
-  { to: '/feeding', label: 'Feeding', icon: '🍼', prefix: '/feeding' },
-  { to: '/sleep', label: 'Sleep', icon: '😴', prefix: '/sleep' },
-  { to: '/diaper', label: 'Diapers', icon: '💧', prefix: '/diaper' },
-  { to: '/checklist/hospital_bag_mom', label: 'Pregnancy Prep', icon: '🤰', prefix: '/checklist' },
-  { to: '/purchases', label: 'Purchases', icon: '🛍', prefix: '/purchases' },
-  { to: '/visitors', label: 'Visitors', icon: '👥', prefix: '/visitors' },
-  { to: '/medication', label: 'Medication', icon: '💊', prefix: '/medication' },
-  { to: '/weight', label: 'Weight', icon: '⚖️', prefix: '/weight' },
-  { to: '/tummy-time', label: 'Tummy Time', icon: '🐢', prefix: '/tummy-time' },
-  { to: '/mood', label: 'Mood', icon: '😊', prefix: '/mood' },
-  { to: '/alerts', label: 'Alert History', icon: '🔔', prefix: '/alerts' },
-  { to: '/history', label: 'History & Reports', icon: '📊', prefix: '/history' },
-  { to: '/calendar', label: 'Calendar', icon: '📅', prefix: '/calendar' },
+type SidebarGroup = {
+  label?: string
+  items: NavItem[]
+}
+
+const SIDEBAR_GROUPS: SidebarGroup[] = [
+  {
+    items: [
+      { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={16} />, prefix: '/', exact: true },
+    ],
+  },
+  {
+    label: 'Daily',
+    items: [
+      { to: '/feeding', label: 'Feeding', icon: <BabyBottleIcon size={16} />, prefix: '/feeding' },
+      { to: '/sleep', label: 'Sleep', icon: <Moon size={16} />, prefix: '/sleep' },
+      { to: '/diaper', label: 'Diapers', icon: <Droplets size={16} />, prefix: '/diaper' },
+      { to: '/visitors', label: 'Visitors', icon: <Users size={16} />, prefix: '/visitors' },
+    ],
+  },
+  {
+    label: 'Health',
+    items: [
+      { to: '/medication', label: 'Medication', icon: <Pill size={16} />, prefix: '/medication' },
+      { to: '/weight', label: 'Weight & Growth', icon: <Scale size={16} />, prefix: '/weight' },
+      { to: '/tummy-time', label: 'Tummy Time', icon: <span className="text-sm">🐢</span>, prefix: '/tummy-time' },
+      { to: '/mood', label: 'Mood & Activity', icon: <span className="text-sm">😊</span>, prefix: '/mood' },
+    ],
+  },
+  {
+    label: 'Planning',
+    items: [
+      { to: '/checklist/hospital_bag_mom', label: 'Pregnancy Prep', icon: <span className="text-sm">🤰</span>, prefix: '/checklist' },
+      { to: '/purchases', label: 'Purchases', icon: <ShoppingBag size={16} />, prefix: '/purchases' },
+    ],
+  },
+  {
+    label: 'Reports',
+    items: [
+      { to: '/history', label: 'History', icon: <History size={16} />, prefix: '/history' },
+      { to: '/calendar', label: 'Calendar', icon: <CalendarDays size={16} />, prefix: '/calendar' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: '/alerts', label: 'Alert History', icon: <Bell size={16} />, prefix: '/alerts' },
+    ],
+  },
 ]
 
 const BOTTOM_NAV: NavItem[] = [
-  { to: '/', label: 'Home', icon: '⊞', prefix: '/', exact: true },
-  { to: '/feeding', label: 'Feed', icon: '🍼', prefix: '/feeding' },
-  { to: '/sleep', label: 'Sleep', icon: '😴', prefix: '/sleep' },
-  { to: '/diaper', label: 'Diaper', icon: '💧', prefix: '/diaper' },
-  { to: '/more', label: 'More', icon: '⋯', prefix: '/more' },
+  { to: '/', label: 'Home', icon: <LayoutDashboard size={22} />, prefix: '/', exact: true },
+  { to: '/feeding', label: 'Feed', icon: <BabyBottleIcon size={22} />, prefix: '/feeding' },
+  { to: '/sleep', label: 'Sleep', icon: <Moon size={22} />, prefix: '/sleep' },
+  { to: '/diaper', label: 'Diaper', icon: <Droplets size={22} />, prefix: '/diaper' },
+  { to: '/more', label: 'More', icon: <MoreHorizontal size={22} />, prefix: '/more' },
 ]
 
 function isMoreActive(pathname: string): boolean {
@@ -91,32 +145,45 @@ export function AppLayout() {
       {/* Sidebar — tablet only */}
       <aside className="hidden md:flex md:flex-col md:w-56 md:flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700">
         <div className="px-4 py-4 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-          <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/40 rounded-lg flex items-center justify-center text-base select-none">
-            👶
+          <div className="w-8 h-8 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center text-base select-none">
+            🌙
           </div>
-          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-tight">Baby Tracker</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tracking-tight">Tracker</span>
         </div>
 
-        <nav className="flex-1 px-2 py-3 space-y-0.5">
-          {SIDEBAR_ITEMS.map((item) => {
-            const isActive = item.exact
-              ? location.pathname === item.prefix
-              : location.pathname.startsWith(item.prefix)
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-200'
-                }`}
-              >
-                <span className="text-base leading-none">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav className="flex-1 px-2 py-2 overflow-y-auto">
+          {SIDEBAR_GROUPS.map((group, gi) => (
+            <div key={gi} className={gi > 0 ? 'mt-3' : ''}>
+              {group.label && (
+                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = item.exact
+                    ? location.pathname === item.prefix
+                    : location.pathname.startsWith(item.prefix)
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      <span className="flex-shrink-0 flex items-center justify-center w-4 h-4">
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 space-y-2">
@@ -180,7 +247,7 @@ export function AppLayout() {
                     : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
-                <span className="text-lg leading-none">{item.icon}</span>
+                <span className="flex items-center justify-center h-6">{item.icon}</span>
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
             )

@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { useAuthStore } from '@stores/authStore'
 import { toDatetimeLocal } from '@lib/utils'
+import { useSwipeDown } from '@hooks/useSwipeDown'
 import { TrashIcon, PencilIcon } from '@components/icons'
 
 import { useMoodLogs, type MoodLog, type CustomActivity } from './useMoodLogs'
@@ -43,10 +44,12 @@ function QualifierSheet({
 }) {
   const label = pending.type === 'builtin' ? pending.label : pending.activity.name
   const emoji = pending.type === 'builtin' ? pending.emoji : pending.activity.emoji
+  const swipeRef = useSwipeDown(onDismiss)
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onDismiss}>
       <div
+        ref={swipeRef}
         className="bg-white dark:bg-gray-800 rounded-t-2xl px-4 pb-8 pt-4 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >

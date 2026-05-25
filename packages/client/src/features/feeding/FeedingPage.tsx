@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 import { useAuthStore } from '@stores/authStore'
 import { formatDuration, formatTimeAgo, formatOz, toDatetimeLocal } from '@lib/utils'
@@ -284,7 +285,7 @@ export function FeedingPage() {
                                 : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300'
                             }`}
                           >
-                            <span className="text-2xl">{isLeft ? '⬅️' : '➡️'}</span>
+                            {isLeft ? <ArrowLeft size={24} /> : <ArrowRight size={24} />}
                             <span className="text-sm font-semibold">{isLeft ? 'Left' : 'Right'}</span>
                             <span className="text-[10px] text-gray-400 dark:text-gray-500 text-center leading-tight">
                               {suggest

@@ -32,21 +32,21 @@ describe('PregnancyProgressWidget', () => {
   it('renders week number and heading after load', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: mockStatus } })
     renderWithProviders(<PregnancyProgressWidget />)
-    expect(await screen.findByText('Week 20')).toBeInTheDocument()
+    expect(await screen.findByText(/Week 20 of 40/)).toBeInTheDocument()
   })
 
   it('renders the baby size', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: mockStatus } })
     renderWithProviders(<PregnancyProgressWidget />)
-    await screen.findByText('Week 20')
-    expect(screen.getByText('banana')).toBeInTheDocument()
+    await screen.findByText(/Week 20 of 40/)
+    expect(screen.getByText(/banana/)).toBeInTheDocument()
   })
 
   it('renders weeks remaining text', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: { data: mockStatus } })
     renderWithProviders(<PregnancyProgressWidget />)
-    await screen.findByText('Week 20')
-    expect(screen.getByText(/20 weeks until due/)).toBeInTheDocument()
+    await screen.findByText(/Week 20 of 40/)
+    expect(screen.getByText(/20 weeks to go/)).toBeInTheDocument()
   })
 
   it('renders nothing when born is true', async () => {

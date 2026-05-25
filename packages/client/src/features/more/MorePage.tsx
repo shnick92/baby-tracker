@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
+import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays } from 'lucide-react'
 
 type MoreItem = {
   to: string
-  icon: string
+  icon: React.ReactNode
   label: string
   description: string
 }
@@ -10,61 +11,61 @@ type MoreItem = {
 const MORE_ITEMS: MoreItem[] = [
   {
     to: '/checklist/hospital_bag_mom',
-    icon: '🤰',
+    icon: <span className="text-2xl">🤰</span>,
     label: 'Pregnancy Prep',
     description: 'Hospital bag, home prep & before-home checklists',
   },
   {
     to: '/purchases',
-    icon: '🛍',
+    icon: <ShoppingBag size={22} />,
     label: 'Purchases',
     description: 'Track what you need, bought, and received as gifts',
   },
   {
     to: '/visitors',
-    icon: '👥',
+    icon: <Users size={22} />,
     label: 'Visitors',
     description: 'Schedule and manage visitor time slots',
   },
   {
     to: '/medication',
-    icon: '💊',
+    icon: <Pill size={22} />,
     label: 'Medication',
     description: 'Track medications, doses, and timing',
   },
   {
     to: '/weight',
-    icon: '⚖️',
+    icon: <Scale size={22} />,
     label: 'Weight & Growth',
     description: 'Weight log and growth chart with WHO reference',
   },
   {
     to: '/tummy-time',
-    icon: '🐢',
+    icon: <span className="text-2xl">🐢</span>,
     label: 'Tummy Time',
     description: 'Track tummy time sessions and daily totals',
   },
   {
     to: '/mood',
-    icon: '😊',
+    icon: <span className="text-2xl">😊</span>,
     label: 'Mood & Activity',
     description: 'Log mood, bath, walks, and other activities',
   },
   {
     to: '/alerts',
-    icon: '🔔',
+    icon: <Bell size={22} />,
     label: 'Alert History',
     description: 'Recent SOS alerts sent and received',
   },
   {
     to: '/history',
-    icon: '📊',
+    icon: <History size={22} />,
     label: 'History & Reports',
     description: 'Daily logs view and 7-day feeding, sleep & diaper summaries',
   },
   {
     to: '/calendar',
-    icon: '📅',
+    icon: <CalendarDays size={22} />,
     label: 'Calendar',
     description: 'Monthly view of all tracked events — feedings, sleep, diapers & visitors',
   },
@@ -85,7 +86,7 @@ export function MorePage() {
             to={item.to}
             className="flex items-center gap-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-4 active:bg-gray-50 dark:active:bg-gray-700/50 transition-colors"
           >
-            <span className="text-2xl w-10 h-10 flex items-center justify-center flex-shrink-0">{item.icon}</span>
+            <span className="w-10 h-10 flex items-center justify-center flex-shrink-0 text-gray-600 dark:text-gray-300">{item.icon}</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.label}</p>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{item.description}</p>

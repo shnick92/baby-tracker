@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Droplets } from 'lucide-react'
 
 import { useAuthStore } from '@stores/authStore'
 import { TrashIcon, PencilIcon } from '@components/icons'
@@ -26,6 +27,9 @@ const CONSISTENCY_OPTIONS: { value: DiaperConsistency; label: string }[] = [
 ]
 
 const TYPE_LABEL: Record<DiaperType, string> = { WET: 'Wet', DIRTY: 'Dirty', BOTH: 'Wet + Dirty' }
+const CONSISTENCY_LABEL: Record<string, string> = Object.fromEntries(
+  CONSISTENCY_OPTIONS.map(({ value, label }) => [value, label]),
+)
 
 export function DiaperPage() {
   const { babyId } = useAuthStore()
@@ -101,8 +105,12 @@ export function DiaperPage() {
     type === 'WET'
       ? 'bg-blue-100 dark:bg-blue-900/30'
       : 'bg-amber-100 dark:bg-amber-900/30'
-  const dotEmoji = (type: DiaperType) =>
-    type === 'WET' ? '💧' : type === 'DIRTY' ? '🟡' : '💧🟡'
+  const dotIcon = (type: DiaperType) =>
+    type === 'WET'
+      ? <Droplets size={14} className="text-blue-500 dark:text-blue-400" />
+      : type === 'DIRTY'
+        ? <span className="text-sm leading-none">🟡</span>
+        : <Droplets size={14} className="text-blue-500 dark:text-blue-400" />
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -159,7 +167,7 @@ export function DiaperPage() {
                     : 'border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10'
                 }`}
               >
-                <span className="text-3xl">💧</span>
+                <Droplets size={32} className="text-blue-500 dark:text-blue-400" />
                 <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">Wet</span>
                 <span className="text-[10px] text-gray-400 dark:text-gray-500 text-center">Log immediately</span>
               </button>
@@ -189,7 +197,11 @@ export function DiaperPage() {
                   : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'
               }`}
             >
-              💧🟡 Wet + Dirty
+              <span className="flex items-center justify-center gap-1.5">
+                <Droplets size={16} />
+                <span>🟡</span>
+                Wet + Dirty
+              </span>
             </button>
 
             {/* Dirty detail card */}
@@ -383,9 +395,9 @@ export function DiaperPage() {
                     }
 
                     return (
-                      <div key={log.id} className="flex items-start gap-3 px-4 py-3">
-                        <div className={`w-8 h-8 rounded-full ${dotBg(log.type)} flex items-center justify-center text-base flex-shrink-0`}>
-                          {dotEmoji(log.type)}
+                      <div key={log.id} className="flex items-center gap-3 px-4 py-3">
+                        <div className={`w-8 h-8 rounded-full ${dotBg(log.type)} flex items-center justify-center flex-shrink-0`}>
+                          {dotIcon(log.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
@@ -393,12 +405,12 @@ export function DiaperPage() {
                             {log.color && (
                               <span className="text-gray-500 dark:text-gray-400 font-normal">
                                 {' · '}{log.color.charAt(0) + log.color.slice(1).toLowerCase()}
-                                {log.consistency && `, ${log.consistency.toLowerCase()}`}
+                                {log.consistency && `, ${CONSISTENCY_LABEL[log.consistency] ?? log.consistency.toLowerCase()}`}
                               </span>
                             )}
                           </p>
                         </div>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
                           {new Date(log.occurredAt).toLocaleTimeString('en-US', {
                             hour: 'numeric',
                             minute: '2-digit',

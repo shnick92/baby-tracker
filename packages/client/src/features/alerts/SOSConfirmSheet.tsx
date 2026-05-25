@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useSosStore } from '@stores/sosStore'
 import { useAuthStore } from '@stores/authStore'
+import { useSwipeDown } from '@hooks/useSwipeDown'
 import { useSendSos } from './useAlerts'
 
 const HOLD_MS = 2000
@@ -19,6 +20,7 @@ export function SOSConfirmSheet({ babyId, onClose }: Props) {
   const setCooldown = useSosStore((s) => s.setCooldown)
   const senderName = useAuthStore((s) => s.user?.name?.split(' ')[0] ?? '')
   const sendSos = useSendSos()
+  const swipeRef = useSwipeDown(onClose)
 
   useEffect(() => {
     return () => {
@@ -72,7 +74,7 @@ export function SOSConfirmSheet({ babyId, onClose }: Props) {
       <div className="absolute inset-0 bg-black/70" />
 
       {/* Dark sheet — matches mockup */}
-      <div className="relative w-full max-w-lg rounded-t-3xl px-5 pt-7 pb-8 space-y-4 safe-bottom"
+      <div ref={swipeRef} className="relative w-full max-w-lg rounded-t-3xl px-5 pt-7 pb-8 space-y-4 safe-bottom"
         style={{ background: '#1c1c22' }}
       >
         {/* Handle */}

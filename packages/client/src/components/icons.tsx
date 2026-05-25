@@ -1,3 +1,28 @@
+export function BabyBottleIcon({ size = 24, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      {/* Nipple — narrow teat */}
+      <path d="M11 2h2v3h-2z" />
+      {/* Collar ring */}
+      <rect x="8.5" y="5" width="7" height="1.5" rx="0.5" />
+      {/* Bottle body with rounded bottom */}
+      <path d="M9 6.5h6v11a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 17.5V6.5z" />
+      {/* Measurement line */}
+      <line x1="10.5" y1="13" x2="13.5" y2="13" strokeWidth="1.2" />
+    </svg>
+  )
+}
+
 export function ClipboardIcon() {
   return (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
