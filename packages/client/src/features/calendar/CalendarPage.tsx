@@ -473,7 +473,6 @@ export function CalendarPage() {
   const [month, setMonth] = useState(today.getMonth() + 1)
   const [selectedDate, setSelectedDate] = useState(toLocalDate(today))
   const [filter, setFilter] = useState<FilterKey>(getStoredFilter)
-  const dayDetailRef = useRef<HTMLDivElement>(null)
 
   const handleFilterChange = (f: FilterKey) => {
     setFilter(f)
@@ -490,23 +489,10 @@ export function CalendarPage() {
     else setMonth((m) => m + 1)
   }
 
-  const handleSelectDate = (date: string) => {
-    setSelectedDate(date)
-    setTimeout(() => {
-      dayDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-  }
-
   if (!babyId) return null
 
   return (
-    <div className="bg-gray-50 dark:bg-gray-900 min-h-screen md:h-full md:min-h-0 md:overflow-hidden">
-      {/* Mobile header */}
-      <header className="sticky top-0 z-10 md:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-3">
-        <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Calendar</h1>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatMonthYear(year, month)}</p>
-      </header>
-
+    <div className="bg-gray-50 dark:bg-gray-900 md:h-full md:min-h-0 md:overflow-hidden">
       {/* Tablet layout: split panel */}
       <div className="hidden md:flex md:flex-col h-full">
         <FilterChips filter={filter} onChange={handleFilterChange} />
@@ -529,22 +515,27 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {/* Mobile layout: stacked */}
-      <div className="md:hidden">
-        <FilterChips filter={filter} onChange={handleFilterChange} />
-        <div className="bg-white dark:bg-gray-800">
+      {/* Mobile layout: viewport-locked split — calendar fixed, activity scrolls */}
+      <div className="md:hidden flex flex-col h-[calc(100dvh-56px)] overflow-hidden">
+        {/* Fixed top: header + filter chips + calendar grid */}
+        <div className="flex-shrink-0 bg-white dark:bg-gray-800">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Calendar</h1>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatMonthYear(year, month)}</p>
+          </div>
+          <FilterChips filter={filter} onChange={handleFilterChange} />
           <MonthGrid
             year={year} month={month} babyId={babyId} filter={filter}
             selectedDate={selectedDate}
-            onSelectDate={handleSelectDate}
+            onSelectDate={setSelectedDate}
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
           />
         </div>
-        <div ref={dayDetailRef} className="bg-white dark:bg-gray-800 mt-2">
+        {/* Scrollable bottom: activity feed */}
+        <div className="flex-1 min-h-0 overflow-y-auto border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
           <DayDetail dateStr={selectedDate} babyId={babyId} filter={filter} />
         </div>
-        <div className="h-4" />
       </div>
     </div>
   )

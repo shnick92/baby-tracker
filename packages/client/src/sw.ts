@@ -3,6 +3,12 @@ import { clientsClaim } from 'workbox-core'
 
 declare let self: ServiceWorkerGlobalScope
 
+// Allow VitePWA's autoUpdate to activate the new SW immediately without
+// waiting for all tabs to close.
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting()
+})
+
 clientsClaim()
 precacheAndRoute(self.__WB_MANIFEST)
 

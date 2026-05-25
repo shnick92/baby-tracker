@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
+import { localDayBoundsUTC } from '../lib/timezone'
 
 export const historyRouter = Router()
 historyRouter.use(authMiddleware)
@@ -15,8 +16,7 @@ historyRouter.get('/daily', async (req, res) => {
     res.status(400).json({ data: null, error: 'date required (YYYY-MM-DD)' }); return
   }
 
-  const start = new Date(`${dateStr}T00:00:00.000Z`)
-  const end = new Date(`${dateStr}T23:59:59.999Z`)
+  const [start, end] = localDayBoundsUTC(dateStr)
 
   const [feedings, sleeps, diapers, medications, tummyTimes, moods, visitors] = await Promise.all([
     prisma.feedingLog.findMany({

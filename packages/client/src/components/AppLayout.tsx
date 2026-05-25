@@ -157,7 +157,7 @@ export function AppLayout() {
           </div>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 md:overflow-y-auto">
           <Outlet />
         </div>
 
