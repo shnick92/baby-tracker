@@ -11,6 +11,7 @@ import {
   History,
   CalendarDays,
   MoreHorizontal,
+  Sparkles,
 } from 'lucide-react'
 
 import { api } from '@lib/axios'
@@ -60,6 +61,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { to: '/weight', label: 'Weight & Growth', icon: <Scale size={16} />, prefix: '/weight' },
       { to: '/tummy-time', label: 'Tummy Time', icon: <span className="text-sm">🐢</span>, prefix: '/tummy-time' },
       { to: '/mood', label: 'Mood & Activity', icon: <span className="text-sm">😊</span>, prefix: '/mood' },
+      { to: '/ai/chat', label: 'Is This Normal?', icon: <Sparkles size={16} />, prefix: '/ai' },
     ],
   },
   {
@@ -104,7 +106,8 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/tummy-time') ||
     pathname.startsWith('/mood') ||
     pathname.startsWith('/history') ||
-    pathname.startsWith('/calendar')
+    pathname.startsWith('/calendar') ||
+    pathname.startsWith('/ai')
   )
 }
 
@@ -124,6 +127,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/mood')) return 'Mood & Activity'
   if (pathname.startsWith('/history')) return 'History & Reports'
   if (pathname.startsWith('/calendar')) return 'Calendar'
+  if (pathname.startsWith('/ai')) return 'Is This Normal?'
   return 'Baby Tracker'
 }
 

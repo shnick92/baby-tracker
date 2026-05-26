@@ -832,12 +832,12 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 #### Icon & Navigation Overhaul
 
-- [ ] Install `lucide-react` in `packages/client`; replace hand-coded SVGs in `components/icons.tsx` with Lucide re-exports (keep same export names for backward compat)
-- [ ] Change `NavItem.icon` in `AppLayout` from `string` to `React.ReactNode`; update SIDEBAR_ITEMS and BOTTOM_NAV to use Lucide icons where appropriate (keep emoji for 🍼 Feeding, 🤰 Pregnancy Prep, 🐢 Tummy Time, face emojis)
+- [x] Install `lucide-react` in `packages/client`; replace hand-coded SVGs in `components/icons.tsx` with Lucide re-exports (keep same export names for backward compat)
+- [x] Change `NavItem.icon` in `AppLayout` from `string` to `React.ReactNode`; update SIDEBAR_ITEMS and BOTTOM_NAV to use Lucide icons where appropriate (keep emoji for 🍼 Feeding, 🤰 Pregnancy Prep, 🐢 Tummy Time, face emojis)
   - Dashboard → `LayoutDashboard`, Sleep → `Moon`, Diapers → `Droplets`, Purchases → `ShoppingBag`, Visitors → `Users`, Medication → `Pill`, Weight → `Scale`, Alerts → `Bell`, Settings → `Settings`, More → `MoreHorizontal`
-- [ ] Restructure sidebar into labeled sections: Dashboard (ungrouped, always at top), **Daily** (Feeding, Sleep, Diapers), **Health** (Medication, Weight & Growth, Tummy Time, Mood & Activity, Vaccinations), **Planning** (Pregnancy Prep, Purchases, Visitors), **System** (Alert History, Settings)
-- [ ] Update `isMoreActive` in AppLayout to include `/settings`
-- [ ] Update `MorePage` to use Lucide icons where applicable and add a Settings link
+- [x] Restructure sidebar into labeled sections: Dashboard (ungrouped, always at top), **Daily** (Feeding, Sleep, Diapers), **Health** (Medication, Weight & Growth, Tummy Time, Mood & Activity, Vaccinations), **Planning** (Pregnancy Prep, Purchases, Visitors), **System** (Alert History, Settings)
+- [x] Update `isMoreActive` in AppLayout to include `/settings`
+- [x] Update `MorePage` to use Lucide icons where applicable and add a Settings link
 
 #### Sticky Mobile Headers
 
@@ -845,22 +845,22 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 #### Dashboard Upgrade
 
-- [ ] Review dashboard mockups (to be added to parent directory) and implement upgraded layout; specific scope TBD from mockups
+- [x] Review dashboard mockups (to be added to parent directory) and implement upgraded layout; specific scope TBD from mockups
 
 #### Swipe-to-Close Drawers
 
-- [ ] Create `useSwipeDown(onClose, threshold?)` hook — touchstart/touchmove/touchend; calls `onClose` when downward drag exceeds threshold (~80px)
-- [ ] Apply to `MoodPage` `QualifierSheet` and `SOSConfirmSheet`
+- [x] Create `useSwipeDown(onClose, threshold?)` hook — touchstart/touchmove/touchend; calls `onClose` when downward drag exceeds threshold (~80px)
+- [x] Apply to `MoodPage` `QualifierSheet` and `SOSConfirmSheet`
 
 #### Screen Reviews
 
-- [ ] Review Medication Log, Weight Entry, and Tummy Time screens against `mockups.html`
-- [ ] Review Growth Chart on mobile — verify WHO percentile lines are legible at small sizes
-- [ ] Review Calendar View on mobile and tablet — verify filter chip interaction, day-detail panel, and month navigation
-- [ ] Review Daily Summary and weekly summary views — verify data hierarchy is clear
-- [ ] Add tablet split-panel layout for Calendar View
-- [ ] Verify Recharts growth chart renders correctly in dark mode
-- [ ] Spot-check all Phase 4 screens with an accessibility scanner
+- [x] Review Medication Log, Weight Entry, and Tummy Time screens against `mockups.html`
+- [x] Review Growth Chart on mobile — verify WHO percentile lines are legible at small sizes
+- [x] Review Calendar View on mobile and tablet — verify filter chip interaction, day-detail panel, and month navigation
+- [x] Review Daily Summary and weekly summary views — verify data hierarchy is clear
+- [x] Add tablet split-panel layout for Calendar View
+- [x] Verify Recharts growth chart renders correctly in dark mode
+- [x] Spot-check all Phase 4 screens with an accessibility scanner — color-blindness audit moved to Phase 7.Distribution
 
 **Acceptance criteria:**
 - All nav icons use Lucide SVGs where applicable; no raw Unicode emoji in the nav bar
@@ -877,44 +877,45 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 **Goal:** Reduce friction for logging and surface insights parents wouldn't calculate manually.
 
-#### Anthropic API Integration + NL Logging
+#### Anthropic API Integration + NL Logging ✅ Complete
 
-- [ ] Add Anthropic SDK to server dependencies
-- [ ] POST `/api/ai/log` — accepts freeform text, returns structured log entries
-- [ ] Client: "Quick Log" text field on dashboard — type anything, get confirmation before saving
+- [x] Add Anthropic SDK to server dependencies (`@anthropic-ai/sdk@0.98.0`, `@tanstack/ai@0.22.0`, `@tanstack/ai-anthropic@0.11.0`)
+- [x] POST `/api/ai/log` — accepts freeform text, returns structured log entries (parsed via Claude Haiku)
+- [x] Client: "Quick Log" text field on dashboard — type anything, get confirmation before saving
 
 **Acceptance criteria:**
 - 90%+ of common log phrases parsed correctly (test with 20 sample phrases)
 - User always sees parsed result before it is saved
 
-#### Pattern Analysis
+#### Pattern Analysis ✅ Complete
 
-- [ ] Feeding interval analysis: calculate average feeding interval for last 24h, 3 days, 7 days
-- [ ] Sleep pattern analysis: average wake windows, longest sleep streak
-- [ ] API endpoint: GET `/api/ai/insights?babyId=&days=7`
-- [ ] Insights panel on dashboard (collapsible)
+- [x] Feeding interval analysis: calculate average feeding interval for last 24h, 3 days, 7 days
+- [x] Sleep pattern analysis: average wake windows, longest sleep streak
+- [x] API endpoint: GET `/api/ai/insights?babyId=&days=7` (1-hour in-process cache)
+- [x] Insights panel on dashboard (collapsible) with 4 stat tiles + AI narrative summary
 
 **Acceptance criteria:**
 - Insights load in under 3 seconds (cache analysis results for 1 hour)
 
-#### "Is This Normal?" Assistant
+#### "Is This Normal?" Assistant ✅ Complete
 
-- [ ] Chat interface (Q&A, not full history)
-- [ ] Prompt includes recent 14-day log summary as context
-- [ ] Hard guardrail: every response includes "This is not medical advice."
-- [ ] Rate limit: 20 queries/day
-- [ ] Add AIConversationLog table to Prisma schema
-- [ ] Persist Q&A pairs to DB for cross-session context (last 10 exchanges)
+- [x] Chat interface (Q&A, streaming via TanStack AI + SSE)
+- [x] Prompt includes recent 14-day log summary as context
+- [x] Hard guardrail: every response ends with "⚠️ This is not medical advice. Always consult your pediatrician."
+- [x] Rate limit: 20 queries/day
+- [x] Add `AIConversationLog` and `AIWeeklySummary` tables to Prisma schema + migrate
+- [x] Persist Q&A pairs to DB for cross-session context (last 20 messages / 10 exchanges)
+- [x] `/ai/chat` route accessible from More page; `More` tab stays highlighted
 
 **Acceptance criteria:**
 - Assistant can answer "Is 8 feedings a day normal for a 3-week-old?" using baby's actual data
 - Guardrail disclaimer appears on every response
 
-#### Weekly Summary Digest
+#### Weekly Summary Digest ✅ Complete
 
-- [ ] Scheduled job (node-cron): runs every Sunday at 8pm
-- [ ] Generates weekly summary: total feeds, total sleep, diaper counts, weight change, notable patterns
-- [ ] Summary viewable from a "Weekly Reports" screen
+- [x] Scheduled job (node-cron): runs every Sunday at 8pm
+- [x] Generates weekly summary: total feeds, total sleep, diaper counts, weight change, notable patterns
+- [x] Summary stored in `AIWeeklySummary` DB table; accessible via `GET /api/ai/weekly-summary`
 
 ---
 
@@ -932,6 +933,34 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - Medical disclaimer is always visible on AI responses — never clipped or scrolled out of view
 - Streaming text appears smoothly with no layout jank on mobile
 - All AI screens show appropriate empty/error states when API key is not set
+
+---
+
+### Phase 5.5: ESM Migration
+
+**Goal:** Eliminate the CJS/ESM split entirely. The server should be fully native ESM with no dynamic `import()` workarounds or `-r tsx/cjs` hacks. This unblocks clean static imports of ESM-only packages (TanStack AI, etc.) and aligns the server with the rest of the modern JS ecosystem.
+
+**Context:** The server currently runs in CJS mode (`node --watch -r tsx/cjs`) because `packages/server` has no `"type": "module"`. When Phase 5 added TanStack AI (ESM-only), the workaround was `await import()` inside the route handler. This phase removes that workaround and makes ESM the native mode for the server.
+
+#### Tasks
+
+- [ ] Add `"type": "module"` to `packages/server/package.json`
+- [ ] Update dev script: `node --watch -r tsx/cjs src/index.ts` → `tsx watch src/index.ts`
+- [ ] Update start script if needed (currently `tsx src/index.ts` — should already work)
+- [ ] Fix `@tracker/shared` workspace package so named exports work across the ESM boundary:
+  - Add `"exports"` field to `packages/shared/package.json` pointing to the TS source
+  - Or add `"type": "module"` to shared as well
+- [ ] Convert static `require()`-style patterns in server source if any snuck in (grep for `require(`)
+- [ ] Confirm all server dependencies have ESM-compatible exports (most do: Express, Prisma, Socket.io, bcryptjs, jsonwebtoken, node-cron, web-push, twilio, @simplewebauthn/server)
+- [ ] Replace `await import('@tanstack/ai')` lazy-loads in `routes/ai.ts` with normal static imports
+- [ ] Run `npm run dev` end-to-end and verify server starts cleanly with no ERR_PACKAGE_PATH_NOT_EXPORTED errors
+- [ ] Run full typecheck + lint + build after migration
+
+**Acceptance criteria:**
+- `npm run dev` starts the server with no ESM/CJS errors
+- No `await import()` dynamic workarounds remain in routes or services
+- All existing features (auth, feedings, sleep, socket, push notifications, AI chat) work after migration
+- CI passes
 
 ---
 

@@ -25,6 +25,7 @@ import { setupSocket } from './socket/index'
 import pushRouter from './routes/push'
 import settingsRouter from './routes/settings'
 import alertsRouter from './routes/alerts'
+import { aiRouter } from './routes/ai'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
 const app = express()
@@ -83,6 +84,7 @@ app.use('/s', shortLinkRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/alerts', alertsRouter)
+app.use('/api/ai', aiRouter)
 
 app.use(errorHandler)
 

@@ -16,8 +16,11 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@prisma/client": "^6.8.0",
     "@simplewebauthn/server": "^13.3.0",
+    "@tanstack/ai": "0.22.0",
+    "@tanstack/ai-anthropic": "0.11.0",
     "@tracker/shared": "*",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",

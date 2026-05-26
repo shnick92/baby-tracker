@@ -27,6 +27,7 @@ import { TummyTimePage } from '@features/tummyTime'
 import { MoodPage } from '@features/mood'
 import { HistoryPage } from '@features/history'
 import { CalendarPage } from '@features/calendar'
+import { ChatPage } from '@features/ai'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null; birthDate: string | null }
 
@@ -180,6 +181,7 @@ export default function App() {
               <Route path="/mood" element={<MoodPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/ai/chat" element={<ChatPage />} />
             </Route>
           </Routes>
           <SOSAlert />

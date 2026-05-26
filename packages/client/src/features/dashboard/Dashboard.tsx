@@ -25,6 +25,7 @@ import { useChecklist } from '../checklist'
 import { usePurchases } from '../purchases'
 import { useVisitors } from '../visitors'
 import { SOSButton } from '../alerts'
+import { QuickLogInput, InsightsPanel } from '../ai'
 
 const SOCKET_RING: Record<string, string> = {
   connecting: '0 0 0 2px #f59e0b',
@@ -564,6 +565,8 @@ export function Dashboard() {
         />
       </div>
       <QuickLogRow />
+      {babyId && <QuickLogInput babyId={babyId} />}
+      {babyId && <InsightsPanel babyId={babyId} />}
       {born && <VisitorsCard />}
     </div>
   )
@@ -652,9 +655,11 @@ export function Dashboard() {
                 />
               </div>
               <QuickLogRow />
+              {babyId && <QuickLogInput babyId={babyId} />}
             </div>
             {/* Right column */}
             <div className="space-y-4">
+              {babyId && <InsightsPanel babyId={babyId} />}
               {born && <VisitorsCard />}
               {bornToggle}
               {passkeyCard}

@@ -19,7 +19,7 @@ type WebPushError = Error & { statusCode?: number }
 router.post('/sos', authMiddleware, async (req, res) => {
   const parsed = SosSchema.safeParse(req.body)
   if (!parsed.success) {
-    return res.status(400).json({ data: null, error: parsed.error.errors[0].message })
+    return res.status(400).json({ data: null, error: parsed.error.issues[0].message })
   }
 
   const { babyId, message } = parsed.data

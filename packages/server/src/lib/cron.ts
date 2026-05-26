@@ -1,6 +1,7 @@
 import cron from 'node-cron'
 import { prisma } from './prisma'
 import { sendPush } from './push'
+import { generateWeeklySummaryText } from '../services/ai'
 
 type WebPushError = Error & { statusCode?: number }
 
@@ -79,12 +80,52 @@ export async function runWakeWindowCheck(): Promise<void> {
   }
 }
 
+async function runWeeklySummaries(): Promise<void> {
+  const babies = await prisma.baby.findMany({ select: { id: true } })
+  for (const baby of babies) {
+    try {
+      const { content, totalFeeds, totalSleepMin, totalDiapers, weightChangeOz } =
+        await generateWeeklySummaryText(baby.id)
+
+      const weekOf = new Date()
+      weekOf.setHours(0, 0, 0, 0)
+      // Set to Monday of the current week
+      const day = weekOf.getDay()
+      weekOf.setDate(weekOf.getDate() - ((day + 6) % 7))
+
+      await prisma.aIWeeklySummary.create({
+        data: {
+          babyId: baby.id,
+          weekOf,
+          content,
+          totalFeeds,
+          totalSleepMin,
+          totalDiapers,
+          weightChangeOz,
+        },
+      })
+      console.log(`[cron] weekly summary generated for baby ${baby.id}`)
+    } catch (err) {
+      console.error(`[cron] weekly summary failed for baby ${baby.id}:`, err)
+    }
+  }
+}
+
 export function startCronJobs(): void {
   cron.schedule('*/5 * * * *', async () => {
     try {
       await runWakeWindowCheck()
     } catch (err) {
       console.error('[cron] wake-window check failed:', err)
+    }
+  })
+
+  // Every Sunday at 8:00 PM local server time
+  cron.schedule('0 20 * * 0', async () => {
+    try {
+      await runWeeklySummaries()
+    } catch (err) {
+      console.error('[cron] weekly summary job failed:', err)
     }
   })
 }

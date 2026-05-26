@@ -66,8 +66,10 @@ model Baby {
   moodLogs        MoodLog[]
   customActivities CustomActivity[]
   milestones      Milestone[]
-  sleepSettings   SleepSettings?
-  emergencyAlerts EmergencyAlert[]
+  sleepSettings       SleepSettings?
+  emergencyAlerts     EmergencyAlert[]
+  aiConversationLogs  AIConversationLog[]
+  aiWeeklySummaries   AIWeeklySummary[]
 }
 
 model BabyUser {
@@ -384,4 +386,32 @@ enum MilestoneCategory {
   COGNITIVE
   FEEDING
   CUSTOM
+}
+
+model AIConversationLog {
+  id        String      @id @default(cuid())
+  babyId    String
+  baby      Baby        @relation(fields: [babyId], references: [id])
+  userId    String
+  role      AIRole
+  content   String
+  createdAt DateTime    @default(now())
+}
+
+model AIWeeklySummary {
+  id          String   @id @default(cuid())
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  weekOf      DateTime
+  content     String
+  totalFeeds  Int?
+  totalSleepMin Int?
+  totalDiapers Int?
+  weightChangeOz Float?
+  createdAt   DateTime @default(now())
+}
+
+enum AIRole {
+  USER
+  ASSISTANT
 }

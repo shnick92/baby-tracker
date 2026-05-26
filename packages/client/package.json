@@ -14,6 +14,8 @@
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@simplewebauthn/browser": "^13.3.0",
+    "@tanstack/ai": "^0.22.0",
+    "@tanstack/ai-react": "^0.11.8",
     "@tanstack/react-query": "^5.74.4",
     "@tanstack/react-query-devtools": "^5.100.11",
     "@tracker/shared": "*",
@@ -22,6 +24,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.55.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.5.3",
     "recharts": "^3.8.1",
     "socket.io-client": "^4.8.3",

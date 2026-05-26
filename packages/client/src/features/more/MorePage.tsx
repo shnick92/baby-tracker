@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays } from 'lucide-react'
+import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Sparkles } from 'lucide-react'
 
 type MoreItem = {
   to: string
@@ -68,6 +68,12 @@ const MORE_ITEMS: MoreItem[] = [
     icon: <CalendarDays size={22} />,
     label: 'Calendar',
     description: 'Monthly view of all tracked events — feedings, sleep, diapers & visitors',
+  },
+  {
+    to: '/ai/chat',
+    icon: <Sparkles size={22} />,
+    label: 'Is This Normal?',
+    description: 'AI assistant — ask questions about your baby\'s patterns using real data',
   },
 ]
 
