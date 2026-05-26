@@ -51,7 +51,8 @@ Rules:
   })
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : ''
-  return JSON.parse(raw) as ParsedLogResult
+  const json = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+  return JSON.parse(json) as ParsedLogResult
 }
 
 export async function buildLogContext(babyId: string, days: number): Promise<string> {
