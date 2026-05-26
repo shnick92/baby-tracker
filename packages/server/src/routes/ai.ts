@@ -101,30 +101,31 @@ aiRouter.post('/chat', async (req: Request, res) => {
     return
   }
 
-  const dayStart = new Date()
-  dayStart.setHours(0, 0, 0, 0)
-  const userMessageCount = await prisma.aIConversationLog.count({
-    where: { babyId, role: 'USER', createdAt: { gte: dayStart } },
-  })
-  if (userMessageCount >= CHAT_DAILY_LIMIT) {
-    res.status(429).json({ data: null, error: `Daily limit of ${CHAT_DAILY_LIMIT} questions reached. Try again tomorrow.` })
-    return
-  }
-
-  const { chat, toServerSentEventsStream, chatParamsFromRequestBody, anthropicText } = await getAiModules()
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let params: any
   try {
-    params = await chatParamsFromRequestBody(req.body)
-  } catch {
-    res.status(400).json({ data: null, error: 'Invalid request body' })
-    return
-  }
+    const dayStart = new Date()
+    dayStart.setHours(0, 0, 0, 0)
+    const userMessageCount = await prisma.aIConversationLog.count({
+      where: { babyId, role: 'USER', createdAt: { gte: dayStart } },
+    })
+    if (userMessageCount >= CHAT_DAILY_LIMIT) {
+      res.status(429).json({ data: null, error: `Daily limit of ${CHAT_DAILY_LIMIT} questions reached. Try again tomorrow.` })
+      return
+    }
 
-  const logContext = await buildLogContext(babyId, 14)
+    const { chat, toServerSentEventsStream, chatParamsFromRequestBody, anthropicText } = await getAiModules()
 
-  const systemPrompt = `You are a helpful baby care assistant for two parents tracking their baby.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let params: any
+    try {
+      params = await chatParamsFromRequestBody(req.body)
+    } catch {
+      res.status(400).json({ data: null, error: 'Invalid request body' })
+      return
+    }
+
+    const logContext = await buildLogContext(babyId, 14)
+
+    const systemPrompt = `You are a helpful baby care assistant for two parents tracking their baby.
 
 ${logContext}
 
@@ -136,88 +137,96 @@ IMPORTANT RULES:
 - When patterns in the data are relevant, reference them specifically
 - Only when discussing specific symptoms, concerning health patterns, or medical topics, add one brief plain-text sentence at the end noting they should consult their pediatrician. Skip it for general pattern or behavior questions.`
 
-  // Extract the user message text to persist (UIMessage uses parts[], ModelMessage uses content)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lastUserMsg = [...params.messages].reverse().find((m: any) => m.role === 'user') as Record<string, unknown> | undefined
-  let userText = ''
-  if (lastUserMsg) {
-    if ('parts' in lastUserMsg && Array.isArray(lastUserMsg['parts'])) {
-      userText = (lastUserMsg['parts'] as Array<{ type: string; content?: string }>)
-        .filter((p) => p.type === 'text')
-        .map((p) => p.content ?? '')
-        .join('')
-    } else if (typeof lastUserMsg['content'] === 'string') {
-      userText = lastUserMsg['content']
-    } else if (Array.isArray(lastUserMsg['content'])) {
-      userText = (lastUserMsg['content'] as Array<{ type: string; text?: string }>)
-        .filter((p) => p.type === 'text')
-        .map((p) => p.text ?? '')
-        .join('')
-    }
-  }
-
-  if (userText) {
-    await prisma.aIConversationLog.create({
-      data: { babyId, userId: req.user!.userId, role: 'USER', content: userText },
-    })
-  }
-
-  const history = await getConversationHistory(babyId)
-
-  const abortController = new AbortController()
-  req.on('close', () => abortController.abort())
-
-  const stream = chat({
+    // Extract the user message text to persist (UIMessage uses parts[], ModelMessage uses content)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    adapter: anthropicText('claude-sonnet-4-6', { apiKey: process.env['ANTHROPIC_API_KEY'] }) as any,
-    systemPrompts: [systemPrompt],
-    messages: history.slice(-20),
-    abortController,
-  })
-
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-
-  const sseStream = toServerSentEventsStream(stream, abortController)
-  const nodeStream = Readable.fromWeb(sseStream as Parameters<typeof Readable.fromWeb>[0])
-  nodeStream.pipe(res)
-
-  // Collect assistant response text to persist
-  let assistantContent = ''
-  nodeStream.on('data', (chunk: Buffer) => {
-    for (const line of chunk.toString().split('\n')) {
-      if (line.startsWith('data: ')) {
-        try {
-          const parsed = JSON.parse(line.slice(6)) as { type?: string; delta?: string }
-          if (parsed.type === 'TEXT_MESSAGE_CONTENT' && parsed.delta) {
-            assistantContent += parsed.delta
-          }
-        } catch { /* non-JSON SSE lines (RUN_FINISHED etc.) */ }
+    const lastUserMsg = [...params.messages].reverse().find((m: any) => m.role === 'user') as Record<string, unknown> | undefined
+    let userText = ''
+    if (lastUserMsg) {
+      if ('parts' in lastUserMsg && Array.isArray(lastUserMsg['parts'])) {
+        userText = (lastUserMsg['parts'] as Array<{ type: string; content?: string }>)
+          .filter((p) => p.type === 'text')
+          .map((p) => p.content ?? '')
+          .join('')
+      } else if (typeof lastUserMsg['content'] === 'string') {
+        userText = lastUserMsg['content']
+      } else if (Array.isArray(lastUserMsg['content'])) {
+        userText = (lastUserMsg['content'] as Array<{ type: string; text?: string }>)
+          .filter((p) => p.type === 'text')
+          .map((p) => p.text ?? '')
+          .join('')
       }
     }
-  })
 
-  nodeStream.on('end', async () => {
-    if (assistantContent && !abortController.signal.aborted) {
-      try {
-        await prisma.aIConversationLog.create({
-          data: { babyId, userId: req.user!.userId, role: 'ASSISTANT', content: assistantContent },
-        })
-        // Trim to last 20 messages (10 exchanges)
-        const all = await prisma.aIConversationLog.findMany({
-          where: { babyId },
-          orderBy: { createdAt: 'desc' },
-          select: { id: true },
-        })
-        if (all.length > 20) {
-          await prisma.aIConversationLog.deleteMany({ where: { id: { in: all.slice(20).map((l) => l.id) } } })
+    if (userText) {
+      await prisma.aIConversationLog.create({
+        data: { babyId, userId: req.user!.userId, role: 'USER', content: userText },
+      })
+    }
+
+    const history = await getConversationHistory(babyId)
+
+    const abortController = new AbortController()
+    req.on('close', () => abortController.abort())
+
+    const stream = chat({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      adapter: anthropicText('claude-sonnet-4-6', { apiKey: process.env['ANTHROPIC_API_KEY'] }) as any,
+      systemPrompts: [systemPrompt],
+      messages: history.slice(-20),
+      abortController,
+    })
+
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+
+    const sseStream = toServerSentEventsStream(stream, abortController)
+    const nodeStream = Readable.fromWeb(sseStream as Parameters<typeof Readable.fromWeb>[0])
+    nodeStream.pipe(res)
+
+    // Collect assistant response text to persist
+    let assistantContent = ''
+    nodeStream.on('data', (chunk: Buffer) => {
+      for (const line of chunk.toString().split('\n')) {
+        if (line.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(line.slice(6)) as { type?: string; delta?: string }
+            if (parsed.type === 'TEXT_MESSAGE_CONTENT' && parsed.delta) {
+              assistantContent += parsed.delta
+            }
+          } catch { /* non-JSON SSE lines (RUN_FINISHED etc.) */ }
         }
-      } catch (err) {
-        console.error('[ai/chat] persist error:', err)
       }
+    })
+
+    nodeStream.on('end', async () => {
+      if (assistantContent && !abortController.signal.aborted) {
+        try {
+          await prisma.aIConversationLog.create({
+            data: { babyId, userId: req.user!.userId, role: 'ASSISTANT', content: assistantContent },
+          })
+          // Trim to last 20 messages (10 exchanges)
+          const all = await prisma.aIConversationLog.findMany({
+            where: { babyId },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true },
+          })
+          if (all.length > 20) {
+            await prisma.aIConversationLog.deleteMany({ where: { id: { in: all.slice(20).map((l) => l.id) } } })
+          }
+        } catch (err) {
+          console.error('[ai/chat] persist error:', err)
+        }
+      }
+    })
+  } catch (err) {
+    console.error('[ai/chat] error:', err)
+    if (!res.headersSent) {
+      res.status(500).json({ data: null, error: 'Chat request failed' })
+    } else {
+      res.end()
     }
-  })
+  }
 })
 
 // GET /api/ai/weekly-summary?babyId=
