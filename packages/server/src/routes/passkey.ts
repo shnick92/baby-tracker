@@ -82,7 +82,8 @@ passkeyRouter.post('/register/verify', authMiddleware, async (req, res) => {
       expectedOrigin: RP_ORIGIN,
       expectedRPID: RP_ID,
     })
-  } catch {
+  } catch (err) {
+    console.error('[passkey/register/verify] error — RP_ID=%s RP_ORIGIN=%s err=%s', RP_ID, RP_ORIGIN, err)
     res.status(400).json({ data: null, error: 'Registration verification failed' })
     return
   }
@@ -155,7 +156,8 @@ passkeyRouter.post('/auth/verify', async (req, res) => {
         transports: storedCredential.transports as AuthenticatorTransportFuture[],
       },
     })
-  } catch {
+  } catch (err) {
+    console.error('[passkey/auth/verify] error — RP_ID=%s RP_ORIGIN=%s err=%s', RP_ID, RP_ORIGIN, err)
     res.status(400).json({ data: null, error: 'Authentication verification failed' })
     return
   }
