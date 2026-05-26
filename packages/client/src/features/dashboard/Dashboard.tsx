@@ -5,6 +5,12 @@ import { Moon, Droplets, MoreHorizontal } from 'lucide-react'
 
 import { BabyBottleIcon } from '@components/icons'
 import { useAuthStore } from '@stores/authStore'
+
+function todayLocalDate() {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
 import { useSocketStore } from '@stores/socketStore'
 import { formatTimeAgo, formatDuration } from '@lib/utils'
 import { api } from '@lib/axios'
@@ -441,20 +447,28 @@ function PrepStatsGrid() {
 // ── Main export ─────────────────────────────────────────────────────────────
 
 export function Dashboard() {
-  const { user, babyId, markPasskeyAdded } = useAuthStore()
+  const { user, babyId, markPasskeyAdded, setBirthDate } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
   const queryClient = useQueryClient()
   const [showAddPasskey, setShowAddPasskey] = useState(false)
   const [confirmBorn, setConfirmBorn] = useState(false)
+  const [birthDateInput, setBirthDateInput] = useState(todayLocalDate)
 
   const { data: pregnancyData } = usePregnancyStatus()
   const born = pregnancyData?.born ?? false
 
+  type BornArgs = { birthDate: string } | { reset: true }
+
   const markBornMutation = useMutation({
-    mutationFn: (reset?: boolean) =>
-      api.patch('/api/pregnancy/born', { babyId, ...(reset && { reset: true }) }).then((r) => r.data),
-    onSuccess: () => {
+    mutationFn: (args: BornArgs) =>
+      api.patch('/api/pregnancy/born', { babyId, ...args }).then((r) => r.data),
+    onSuccess: (_, args) => {
       setConfirmBorn(false)
+      if ('birthDate' in args) {
+        setBirthDate(new Date(args.birthDate + 'T12:00:00').toISOString())
+      } else {
+        setBirthDate(null)
+      }
       queryClient.invalidateQueries({ queryKey: ['pregnancy', 'status', babyId] })
     },
   })
@@ -487,7 +501,7 @@ export function Dashboard() {
       <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Baby Tracking</p>
       <button
         type="button"
-        onClick={() => markBornMutation.mutate(true)}
+        onClick={() => markBornMutation.mutate({ reset: true })}
         disabled={markBornMutation.isPending}
         className="text-xs text-gray-300 dark:text-gray-600 hover:text-gray-400 dark:hover:text-gray-500 disabled:opacity-40 transition-colors"
       >
@@ -499,10 +513,17 @@ export function Dashboard() {
       <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Baby Tracking</p>
       {confirmBorn ? (
         <span className="flex items-center gap-2">
+          <input
+            type="date"
+            value={birthDateInput}
+            max={todayLocalDate()}
+            onChange={(e) => setBirthDateInput(e.target.value)}
+            className="text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
           <button
             type="button"
-            onClick={() => markBornMutation.mutate(undefined)}
-            disabled={markBornMutation.isPending}
+            onClick={() => markBornMutation.mutate({ birthDate: birthDateInput })}
+            disabled={markBornMutation.isPending || !birthDateInput}
             className="text-xs font-medium text-green-600 dark:text-green-400 disabled:opacity-40"
           >
             {markBornMutation.isPending ? 'saving…' : 'confirm'}
@@ -514,7 +535,7 @@ export function Dashboard() {
       ) : (
         <button
           type="button"
-          onClick={() => setConfirmBorn(true)}
+          onClick={() => { setBirthDateInput(todayLocalDate()); setConfirmBorn(true) }}
           className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
         >
           baby here?

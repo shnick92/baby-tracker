@@ -28,9 +28,15 @@ pregnancyRouter.patch('/born', async (req, res) => {
   })
   if (!baby) { res.status(404).json({ data: null, error: 'Baby not found' }); return }
 
-  const birthDate = req.body.reset
-    ? null
-    : req.body.birthDate ? new Date(req.body.birthDate as string) : new Date()
+  let birthDate: Date | null
+  if (req.body.reset) {
+    birthDate = null
+  } else if (req.body.birthDate) {
+    birthDate = new Date(req.body.birthDate as string)
+  } else {
+    res.status(400).json({ data: null, error: 'birthDate is required' })
+    return
+  }
   await prisma.baby.update({ where: { id: babyId }, data: { birthDate } })
 
   const status = await getPregnancyStatus(babyId, req.user!.userId)
