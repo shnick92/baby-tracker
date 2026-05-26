@@ -17,6 +17,8 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+# Copy workspace-level node_modules for packages npm didn't hoist to root
+COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules
 
 COPY packages/server/src ./packages/server/src
 COPY packages/server/tsconfig.json ./packages/server/
