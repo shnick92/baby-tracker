@@ -53,7 +53,7 @@ export function ChatPage() {
   const { data: history = [] } = useConversationHistory(babyId)
   const suggestedQuestions = getSuggestedQuestions(birthDate)
 
-  const { messages, sendMessage, isLoading } = useChat({
+  const { messages, sendMessage, isLoading, error } = useChat({
     connection: fetchServerSentEvents(
       () => `${VITE_API_URL}/api/ai/chat?babyId=${babyId ?? ''}`,
       () => ({
@@ -231,10 +231,22 @@ export function ChatPage() {
               )
             })}
 
-            {isLoading && (
+            {isLoading && !error && (
               <div className="flex justify-start">
                 <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-sm px-4 py-3">
                   <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="flex justify-start">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl rounded-bl-sm max-w-[85%] px-4 py-3 text-sm">
+                  {error.message.includes('503') || error.message.toLowerCase().includes('not configured')
+                    ? 'AI is not available right now. Please try again later.'
+                    : error.message.includes('429')
+                    ? 'Daily question limit reached. Try again tomorrow.'
+                    : 'Something went wrong. Please try again.'}
                 </div>
               </div>
             )}
