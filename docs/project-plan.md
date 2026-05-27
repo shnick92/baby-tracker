@@ -1070,7 +1070,7 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 ---
 
-### Phase 5.5: ESM Migration
+### Phase 5.5: ESM Migration ✅ Complete
 
 **Goal:** Eliminate the CJS/ESM split entirely. The server should be fully native ESM with no dynamic `import()` workarounds or `-r tsx/cjs` hacks. This unblocks clean static imports of ESM-only packages (TanStack AI, etc.) and aligns the server with the rest of the modern JS ecosystem.
 
@@ -1078,17 +1078,17 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 #### Tasks
 
-- [ ] Add `"type": "module"` to `packages/server/package.json`
-- [ ] Update dev script: `node --watch -r tsx/cjs src/index.ts` → `tsx watch src/index.ts`
-- [ ] Update start script if needed (currently `tsx src/index.ts` — should already work)
-- [ ] Fix `@tracker/shared` workspace package so named exports work across the ESM boundary:
+- [x] Add `"type": "module"` to `packages/server/package.json`
+- [x] Update dev script: `node --watch -r tsx/cjs src/index.ts` → `tsx watch src/index.ts`
+- [x] Update start script if needed (currently `tsx src/index.ts` — should already work)
+- [x] Fix `@tracker/shared` workspace package so named exports work across the ESM boundary:
   - Add `"exports"` field to `packages/shared/package.json` pointing to the TS source
-  - Or add `"type": "module"` to shared as well
-- [ ] Convert static `require()`-style patterns in server source if any snuck in (grep for `require(`)
-- [ ] Confirm all server dependencies have ESM-compatible exports (most do: Express, Prisma, Socket.io, bcryptjs, jsonwebtoken, node-cron, web-push, twilio, @simplewebauthn/server)
-- [ ] Replace `await import('@tanstack/ai')` lazy-loads in `routes/ai.ts` with normal static imports
-- [ ] Run `npm run dev` end-to-end and verify server starts cleanly with no ERR_PACKAGE_PATH_NOT_EXPORTED errors
-- [ ] Run full typecheck + lint + build after migration
+  - Add `"type": "module"` to shared as well
+- [x] Convert static `require()`-style patterns in server source if any snuck in (grep for `require(`) — none found
+- [x] Confirm all server dependencies have ESM-compatible exports (most do: Express, Prisma, Socket.io, bcryptjs, jsonwebtoken, node-cron, web-push, twilio, @simplewebauthn/server)
+- [x] Replace `await import('@tanstack/ai')` lazy-loads in `routes/ai.ts` with normal static imports
+- [x] Run `npm run dev` end-to-end and verify server starts cleanly with no ERR_PACKAGE_PATH_NOT_EXPORTED errors
+- [x] Run full typecheck + lint + build after migration
 
 **Acceptance criteria:**
 - `npm run dev` starts the server with no ESM/CJS errors

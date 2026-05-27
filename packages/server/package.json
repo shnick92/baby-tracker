@@ -2,8 +2,9 @@
   "name": "@tracker/server",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "node --watch -r tsx/cjs src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

@@ -1,5 +1,7 @@
 import { Readable } from 'node:stream'
 import { Router, type Request, type Response } from 'express'
+import { chat, toServerSentEventsStream, chatParamsFromRequestBody } from '@tanstack/ai'
+import { anthropicText } from '@tanstack/ai-anthropic'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
 import {
@@ -16,13 +18,6 @@ const CHAT_DAILY_LIMIT = 20
 const INSIGHTS_CACHE_MS = 60 * 60 * 1000
 
 const insightsCache = new Map<string, { data: Awaited<ReturnType<typeof generateInsights>>; cachedAt: number }>()
-
-// Lazy-load ESM-only TanStack AI packages (CJS server can't static-import them)
-async function getAiModules() {
-  const [{ chat, toServerSentEventsStream, chatParamsFromRequestBody }, { anthropicText }] =
-    await Promise.all([import('@tanstack/ai'), import('@tanstack/ai-anthropic')])
-  return { chat, toServerSentEventsStream, chatParamsFromRequestBody, anthropicText }
-}
 
 function requireApiKey(res: Response): boolean {
   if (!process.env['ANTHROPIC_API_KEY']) {
@@ -111,8 +106,6 @@ aiRouter.post('/chat', async (req: Request, res) => {
       res.status(429).json({ data: null, error: `Daily limit of ${CHAT_DAILY_LIMIT} questions reached. Try again tomorrow.` })
       return
     }
-
-    const { chat, toServerSentEventsStream, chatParamsFromRequestBody, anthropicText } = await getAiModules()
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let params: any
