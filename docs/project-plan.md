@@ -5,6 +5,16 @@
 
 ---
 
+## Progress Update — May 2026
+
+**Phases 1–5 are complete.** The core tracking loop (feeding, sleep, diaper), all health & growth screens, AI integration (NL logging, pattern insights, chat assistant, weekly digest), and the full design polish pass are all shipped to production on Unraid.
+
+**Currently in testing mode** with synthetic data — reports (Phase 6 data export) not yet validated against real data.
+
+**Up next:** Phase 5.5 ESM Migration (server modernisation), Phase 5.AI-Hardening (cost & safety guards before baby arrives), Phase 5.Illness (Sick Baby episode tracking, a new feature planned for use from day one), then Phase 6 (Polish: milestones, vaccinations, export, settings).
+
+---
+
 ## Table of Contents
 
 1. [Tech Stack](#tech-stack)
@@ -18,6 +28,9 @@
    - [Phase 3.5: Emergency SOS Alert](#phase-35-emergency-sos-alert)
    - [Phase 4: Health & Growth](#phase-4-health--growth)
    - [Phase 5: AI Integration](#phase-5-ai-integration)
+   - [Phase 5.5: ESM Migration](#phase-55-esm-migration)
+   - [Phase 5.AI-Hardening: AI Usage Safeguards](#phase-5ai-hardening-ai-usage-safeguards)
+   - [Phase 5.Illness: Sick Baby Episode Tracking](#phase-5illness-sick-baby-episode-tracking)
    - [Phase 6: Polish](#phase-6-polish)
 6. [MVP Definition of Done](#mvp-definition-of-done)
 7. [Risk Log](#risk-log)
@@ -114,41 +127,77 @@ tracker/
 
 ## Data Model
 
+> This section mirrors `packages/server/prisma/schema.prisma` exactly. Update both when the schema changes.
+
 ### Core Entities
 
 ```prisma
 model User {
-  id             String           @id @default(cuid())
-  email          String           @unique
-  name           String
-  passwordHash   String
-  role           Role             @default(PARENT)
-  createdAt      DateTime         @default(now())
-  babies         BabyUser[]
-  logs           Log[]
-  refreshTokens  RefreshToken[]
-  alertsSent     EmergencyAlert[] @relation("AlertsSent")
-  alertsReceived EmergencyAlert[] @relation("AlertsReceived")
+  id                String             @id @default(cuid())
+  email             String             @unique
+  name              String
+  passwordHash      String
+  phone             String?            // used for Twilio SOS call fallback
+  role              Role               @default(PARENT)
+  createdAt         DateTime           @default(now())
+  babies            BabyUser[]
+  refreshTokens     RefreshToken[]
+  credentials       Credential[]
+  feedingLogs       FeedingLog[]
+  sleepLogs         SleepLog[]
+  diaperLogs        DiaperLog[]
+  pushSubscriptions PushSubscription[]
+  alertsSent        EmergencyAlert[]   @relation("AlertsSent")
+  alertsReceived    EmergencyAlert[]   @relation("AlertsReceived")
+}
+
+// WebAuthn passkey credential per device
+model Credential {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      BigInt    @default(0)
+  transports   String[]
+  deviceName   String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+}
+
+// Short-lived WebAuthn challenge (garbage-collected after expiry)
+model Challenge {
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model Baby {
-  id          String   @id @default(cuid())
-  name        String?  // Optional — may not be chosen yet during pregnancy
-  dueDate     DateTime?
-  birthDate   DateTime?
-  createdAt   DateTime @default(now())
-  parents     BabyUser[]
-  feedingLogs FeedingLog[]
-  sleepLogs   SleepLog[]
-  diaperLogs  DiaperLog[]
-  weightLogs  WeightLog[]
-  heightLogs  HeightLog[]
-  medicationLogs MedicationLog[]
-  tummyTimeLogs  TummyTimeLog[]
-  moodLogs        MoodLog[]
-  milestones      Milestone[]
-  checklists      Checklist[]
-  emergencyAlerts EmergencyAlert[]
+  id               String             @id @default(cuid())
+  name             String?            // optional — may not be chosen yet during pregnancy
+  dueDate          DateTime?
+  birthDate        DateTime?
+  createdAt        DateTime           @default(now())
+  parents          BabyUser[]
+  checklists       Checklist[]
+  purchases        Purchase[]
+  visitorSlots     VisitorSlot[]
+  shortLinks       ShortLink[]
+  feedingLogs      FeedingLog[]
+  sleepLogs        SleepLog[]
+  diaperLogs       DiaperLog[]
+  weightLogs       WeightLog[]
+  heightLogs       HeightLog[]     // planned Phase 6 — not yet in schema
+  medicationLogs   MedicationLog[]
+  tummyTimeLogs    TummyTimeLog[]
+  moodLogs         MoodLog[]
+  customActivities CustomActivity[]
+  milestones       Milestone[]
+  sleepSettings    SleepSettings?
+  emergencyAlerts  EmergencyAlert[]
+  aiConversationLogs AIConversationLog[]
+  aiWeeklySummaries  AIWeeklySummary[]
 }
 
 model BabyUser {
@@ -159,6 +208,39 @@ model BabyUser {
   @@id([babyId, userId])
 }
 
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// VAPID Web Push endpoint per device per user
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  platform  String   @default("other")
+  createdAt DateTime @default(now())
+}
+
+// Configurable sleep targets per baby (Phase 3.Wake)
+model SleepSettings {
+  id                   String    @id @default(cuid())
+  babyId               String    @unique
+  baby                 Baby      @relation(fields: [babyId], references: [id])
+  napIdealMinutes      Int       @default(45)
+  nightIdealMinutes    Int       @default(180)
+  wakeWindowMaxMinutes Int       @default(120)
+  lastWakeNotifiedAt   DateTime?
+  updatedAt            DateTime  @updatedAt
+}
+
 // Volume stored in oz; multiply by 29.5735 to display as mL
 model FeedingLog {
   id          String      @id @default(cuid())
@@ -166,41 +248,43 @@ model FeedingLog {
   baby        Baby        @relation(fields: [babyId], references: [id])
   loggedById  String
   loggedBy    User        @relation(fields: [loggedById], references: [id])
-  type        FeedingType  // BREAST_LEFT | BREAST_RIGHT | BOTTLE | PUMP
+  type        FeedingType
   startedAt   DateTime
   endedAt     DateTime?
   durationSec Int?
-  volumeOz    Float?       // fluid ounces; UI offers mL/oz toggle, stored normalized as oz
+  volumeOz    Float?      // fluid oz; UI offers mL/oz toggle, stored normalised as oz
+  milkType    String?     // "BREAST_MILK" | "FORMULA"
+  formulaName String?     // free text; autocompleted from history
   notes       String?
   createdAt   DateTime    @default(now())
 }
 
 model SleepLog {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   babyId     String
-  baby       Baby     @relation(fields: [babyId], references: [id])
+  baby       Baby      @relation(fields: [babyId], references: [id])
   loggedById String
-  loggedBy   User     @relation(fields: [loggedById], references: [id])
-  type       SleepType  // NAP | NIGHT
+  loggedBy   User      @relation(fields: [loggedById], references: [id])
+  type       SleepType
   startedAt  DateTime
   endedAt    DateTime?
   notes      String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 }
 
 model DiaperLog {
-  id                 String             @id @default(cuid())
-  babyId             String
-  baby               Baby               @relation(fields: [babyId], references: [id])
-  loggedById         String
-  loggedBy           User               @relation(fields: [loggedById], references: [id])
-  type               DiaperType         // WET | DIRTY | BOTH
-  color              DiaperColor?
-  consistency        DiaperConsistency?
-  customConsistency  String?
-  occurredAt         DateTime
-  notes              String?
-  createdAt          DateTime           @default(now())
+  id                String             @id @default(cuid())
+  babyId            String
+  baby              Baby               @relation(fields: [babyId], references: [id])
+  loggedById        String
+  loggedBy          User               @relation(fields: [loggedById], references: [id])
+  type              DiaperType
+  color             DiaperColor?
+  consistency       DiaperConsistency?
+  customConsistency String?
+  occurredAt        DateTime
+  notes             String?
+  createdAt         DateTime           @default(now())
 }
 
 model WeightLog {
@@ -215,12 +299,13 @@ model WeightLog {
   createdAt  DateTime @default(now())
 }
 
+// Planned (Phase 6) — not yet in schema
 model HeightLog {
   id         String   @id @default(cuid())
   babyId     String
   baby       Baby     @relation(fields: [babyId], references: [id])
   loggedById String
-  inches     Float
+  inches     Float    // stored in inches; UI offers cm/in toggle
   recordedAt DateTime
   notes      String?
   createdAt  DateTime @default(now())
@@ -240,40 +325,58 @@ model MedicationLog {
 }
 
 model TummyTimeLog {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   babyId      String
-  baby        Baby     @relation(fields: [babyId], references: [id])
+  baby        Baby      @relation(fields: [babyId], references: [id])
   loggedById  String
   startedAt   DateTime
-  durationSec Int
+  endedAt     DateTime?
+  durationSec Int?      // computed on end; null while session is active
   notes       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 }
 
 model MoodLog {
-  id         String    @id @default(cuid())
-  babyId     String
-  baby       Baby      @relation(fields: [babyId], references: [id])
-  loggedById String
-  mood       MoodType  // HAPPY | FUSSY | CRYING | SLEEPING | ALERT | BATH | WALK
-  occurredAt DateTime
-  notes      String?
-  createdAt  DateTime  @default(now())
+  id               String          @id @default(cuid())
+  babyId           String
+  baby             Baby            @relation(fields: [babyId], references: [id])
+  loggedById       String
+  mood             MoodType?       // null when logging a custom activity without a mood
+  qualifier        MoodType?       // optional mood attached to an activity (e.g. Bath + Happy)
+  customActivityId String?
+  customActivity   CustomActivity? @relation(fields: [customActivityId], references: [id])
+  occurredAt       DateTime
+  notes            String?
+  createdAt        DateTime        @default(now())
+}
+
+// Per-baby custom activities (emoji + name), shown in the mood/activity grid
+model CustomActivity {
+  id        String    @id @default(cuid())
+  babyId    String
+  baby      Baby      @relation(fields: [babyId], references: [id])
+  name      String
+  emoji     String
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  moodLogs  MoodLog[]
+  @@unique([babyId, name])
 }
 
 model Checklist {
-  id        String         @id @default(cuid())
+  id        String          @id @default(cuid())
   babyId    String
-  baby      Baby           @relation(fields: [babyId], references: [id])
-  type      ChecklistType  // HOSPITAL_BAG_MOM | HOSPITAL_BAG_BABY | HOME_PREP | BEFORE_HOME | PURCHASES
+  baby      Baby            @relation(fields: [babyId], references: [id])
+  type      ChecklistType
   items     ChecklistItem[]
-  createdAt DateTime       @default(now())
+  createdAt DateTime        @default(now())
+  @@unique([babyId, type])
 }
 
 model ChecklistItem {
   id          String    @id @default(cuid())
   checklistId String
-  checklist   Checklist @relation(fields: [checklistId], references: [id])
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
   category    String
   label       String
   notes       String?
@@ -284,76 +387,107 @@ model ChecklistItem {
   createdAt   DateTime  @default(now())
 }
 
+model Purchase {
+  id        String         @id @default(cuid())
+  babyId    String
+  baby      Baby           @relation(fields: [babyId], references: [id])
+  name      String
+  category  String
+  status    PurchaseStatus @default(NEEDED)
+  price     Float?
+  notes     String?
+  url       String?
+  shortCode String?        // auto-populated by createShortLink when url is set
+  createdAt DateTime       @default(now())
+}
+
+// Self-hosted link shortener — 6-char alphanumeric codes, public redirect at GET /s/:code
+model ShortLink {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  originalUrl String
+  babyId      String
+  baby        Baby     @relation(fields: [babyId], references: [id])
+  createdById String
+  createdAt   DateTime @default(now())
+}
+
 model VisitorSlot {
   id        String    @id @default(cuid())
   babyId    String
+  baby      Baby      @relation(fields: [babyId], references: [id])
   name      String
   date      String    // YYYY-MM-DD — always required; used for grouping and ordering
-  startTime DateTime? // optional — time window start
-  endTime   DateTime? // optional — time window end; always after startTime when provided
+  startTime DateTime? // optional time window start
+  endTime   DateTime? // optional time window end; always after startTime when provided
   notes     String?
   createdAt DateTime  @default(now())
 }
 
 model Milestone {
-  id          String            @id @default(cuid())
-  babyId      String
-  baby        Baby              @relation(fields: [babyId], references: [id])
-  category    MilestoneCategory
-  label       String
-  achievedAt  DateTime?
-  notes       String?
-  createdAt   DateTime          @default(now())
-}
-
-model Purchase {
-  id         String         @id @default(cuid())
-  babyId     String
-  baby       Baby           @relation(fields: [babyId], references: [id])
-  name       String
-  category   String
-  status     PurchaseStatus // NEEDED | BOUGHT | GIFTED | SKIP
-  price      Float?
-  notes      String?
-  url        String?
-  createdAt  DateTime       @default(now())
-}
-
-model RefreshToken {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-}
-
-model EmergencyAlert {
   id         String            @id @default(cuid())
   babyId     String
   baby       Baby              @relation(fields: [babyId], references: [id])
-  sentById   String
-  sentBy     User              @relation("AlertsSent", fields: [sentById], references: [id])
-  sentToId   String
-  sentTo     User              @relation("AlertsReceived", fields: [sentToId], references: [id])
-  message    String?
-  status     AlertStatus       @default(SENT)
-  sentAt     DateTime          @default(now())
-  seenAt     DateTime?
+  category   MilestoneCategory
+  label      String
+  achievedAt DateTime?
+  notes      String?
+  createdAt  DateTime          @default(now())
+}
+
+model EmergencyAlert {
+  id       String      @id @default(cuid())
+  babyId   String
+  baby     Baby        @relation(fields: [babyId], references: [id])
+  sentById String
+  sentBy   User        @relation("AlertsSent", fields: [sentById], references: [id])
+  sentToId String
+  sentTo   User        @relation("AlertsReceived", fields: [sentToId], references: [id])
+  message  String?
+  status   AlertStatus @default(SENT)
+  sentAt   DateTime    @default(now())
+  seenAt   DateTime?
+}
+
+// AI chat history — last 20 messages (10 exchanges) used as context window
+model AIConversationLog {
+  id        String   @id @default(cuid())
+  babyId    String
+  baby      Baby     @relation(fields: [babyId], references: [id])
+  userId    String
+  role      AIRole
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// Generated weekly digest stored for cross-session access
+model AIWeeklySummary {
+  id             String   @id @default(cuid())
+  babyId         String
+  baby           Baby     @relation(fields: [babyId], references: [id])
+  weekOf         DateTime
+  content        String
+  totalFeeds     Int?
+  totalSleepMin  Int?
+  totalDiapers   Int?
+  weightChangeOz Float?
+  createdAt      DateTime @default(now())
 }
 ```
 
 ### Enums
+- `Role`: `PARENT`, `ADMIN`
 - `FeedingType`: `BREAST_LEFT`, `BREAST_RIGHT`, `BOTTLE`, `PUMP`
 - `SleepType`: `NAP`, `NIGHT`
 - `DiaperType`: `WET`, `DIRTY`, `BOTH`
 - `DiaperColor`: `YELLOW`, `GREEN`, `BROWN`, `BLACK`, `RED`, `OTHER`
 - `DiaperConsistency`: `SEEDY`, `PASTY`, `RUNNY`, `FIRM`, `WATERY`, `CUSTOM`
 - `MoodType`: `HAPPY`, `FUSSY`, `CRYING`, `SLEEPING`, `ALERT`, `BATH`, `WALK`
-- `ChecklistType`: `HOSPITAL_BAG_MOM`, `HOSPITAL_BAG_BABY`, `HOME_PREP`, `BEFORE_HOME`, `PURCHASES`
+- `ChecklistType`: `HOSPITAL_BAG_MOM`, `HOSPITAL_BAG_BABY`, `HOME_PREP`, `BEFORE_HOME`
 - `PurchaseStatus`: `NEEDED`, `BOUGHT`, `GIFTED`, `SKIP`
-- `Role`: `PARENT`, `ADMIN`
+- `AlertStatus`: `SENT`, `SEEN`, `ACKNOWLEDGED`
 - `MilestoneCategory`: `MOTOR_GROSS`, `MOTOR_FINE`, `SOCIAL`, `LANGUAGE`, `COGNITIVE`, `FEEDING`, `CUSTOM`
+- `AIRole`: `USER`, `ASSISTANT`
 
 ---
 
@@ -743,7 +877,7 @@ SEED_USER_2_PHONE=+1xxxxxxxxxx
 
 ---
 
-### Phase 4: Health & Growth
+### Phase 4: Health & Growth ✅ Complete
 
 **Goal:** Complete health tracking to support pediatrician visits.
 
@@ -826,7 +960,7 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 ---
 
-### Phase 4.UI: UI/UX Review & Polish
+### Phase 4.UI: UI/UX Review & Polish ✅ Complete
 
 **Goal:** Health and history screens are clear, data-dense but not overwhelming, and aligned across phone and tablet. Also covers app-wide navigation and icon cleanup.
 
@@ -873,7 +1007,7 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 ---
 
-### Phase 5: AI Integration
+### Phase 5: AI Integration ✅ Complete
 
 **Goal:** Reduce friction for logging and surface insights parents wouldn't calculate manually.
 
@@ -919,15 +1053,15 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 ---
 
-### Phase 5.UI: UI/UX Review & Polish
+### Phase 5.UI: UI/UX Review & Polish ✅ Complete
 
 **Goal:** AI features feel trustworthy, fast, and appropriately caveated — not like a tacked-on chatbot.
 
-- [ ] Review Quick Log (NL input) on Dashboard — verify placeholder text, parsed-result confirmation modal, and error states
-- [ ] Review "Is This Normal?" chat UI — verify streaming text renders smoothly, medical disclaimer is visible on every response
-- [ ] Review Insights panel (collapsible) — verify collapsed/expanded states, loading skeleton, and empty state when insufficient data
-- [ ] Verify AI features degrade gracefully when ANTHROPIC_API_KEY is not configured
-- [ ] Add tablet layout for "Is This Normal?" chat
+- [x] Review Quick Log (NL input) on Dashboard — verify placeholder text, parsed-result confirmation modal, and error states
+- [x] Review "Is This Normal?" chat UI — verify streaming text renders smoothly, medical disclaimer is visible on every response
+- [x] Review Insights panel (collapsible) — verify collapsed/expanded states, loading skeleton, and empty state when insufficient data
+- [x] Verify AI features degrade gracefully when ANTHROPIC_API_KEY is not configured
+- [x] Add tablet layout for "Is This Normal?" chat
 
 **Acceptance criteria:**
 - Medical disclaimer is always visible on AI responses — never clipped or scrolled out of view
@@ -964,9 +1098,184 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 ---
 
+### Phase 5.AI-Hardening: AI Usage Safeguards
+
+**Goal:** Ensure the AI subsystem can never run uncontrolled on test data or rack up runaway API costs in any environment — production or otherwise. This phase must land before baby arrives.
+
+**Context:** With a weekly cron, a per-request pattern analysis endpoint, and a chat assistant all making real Anthropic API calls, there are multiple surfaces where untested or misconfigured code could silently accumulate cost. These guards are not feature flags — they are permanent safety infrastructure.
+
+#### Environment Guards
+
+- [ ] Weekly summary cron: wrap the `node-cron` schedule in a `NODE_ENV === 'production'` guard — the job must not fire in dev or test environments
+- [ ] `/api/ai/insights` endpoint: return a static stub response (empty arrays, `"Insufficient data"` narrative) when `ANTHROPIC_API_KEY` is not set; no HTTP error, no crash
+- [ ] `/api/ai/chat` endpoint: same — return a stub `{ data: "AI assistant is not configured." }` when API key is absent
+- [ ] `/api/ai/log` (NL parse): return `{ data: null, error: "AI not configured" }` with HTTP 503 when API key is absent; client shows a toast
+- [ ] Add `AI_ENABLED=true/false` env var as a master kill switch; when `false`, all three AI routes return stubs immediately without touching the Anthropic SDK
+
+#### Rate Limit Hardening
+
+- [ ] Audit the existing 20 query/day limit on `/api/ai/chat` — confirm it is stored per-user in DB (not in memory) so it survives server restarts
+- [ ] Add a per-baby per-day limit on `/api/ai/insights` calls: max 50 cache-miss calls per day (cache hits are free); log and return cached data if limit exceeded
+- [ ] Add a per-server per-day hard cap on total Anthropic API calls across all routes (configurable via `AI_DAILY_CALL_LIMIT` env var, default 200); respond with HTTP 429 once exceeded
+
+#### Cost Observability
+
+- [ ] Add `AIUsageLog` table to Prisma: `id`, `babyId`, `userId?`, `route` (enum: `PARSE`, `INSIGHTS`, `CHAT`, `WEEKLY`), `model`, `inputTokens`, `outputTokens`, `costUsdEstimate`, `calledAt`
+- [ ] After every Anthropic API call, write a row to `AIUsageLog` with token counts from the response; estimate cost from the known model pricing constants
+- [ ] `GET /api/ai/usage?babyId=&since=` — returns daily totals; accessible from Settings for transparency
+- [ ] Cron job: daily at 11pm, check today's `costUsdEstimate` total; if it exceeds `AI_DAILY_COST_ALERT_USD` (default $1.00), emit a `alert:ai-cost` Socket.io event so a banner appears in the app
+
+#### Test-Data Firewall
+
+- [ ] Add `SEED_DATA_GUARD=true` env var; when set, any request that would trigger an Anthropic API call logs a warning and returns a stub — prevents accidental real API calls during development seeding sessions
+- [ ] Document all four env vars (`AI_ENABLED`, `AI_DAILY_CALL_LIMIT`, `AI_DAILY_COST_ALERT_USD`, `SEED_DATA_GUARD`) in `packages/server/.env.example` with safe defaults
+
+**Acceptance criteria:**
+- Starting the dev server with no `ANTHROPIC_API_KEY` set: all AI routes return stubs; no errors thrown
+- Weekly cron does not fire when `NODE_ENV !== 'production'`
+- Exceeding the daily call cap returns HTTP 429 without crashing the server
+- `AIUsageLog` rows are written for every real API call; zero rows exist for stub calls
+- All four new env vars are documented in `.env.example`
+
+---
+
+### Phase 5.Illness: Sick Baby Episode Tracking
+
+**Goal:** When baby is sick, both parents can open a "sick baby" episode that automatically attaches all subsequent logs (feeds, sleeps, diapers, medications, mood/activity) to that episode. At any point — especially during a doctor or nurse call — one tap produces a clean, readable timeline of everything that happened since symptoms started.
+
+**Context:** Parents often struggle to recall exact times, sequences, and medications when speaking to a paediatrician under stress. This feature makes that handoff effortless and safe.
+
+#### Data Model
+
+- [ ] Add `SicknessEpisode`, `SicknessSymptom`, and `TemperatureLog` to Prisma schema:
+  ```prisma
+  model SicknessEpisode {
+    id               String             @id @default(cuid())
+    babyId           String
+    baby             Baby               @relation(fields: [babyId], references: [id])
+    startedById      String
+    startedAt        DateTime
+    endedAt          DateTime?          // null = baby is currently sick
+    notes            String?
+    symptoms         SicknessSymptom[]
+    temperatureLogs  TemperatureLog[]
+    createdAt        DateTime           @default(now())
+  }
+
+  model SicknessSymptom {
+    id          String          @id @default(cuid())
+    episodeId   String
+    episode     SicknessEpisode @relation(fields: [episodeId], references: [id])
+    label       String          // free text; suggested chips shown in UI
+    onsetAt     DateTime?
+    resolvedAt  DateTime?
+    createdAt   DateTime        @default(now())
+  }
+
+  model TemperatureLog {
+    id         String           @id @default(cuid())
+    babyId     String
+    baby       Baby             @relation(fields: [babyId], references: [id])
+    episodeId  String?          // null = logged outside an active episode
+    episode    SicknessEpisode? @relation(fields: [episodeId], references: [id])
+    loggedById String
+    tempF      Float            // always stored in Fahrenheit; UI offers °F/°C toggle
+    method     TempMethod
+    recordedAt DateTime
+    notes      String?
+    createdAt  DateTime         @default(now())
+  }
+
+  enum TempMethod {
+    FOREHEAD
+    EAR
+    RECTAL
+    AXILLARY
+    ORAL
+  }
+  ```
+- [ ] Add optional `sicknessEpisodeId String?` to `FeedingLog`, `SleepLog`, `DiaperLog`, `MedicationLog`, and `MoodLog`; add corresponding Prisma relations
+- [ ] Add `sicknessEpisodes SicknessEpisode[]` and `temperatureLogs TemperatureLog[]` relations to `Baby`
+- [ ] Run migration `add_sickness_episode`
+
+#### API
+
+- [ ] `POST /api/illness` — open a new episode; accepts `{ startedAt, symptoms: string[], notes? }`; 409 if an episode is already active for this baby
+- [ ] `PATCH /api/illness/:id/end` — mark baby as feeling better; sets `endedAt = now()`
+- [ ] `GET /api/illness?babyId=&active=true` — returns the active episode (or `null` if none)
+- [ ] `GET /api/illness?babyId=` — returns all episodes (history)
+- [ ] `POST /api/illness/:id/symptoms` — add a symptom chip to an active episode
+- [ ] `DELETE /api/illness/:id/symptoms/:symptomId` — remove a symptom
+- [ ] `POST /api/illness/:id/temperature` — log a temperature reading; accepts `{ tempF, method, recordedAt, notes? }`; also accepts `tempC` (server converts to °F before storing)
+- [ ] `GET /api/illness/:id/temperatures` — returns all temperature readings for an episode in chronological order
+- [ ] `DELETE /api/illness/:id/temperatures/:tempId` — delete a temperature entry
+- [ ] Server middleware: on `POST /api/feeding`, `POST /api/sleep`, `POST /api/diaper`, `POST /api/medication`, `POST /api/mood` — check for an active `SicknessEpisode` for the baby and automatically set `sicknessEpisodeId` if one exists
+- [ ] Socket.io: emit `illness:started`, `illness:ended`, `illness:symptom:added`, `illness:temp:logged` events
+
+#### Quick Log — "Sick Baby" Command
+
+- [ ] Extend the NL log parser (`POST /api/ai/log`) to recognise "sick baby" intent alongside the existing log intents
+- [ ] When NL parser returns `intent: "illness:start"`: if no active episode, open a new one and prompt for symptoms; if one is already active, show the current episode summary instead of creating a duplicate
+- [ ] Dashboard quick-log input shows "sick baby" as a suggested chip when no episode is active
+- [ ] When an episode is active, the quick-log area shows "Baby is sick — log is being attached to current illness" context label
+
+#### Dashboard Sick Banner
+
+- [ ] When an active `SicknessEpisode` exists, show a persistent amber banner below the dashboard header: "Baby has been sick since [time/date] · [symptom chips] · [Feel Better] button"
+- [ ] Tapping the banner navigates to the illness detail page
+- [ ] "[Feel Better]" button triggers `PATCH /api/illness/:id/end` with a confirmation bottom sheet
+
+#### Illness Detail Page (`/illness/:id`)
+
+- [ ] Symptom chips at top: existing chips displayed with an ✕ to remove; `+` chip to add a new one (free-text input with pre-suggested labels: Fever, Runny Nose, Cough, Congestion, Vomiting, Diarrhea, Rash, Fussy, Not Eating, Ear Pain)
+- [ ] Temperature section: "Log Temp" button opens a quick-entry sheet — numeric input (°F/°C toggle stored as user preference), method selector (Forehead, Ear, Rectal, Armpit, Oral), timestamp (defaults to now); list of all readings below with time and method; delete icon per row
+- [ ] Temperature trend mini-chart: small sparkline showing °F over time for the episode duration; fever threshold line at 100.4°F (38°C) drawn in amber; readings above threshold shown as red dots
+- [ ] Full chronological timeline of all logs tagged to this episode: feeds (type, volume/duration), sleeps (type, duration), diapers (type, color), medications (name, dose, time), mood/activity entries
+- [ ] Timeline items show relative time ("2h ago") and absolute time; grouped by day when episode spans multiple days
+- [ ] "Mark as better" button at top (same as dashboard banner action)
+- [ ] Illness history tab: list of past resolved episodes with start/end date, symptoms, and peak temperature if any readings were logged
+
+#### Illness Export / Doctor Handoff Report
+
+- [ ] `GET /api/illness/:id/report?format=pdf|text` — generates a clean, readable document of the episode
+- [ ] Report contents:
+  - Baby name, episode start date/time, end date/time (or "ongoing")
+  - Symptoms list with approximate onset times
+  - Temperature log: all readings in chronological order with method, °F and °C; peak temperature called out at the top
+  - Chronological log: every feed, sleep, diaper, medication, and mood entry tagged to the episode
+  - Medications section grouped separately: name, dose, every time given
+  - Free-text notes from the episode
+  - Footer: *"Generated by private family tracker — not an official medical record."*
+- [ ] PDF output: clean, 1–3 pages, readable aloud during a phone call with a nurse
+- [ ] Text/plain output: simple line-by-line format for copy-paste into a patient portal or message
+- [ ] Client: "Share Report" button on the illness detail page → triggers download; iOS share sheet opens on mobile
+
+**Acceptance criteria:**
+- Typing "sick baby" in the quick-log field opens a new episode within 2 taps if none is active; shows current episode summary if one exists
+- Every log created while an episode is active is automatically tagged to it — parents never manually link logs
+- The dashboard sick banner is visible within 1 second of opening the app while an episode is active
+- The illness report for a 48-hour episode generates in under 5 seconds and fits on 2 pages
+- Marking baby as "feeling better" clears the banner immediately on both phones (real-time via socket)
+
+---
+
 ### Phase 6: Polish
 
 **Goal:** App feels production-quality and ready for the intense first weeks of newborn life.
+
+#### Height Tracking + Growth Chart
+
+Companion to the existing weight chart — log height measurements from checkups and visualise them on a line chart with WHO percentile curves.
+
+- [ ] Add `HeightLog` to Prisma schema + migrate (`add_height_log`)
+- [ ] Height entry UI: inches (with cm/in toggle; stored normalised as inches)
+- [ ] Growth chart: line chart of height over time (same Recharts pattern as weight chart)
+- [ ] WHO length/height percentile overlay (hardcode percentile curves for 0–6 months, same approach as weight)
+- [ ] Combine weight and height into a unified "Growth" page (or tab strip) so both charts are reachable in one place
+
+**Acceptance criteria:**
+- Height entry takes the same number of taps as weight entry
+- Height chart renders correctly on mobile with WHO percentile lines visually distinct from actual data
 
 #### Milestone Tracking
 
@@ -1313,4 +1622,4 @@ SEED_USER_2_PASSWORD=changeme
 ---
 
 *Last updated: May 2026*  
-*Next review: After Phase 1 complete*
+*Next review: After Phase 5.Illness + Phase 5.AI-Hardening land*
