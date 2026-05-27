@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma'
 import { anthropic } from '../lib/anthropic'
+import { logAIUsage } from '../lib/aiGuards'
 
 export type ParsedLogResult =
   | { type: 'feeding_bottle'; data: { volumeOz: number; milkType?: 'BREAST_MILK' | 'FORMULA'; formulaName?: string; fedAt?: string; notes?: string }; summary: string; confidence: number }
@@ -13,6 +14,7 @@ export type ParsedLogResult =
 export async function parseNaturalLanguageLog(
   text: string,
   nowIso: string,
+  ctx?: { babyId?: string; userId?: string },
 ): Promise<ParsedLogResult> {
   const systemPrompt = `You are a baby tracker assistant. Parse freeform text from a parent and return a JSON object describing a baby activity log entry.
 
@@ -43,11 +45,21 @@ Rules:
 - Return unknown if the text is not a recognizable baby activity
 - Respond with JSON only, no markdown, no explanation`
 
+  const model = 'claude-haiku-4-5-20251001'
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model,
     max_tokens: 512,
     system: systemPrompt,
     messages: [{ role: 'user', content: text }],
+  })
+
+  void logAIUsage({
+    route: 'PARSE',
+    model,
+    inputTokens: message.usage.input_tokens,
+    outputTokens: message.usage.output_tokens,
+    babyId: ctx?.babyId,
+    userId: ctx?.userId,
   })
 
   const raw = message.content[0].type === 'text' ? message.content[0].text : ''
@@ -202,10 +214,19 @@ Sleep: avg wake window ${sleepPattern.avgWakeWindowMin} min, longest stretch ${s
 
 Write a 2–3 sentence insight summary for the parents. Be specific, warm, and practical. No markdown. No medical advice.`
 
+  const model = 'claude-haiku-4-5-20251001'
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model,
     max_tokens: 256,
     messages: [{ role: 'user', content: insightPrompt }],
+  })
+
+  void logAIUsage({
+    route: 'INSIGHTS',
+    model,
+    inputTokens: msg.usage.input_tokens,
+    outputTokens: msg.usage.output_tokens,
+    babyId,
   })
 
   const summary = msg.content[0].type === 'text' ? msg.content[0].text.trim() : ''
@@ -251,10 +272,19 @@ ${weightChangeOz !== null ? `- Weight change: ${weightChangeOz >= 0 ? '+' : ''}$
 
 Write a warm, specific weekly summary (3–4 sentences) for two parents to review together. Include highlights, any notable patterns, and one gentle observation. No medical advice. No markdown.`
 
+  const model = 'claude-haiku-4-5-20251001'
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model,
     max_tokens: 384,
     messages: [{ role: 'user', content: prompt }],
+  })
+
+  void logAIUsage({
+    route: 'WEEKLY',
+    model,
+    inputTokens: msg.usage.input_tokens,
+    outputTokens: msg.usage.output_tokens,
+    babyId,
   })
 
   const content = msg.content[0].type === 'text' ? msg.content[0].text.trim() : ''

@@ -1,7 +1,9 @@
 import cron from 'node-cron'
+import type { Server } from 'socket.io'
 import { prisma } from './prisma'
 import { sendPush } from './push'
 import { generateWeeklySummaryText } from '../services/ai'
+import { isSeedGuarded } from './aiGuards'
 
 type WebPushError = Error & { statusCode?: number }
 
@@ -81,6 +83,11 @@ export async function runWakeWindowCheck(): Promise<void> {
 }
 
 async function runWeeklySummaries(): Promise<void> {
+  if (isSeedGuarded()) {
+    console.log('[cron] SEED_DATA_GUARD active — skipping weekly summaries')
+    return
+  }
+
   const babies = await prisma.baby.findMany({ select: { id: true } })
   for (const baby of babies) {
     try {
@@ -111,7 +118,33 @@ async function runWeeklySummaries(): Promise<void> {
   }
 }
 
-export function startCronJobs(): void {
+async function runDailyCostCheck(io: Server): Promise<void> {
+  const alertThreshold = parseFloat(process.env['AI_DAILY_COST_ALERT_USD'] ?? '1.00')
+  const dayStart = new Date()
+  dayStart.setHours(0, 0, 0, 0)
+
+  const logs = await prisma.aIUsageLog.findMany({
+    where: { calledAt: { gte: dayStart } },
+    select: { costUsdEstimate: true, babyId: true },
+  })
+
+  const todayCostUsd = logs.reduce((s, l) => s + l.costUsdEstimate, 0)
+  console.log(`[cron] daily AI cost check: $${todayCostUsd.toFixed(4)} (threshold $${alertThreshold})`)
+
+  if (todayCostUsd >= alertThreshold) {
+    console.warn(`[cron] AI daily cost threshold exceeded: $${todayCostUsd.toFixed(4)}`)
+    // Emit to all baby rooms that had usage today
+    const babyIds = [...new Set(logs.map((l) => l.babyId).filter(Boolean))]
+    for (const babyId of babyIds) {
+      io.to(`family:${babyId}`).emit('alert:ai-cost', {
+        todayCostUsd: Math.round(todayCostUsd * 10000) / 10000,
+        thresholdUsd: alertThreshold,
+      })
+    }
+  }
+}
+
+export function startCronJobs(io: Server): void {
   cron.schedule('*/5 * * * *', async () => {
     try {
       await runWakeWindowCheck()
@@ -120,12 +153,26 @@ export function startCronJobs(): void {
     }
   })
 
-  // Every Sunday at 8:00 PM local server time
-  cron.schedule('0 20 * * 0', async () => {
+  // Weekly summary only runs in production to avoid accidental Anthropic API calls in dev
+  if (process.env.NODE_ENV === 'production') {
+    // Every Sunday at 8:00 PM local server time
+    cron.schedule('0 20 * * 0', async () => {
+      try {
+        await runWeeklySummaries()
+      } catch (err) {
+        console.error('[cron] weekly summary job failed:', err)
+      }
+    })
+  } else {
+    console.log('[cron] weekly summary job disabled in non-production environment')
+  }
+
+  // Daily cost check at 11:00 PM — only meaningful if AI is configured
+  cron.schedule('0 23 * * *', async () => {
     try {
-      await runWeeklySummaries()
+      await runDailyCostCheck(io)
     } catch (err) {
-      console.error('[cron] weekly summary job failed:', err)
+      console.error('[cron] daily cost check failed:', err)
     }
   })
 }

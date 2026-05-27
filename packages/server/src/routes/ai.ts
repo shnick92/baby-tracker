@@ -10,6 +10,13 @@ import {
   buildLogContext,
   getConversationHistory,
 } from '../services/ai'
+import {
+  isAIEnabled,
+  isSeedGuarded,
+  isDailyCallCapExceeded,
+  isInsightsDailyLimitExceeded,
+  logAIUsage,
+} from '../lib/aiGuards'
 
 export const aiRouter = Router()
 aiRouter.use(authMiddleware)
@@ -19,9 +26,18 @@ const INSIGHTS_CACHE_MS = 60 * 60 * 1000
 
 const insightsCache = new Map<string, { data: Awaited<ReturnType<typeof generateInsights>>; cachedAt: number }>()
 
-function requireApiKey(res: Response): boolean {
+function requireAI(res: Response): boolean {
   if (!process.env['ANTHROPIC_API_KEY']) {
     res.status(503).json({ data: null, error: 'AI features are not configured on this server.' })
+    return false
+  }
+  if (!isAIEnabled()) {
+    res.status(503).json({ data: null, error: 'AI features are disabled.' })
+    return false
+  }
+  if (isSeedGuarded()) {
+    console.warn('[ai] SEED_DATA_GUARD active — returning stub response')
+    res.status(503).json({ data: null, error: 'AI features are disabled during seeding.' })
     return false
   }
   return true
@@ -29,7 +45,7 @@ function requireApiKey(res: Response): boolean {
 
 // POST /api/ai/log — parse freeform text into a structured log entry
 aiRouter.post('/log', async (req, res) => {
-  if (!requireApiKey(res)) return
+  if (!requireAI(res)) return
   const { text, babyId } = req.body as { text?: string; babyId?: string }
   if (!text || !babyId) {
     res.status(400).json({ data: null, error: 'text and babyId required' })
@@ -40,8 +56,16 @@ aiRouter.post('/log', async (req, res) => {
     return
   }
 
+  if (await isDailyCallCapExceeded()) {
+    res.status(429).json({ data: null, error: 'Daily AI call limit reached. Try again tomorrow.' })
+    return
+  }
+
   try {
-    const result = await parseNaturalLanguageLog(text, new Date().toISOString())
+    const result = await parseNaturalLanguageLog(text, new Date().toISOString(), {
+      babyId,
+      userId: req.user!.userId,
+    })
     res.json({ data: result, error: null })
   } catch (err) {
     console.error('[ai/log] parse error:', err)
@@ -51,7 +75,7 @@ aiRouter.post('/log', async (req, res) => {
 
 // GET /api/ai/insights?babyId= — pattern analysis (cached 1 hour)
 aiRouter.get('/insights', async (req, res) => {
-  if (!requireApiKey(res)) return
+  if (!requireAI(res)) return
   const babyId = req.query['babyId'] as string
   if (!babyId) {
     res.status(400).json({ data: null, error: 'babyId required' })
@@ -61,6 +85,21 @@ aiRouter.get('/insights', async (req, res) => {
   const cached = insightsCache.get(babyId)
   if (cached && Date.now() - cached.cachedAt < INSIGHTS_CACHE_MS) {
     res.json({ data: cached.data, error: null })
+    return
+  }
+
+  // Per-baby daily cap on cache-miss (real API) calls
+  if (await isInsightsDailyLimitExceeded(babyId)) {
+    if (cached) {
+      res.json({ data: cached.data, error: null })
+    } else {
+      res.status(429).json({ data: null, error: 'Daily insights limit reached. Try again tomorrow.' })
+    }
+    return
+  }
+
+  if (await isDailyCallCapExceeded()) {
+    res.status(429).json({ data: null, error: 'Daily AI call limit reached. Try again tomorrow.' })
     return
   }
 
@@ -85,10 +124,9 @@ aiRouter.get('/chat/history', async (req, res) => {
   res.json({ data: messages, error: null })
 })
 
-
 // POST /api/ai/chat — streaming "Is This Normal?" chat via SSE (AG-UI protocol)
 aiRouter.post('/chat', async (req: Request, res) => {
-  if (!requireApiKey(res)) return
+  if (!requireAI(res)) return
 
   const babyId = req.query['babyId'] as string
   if (!babyId) {
@@ -104,6 +142,11 @@ aiRouter.post('/chat', async (req: Request, res) => {
     })
     if (userMessageCount >= CHAT_DAILY_LIMIT) {
       res.status(429).json({ data: null, error: `Daily limit of ${CHAT_DAILY_LIMIT} questions reached. Try again tomorrow.` })
+      return
+    }
+
+    if (await isDailyCallCapExceeded()) {
+      res.status(429).json({ data: null, error: 'Daily AI call limit reached. Try again tomorrow.' })
       return
     }
 
@@ -161,9 +204,10 @@ IMPORTANT RULES:
     const abortController = new AbortController()
     req.on('close', () => abortController.abort())
 
+    const chatModel = 'claude-sonnet-4-6'
     const stream = chat({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      adapter: anthropicText('claude-sonnet-4-6', { apiKey: process.env['ANTHROPIC_API_KEY'] }) as any,
+      adapter: anthropicText(chatModel, { apiKey: process.env['ANTHROPIC_API_KEY'] }) as any,
       systemPrompts: [systemPrompt],
       messages: history.slice(-20),
       abortController,
@@ -210,6 +254,8 @@ IMPORTANT RULES:
         } catch (err) {
           console.error('[ai/chat] persist error:', err)
         }
+        // Log the chat call (token counts unavailable from TanStack AI streaming adapter)
+        void logAIUsage({ route: 'CHAT', model: chatModel, inputTokens: 0, outputTokens: 0, babyId, userId: req.user!.userId })
       }
     })
   } catch (err) {
@@ -235,4 +281,40 @@ aiRouter.get('/weekly-summary', async (req, res) => {
     take: 12,
   })
   res.json({ data: summaries, error: null })
+})
+
+// GET /api/ai/usage?babyId=&since= — daily cost totals for transparency
+aiRouter.get('/usage', async (req, res) => {
+  const babyId = req.query['babyId'] as string
+  const sinceStr = req.query['since'] as string | undefined
+  if (!babyId) {
+    res.status(400).json({ data: null, error: 'babyId required' })
+    return
+  }
+
+  const since = sinceStr ? new Date(sinceStr) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+  const logs = await prisma.aIUsageLog.findMany({
+    where: { babyId, calledAt: { gte: since } },
+    orderBy: { calledAt: 'desc' },
+  })
+
+  // Aggregate into daily totals
+  const byDay = new Map<string, { calls: number; inputTokens: number; outputTokens: number; costUsdEstimate: number }>()
+  for (const log of logs) {
+    const day = log.calledAt.toISOString().slice(0, 10)
+    const existing = byDay.get(day) ?? { calls: 0, inputTokens: 0, outputTokens: 0, costUsdEstimate: 0 }
+    existing.calls++
+    existing.inputTokens += log.inputTokens
+    existing.outputTokens += log.outputTokens
+    existing.costUsdEstimate = Math.round((existing.costUsdEstimate + log.costUsdEstimate) * 1_000_000) / 1_000_000
+    byDay.set(day, existing)
+  }
+
+  const dailyTotals = Array.from(byDay.entries())
+    .map(([date, totals]) => ({ date, ...totals }))
+    .sort((a, b) => b.date.localeCompare(a.date))
+
+  const totalCost = logs.reduce((s, l) => s + l.costUsdEstimate, 0)
+  res.json({ data: { dailyTotals, totalCostUsd: Math.round(totalCost * 1_000_000) / 1_000_000 }, error: null })
 })

@@ -70,6 +70,7 @@ model Baby {
   emergencyAlerts     EmergencyAlert[]
   aiConversationLogs  AIConversationLog[]
   aiWeeklySummaries   AIWeeklySummary[]
+  aiUsageLogs         AIUsageLog[]
 }
 
 model BabyUser {
@@ -414,4 +415,24 @@ model AIWeeklySummary {
 enum AIRole {
   USER
   ASSISTANT
+}
+
+enum AIUsageRoute {
+  PARSE
+  INSIGHTS
+  CHAT
+  WEEKLY
+}
+
+model AIUsageLog {
+  id              String       @id @default(cuid())
+  babyId          String?
+  baby            Baby?        @relation(fields: [babyId], references: [id])
+  userId          String?
+  route           AIUsageRoute
+  model           String
+  inputTokens     Int
+  outputTokens    Int
+  costUsdEstimate Float
+  calledAt        DateTime     @default(now())
 }

@@ -1106,29 +1106,29 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 #### Environment Guards
 
-- [ ] Weekly summary cron: wrap the `node-cron` schedule in a `NODE_ENV === 'production'` guard — the job must not fire in dev or test environments
-- [ ] `/api/ai/insights` endpoint: return a static stub response (empty arrays, `"Insufficient data"` narrative) when `ANTHROPIC_API_KEY` is not set; no HTTP error, no crash
-- [ ] `/api/ai/chat` endpoint: same — return a stub `{ data: "AI assistant is not configured." }` when API key is absent
-- [ ] `/api/ai/log` (NL parse): return `{ data: null, error: "AI not configured" }` with HTTP 503 when API key is absent; client shows a toast
-- [ ] Add `AI_ENABLED=true/false` env var as a master kill switch; when `false`, all three AI routes return stubs immediately without touching the Anthropic SDK
+- [x] Weekly summary cron: wrap the `node-cron` schedule in a `NODE_ENV === 'production'` guard — the job must not fire in dev or test environments
+- [x] `/api/ai/insights` endpoint: return a static stub response (empty arrays, `"Insufficient data"` narrative) when `ANTHROPIC_API_KEY` is not set; no HTTP error, no crash
+- [x] `/api/ai/chat` endpoint: same — return a stub `{ data: "AI assistant is not configured." }` when API key is absent
+- [x] `/api/ai/log` (NL parse): return `{ data: null, error: "AI not configured" }` with HTTP 503 when API key is absent; client shows a toast
+- [x] Add `AI_ENABLED=true/false` env var as a master kill switch; when `false`, all three AI routes return stubs immediately without touching the Anthropic SDK
 
 #### Rate Limit Hardening
 
-- [ ] Audit the existing 20 query/day limit on `/api/ai/chat` — confirm it is stored per-user in DB (not in memory) so it survives server restarts
-- [ ] Add a per-baby per-day limit on `/api/ai/insights` calls: max 50 cache-miss calls per day (cache hits are free); log and return cached data if limit exceeded
-- [ ] Add a per-server per-day hard cap on total Anthropic API calls across all routes (configurable via `AI_DAILY_CALL_LIMIT` env var, default 200); respond with HTTP 429 once exceeded
+- [x] Audit the existing 20 query/day limit on `/api/ai/chat` — confirm it is stored per-user in DB (not in memory) so it survives server restarts
+- [x] Add a per-baby per-day limit on `/api/ai/insights` calls: max 50 cache-miss calls per day (cache hits are free); log and return cached data if limit exceeded
+- [x] Add a per-server per-day hard cap on total Anthropic API calls across all routes (configurable via `AI_DAILY_CALL_LIMIT` env var, default 200); respond with HTTP 429 once exceeded
 
 #### Cost Observability
 
-- [ ] Add `AIUsageLog` table to Prisma: `id`, `babyId`, `userId?`, `route` (enum: `PARSE`, `INSIGHTS`, `CHAT`, `WEEKLY`), `model`, `inputTokens`, `outputTokens`, `costUsdEstimate`, `calledAt`
-- [ ] After every Anthropic API call, write a row to `AIUsageLog` with token counts from the response; estimate cost from the known model pricing constants
-- [ ] `GET /api/ai/usage?babyId=&since=` — returns daily totals; accessible from Settings for transparency
-- [ ] Cron job: daily at 11pm, check today's `costUsdEstimate` total; if it exceeds `AI_DAILY_COST_ALERT_USD` (default $1.00), emit a `alert:ai-cost` Socket.io event so a banner appears in the app
+- [x] Add `AIUsageLog` table to Prisma: `id`, `babyId`, `userId?`, `route` (enum: `PARSE`, `INSIGHTS`, `CHAT`, `WEEKLY`), `model`, `inputTokens`, `outputTokens`, `costUsdEstimate`, `calledAt`
+- [x] After every Anthropic API call, write a row to `AIUsageLog` with token counts from the response; estimate cost from the known model pricing constants
+- [x] `GET /api/ai/usage?babyId=&since=` — returns daily totals; accessible from Settings for transparency
+- [x] Cron job: daily at 11pm, check today's `costUsdEstimate` total; if it exceeds `AI_DAILY_COST_ALERT_USD` (default $1.00), emit a `alert:ai-cost` Socket.io event so a banner appears in the app
 
 #### Test-Data Firewall
 
-- [ ] Add `SEED_DATA_GUARD=true` env var; when set, any request that would trigger an Anthropic API call logs a warning and returns a stub — prevents accidental real API calls during development seeding sessions
-- [ ] Document all four env vars (`AI_ENABLED`, `AI_DAILY_CALL_LIMIT`, `AI_DAILY_COST_ALERT_USD`, `SEED_DATA_GUARD`) in `packages/server/.env.example` with safe defaults
+- [x] Add `SEED_DATA_GUARD=true` env var; when set, any request that would trigger an Anthropic API call logs a warning and returns a stub — prevents accidental real API calls during development seeding sessions
+- [x] Document all four env vars (`AI_ENABLED`, `AI_DAILY_CALL_LIMIT`, `AI_DAILY_COST_ALERT_USD`, `SEED_DATA_GUARD`) in `packages/server/.env.example` with safe defaults
 
 **Acceptance criteria:**
 - Starting the dev server with no `ANTHROPIC_API_KEY` set: all AI routes return stubs; no errors thrown

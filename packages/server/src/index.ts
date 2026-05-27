@@ -88,7 +88,7 @@ app.use('/api/ai', aiRouter)
 
 app.use(errorHandler)
 
-startCronJobs()
+startCronJobs(io)
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

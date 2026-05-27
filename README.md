@@ -106,7 +106,26 @@ SEED_USER_2_PASSWORD=changeme
 # Optional: config
 FAMILY_NAME=Baby Tracker
 TIMEZONE=America/New_York
+
+# AI safeguards (all optional — see below for details)
+AI_ENABLED=true
+AI_DAILY_CALL_LIMIT=200
+AI_DAILY_COST_ALERT_USD=1.00
+SEED_DATA_GUARD=false
 ```
+
+#### AI environment variables
+
+The server has four env vars for controlling the AI subsystem:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AI_ENABLED` | `true` (when key is set) | Master kill switch. Set to `false` to disable all AI routes without removing the key — useful for testing the app in a no-AI state. |
+| `AI_DAILY_CALL_LIMIT` | `200` | Hard cap on total Anthropic API calls per calendar day across all routes. Returns HTTP 429 once hit. |
+| `AI_DAILY_COST_ALERT_USD` | `1.00` | If estimated daily spend exceeds this amount, a banner appears in-app (via Socket.io event at 11 PM). |
+| `SEED_DATA_GUARD` | `false` | **Set to `true` before running `npx prisma db seed`** to prevent accidental real API calls during data seeding. All AI routes return stubs and the weekly summary cron is suppressed. Flip it back to `false` when you're done seeding. |
+
+For normal local development with AI working you only need `ANTHROPIC_API_KEY` — the other four can be omitted or left at their defaults.
 
 Edit `packages/client/.env`:
 
