@@ -116,7 +116,7 @@ aiRouter.post('/chat', async (req: Request, res) => {
       return
     }
 
-    const logContext = await buildLogContext(babyId, 14)
+    const logContext = await buildLogContext(babyId, 7)
 
     const systemPrompt = `You are a helpful baby care assistant for two parents tracking their baby.
 

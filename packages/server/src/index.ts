@@ -94,9 +94,5 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
 
-const shutdown = () => {
-  server.closeAllConnections()
-  process.exit(0)
-}
-process.on('SIGTERM', shutdown)
-process.on('SIGINT', shutdown)
+process.on('SIGTERM', () => process.exit(0))
+process.on('SIGINT', () => process.exit(0))
