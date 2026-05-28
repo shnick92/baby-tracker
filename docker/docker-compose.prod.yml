@@ -48,7 +48,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "prisma migrate deploy && tsx src/index.ts"
+    command: sh -c "prisma migrate deploy && node dist/index.js"
     restart: unless-stopped
 
   db:
