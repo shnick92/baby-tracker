@@ -30,7 +30,7 @@ RUN node_modules/.bin/esbuild packages/server/src/index.ts \
   --bundle \
   --platform=node \
   --format=esm \
-  --external:@prisma/client \
+  --packages=external \
   --external:.prisma \
   --tsconfig=packages/server/tsconfig.json \
   --outfile=packages/server/dist/index.js
