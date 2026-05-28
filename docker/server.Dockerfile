@@ -18,6 +18,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/server/node_modules ./packages/server/node_modules
 COPY packages/server/src ./packages/server/src
 COPY packages/server/tsconfig.json ./packages/server/
 COPY packages/shared/src ./packages/shared/src
