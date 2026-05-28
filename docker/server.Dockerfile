@@ -32,4 +32,4 @@ ENV PATH=/app/node_modules/.bin:$PATH
 
 EXPOSE 3001
 WORKDIR /app/packages/server
-CMD ["tsx", "src/index.ts"]
+CMD ["node", "--import", "tsx/esm", "src/index.ts"]
