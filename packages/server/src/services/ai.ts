@@ -1,3 +1,5 @@
+import { INSIGHTS_MIN_FEEDINGS, INSIGHTS_MIN_SLEEPS } from '@tracker/shared'
+
 import { prisma } from '../lib/prisma'
 import { anthropic } from '../lib/anthropic'
 import { logAIUsage } from '../lib/aiGuards'
@@ -9,6 +11,8 @@ export type ParsedLogResult =
   | { type: 'diaper'; data: { diaperType: 'WET' | 'DIRTY' | 'BOTH'; color?: string; consistency?: string; occurredAt?: string; notes?: string }; summary: string; confidence: number }
   | { type: 'medication'; data: { name: string; dosageMg?: number; dosageNote?: string; givenAt?: string; notes?: string }; summary: string; confidence: number }
   | { type: 'tummy_time'; data: { durationSec: number; startedAt?: string; notes?: string }; summary: string; confidence: number }
+  | { type: 'temperature'; data: { tempF?: number; tempC?: number; method?: string; recordedAt?: string; notes?: string }; summary: string; confidence: number }
+  | { type: 'illness_start'; data: { symptoms?: string[]; tempF?: number; tempC?: number; notes?: string }; summary: string; confidence: number }
   | { type: 'unknown'; data: null; summary: string; confidence: number }
 
 export async function parseNaturalLanguageLog(
@@ -22,7 +26,7 @@ Current time: ${nowIso}
 
 Return ONLY valid JSON with this structure:
 {
-  "type": one of: "feeding_bottle" | "feeding_breast" | "sleep" | "diaper" | "medication" | "tummy_time" | "unknown",
+  "type": one of: "feeding_bottle" | "feeding_breast" | "sleep" | "diaper" | "medication" | "tummy_time" | "temperature" | "illness_start" | "unknown",
   "confidence": number 0-1,
   "summary": "short human-readable confirmation string, e.g. 'Bottle feed: 3 oz at 2:00 PM'",
   "data": { ... type-specific fields ... }
@@ -35,6 +39,8 @@ Type-specific data fields:
 - diaper: { diaperType: "WET"|"DIRTY"|"BOTH", color?: "YELLOW"|"GREEN"|"BROWN"|"BLACK"|"RED"|"OTHER", consistency?: "SEEDY"|"PASTY"|"RUNNY"|"FIRM"|"WATERY"|"CUSTOM", occurredAt?: ISO8601, notes?: string }
 - medication: { name: string, dosageMg?: number, dosageNote?: string, givenAt?: ISO8601, notes?: string }
 - tummy_time: { durationSec: number, startedAt?: ISO8601, notes?: string }
+- temperature: { tempF?: number, tempC?: number, method?: "FOREHEAD"|"EAR"|"RECTAL"|"AXILLARY"|"ORAL", recordedAt?: ISO8601, notes?: string }
+- illness_start: { symptoms?: string[], tempF?: number, tempC?: number, notes?: string }
 - unknown: { }
 
 Rules:
@@ -42,6 +48,9 @@ Rules:
 - "left side" / "left breast" → BREAST_LEFT; "right" → BREAST_RIGHT
 - Infer sleepType: "nap" → NAP, "night sleep" / "bedtime" / default for evening hours → NIGHT
 - If oz/ml given for sleep/diaper by mistake, still parse as the correct type
+- Use temperature when the parent is recording a specific temperature reading (e.g. "baby's temp is 101.5", "took a temperature, 99.8°F", "thermometer said 38.2°C"). Include both tempF and tempC when the user specifies a unit — convert the other. Infer method from context ("ear thermometer" → EAR, "forehead" → FOREHEAD, "rectal" → RECTAL); default to FOREHEAD if unspecified.
+- Use illness_start when the parent indicates the baby is sick or starting an illness WITHOUT giving a specific reading (e.g. "baby is sick", "baby seems unwell", "starting illness episode"). If a temperature value is also mentioned alongside illness ("baby sick with 101 fever"), use illness_start and include tempF in the data — both the episode and the temperature will be recorded.
+- For illness_start, extract any mentioned symptoms as an array of short strings (e.g. ["fever", "runny nose", "fussy"])
 - Return unknown if the text is not a recognizable baby activity
 - Respond with JSON only, no markdown, no explanation`
 
@@ -179,11 +188,15 @@ export function calcSleepStats(sleeps: SleepSlice[]): {
   }
 }
 
-export async function generateInsights(babyId: string): Promise<{
+
+export type InsightsResult = {
   feedingInterval: { avg24h: number; avg3d: number; avg7d: number }
   sleepPattern: { avgWakeWindowMin: number; longestStretchMin: number; avgDailySleepMin: number }
   summary: string
-}> {
+  insufficientData?: true
+}
+
+export async function generateInsights(babyId: string): Promise<InsightsResult> {
   const now = Date.now()
 
   const [feedings7d, sleeps7d] = await Promise.all([
@@ -205,7 +218,11 @@ export async function generateInsights(babyId: string): Promise<{
 
   const sleepPattern = calcSleepStats(sleeps7d)
 
-  // Generate a short narrative via Claude
+  // Don't call the API if either metric is too sparse to produce a meaningful summary.
+  if (feedings7d.length < INSIGHTS_MIN_FEEDINGS || sleeps7d.length < INSIGHTS_MIN_SLEEPS) {
+    return { feedingInterval, sleepPattern, summary: '', insufficientData: true }
+  }
+
   const logContext = await buildLogContext(babyId, 7)
   const insightPrompt = `${logContext}
 

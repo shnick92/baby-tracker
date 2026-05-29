@@ -198,6 +198,8 @@ model Baby {
   emergencyAlerts  EmergencyAlert[]
   aiConversationLogs AIConversationLog[]
   aiWeeklySummaries  AIWeeklySummary[]
+  sicknessEpisodes   SicknessEpisode[]
+  temperatureLogs    TemperatureLog[]
 }
 
 model BabyUser {
@@ -243,33 +245,37 @@ model SleepSettings {
 
 // Volume stored in oz; multiply by 29.5735 to display as mL
 model FeedingLog {
-  id          String      @id @default(cuid())
-  babyId      String
-  baby        Baby        @relation(fields: [babyId], references: [id])
-  loggedById  String
-  loggedBy    User        @relation(fields: [loggedById], references: [id])
-  type        FeedingType
-  startedAt   DateTime
-  endedAt     DateTime?
-  durationSec Int?
-  volumeOz    Float?      // fluid oz; UI offers mL/oz toggle, stored normalised as oz
-  milkType    String?     // "BREAST_MILK" | "FORMULA"
-  formulaName String?     // free text; autocompleted from history
-  notes       String?
-  createdAt   DateTime    @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  loggedBy          User             @relation(fields: [loggedById], references: [id])
+  type              FeedingType
+  startedAt         DateTime
+  endedAt           DateTime?
+  durationSec       Int?
+  volumeOz          Float?           // fluid oz; UI offers mL/oz toggle, stored normalised as oz
+  milkType          String?          // "BREAST_MILK" | "FORMULA"
+  formulaName       String?          // free text; autocompleted from history
+  notes             String?
+  sicknessEpisodeId String?          // auto-tagged when an active episode exists at log time
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model SleepLog {
-  id         String    @id @default(cuid())
-  babyId     String
-  baby       Baby      @relation(fields: [babyId], references: [id])
-  loggedById String
-  loggedBy   User      @relation(fields: [loggedById], references: [id])
-  type       SleepType
-  startedAt  DateTime
-  endedAt    DateTime?
-  notes      String?
-  createdAt  DateTime  @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  loggedBy          User             @relation(fields: [loggedById], references: [id])
+  type              SleepType
+  startedAt         DateTime
+  endedAt           DateTime?
+  notes             String?
+  sicknessEpisodeId String?          // auto-tagged when an active episode exists at log time
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model DiaperLog {
@@ -284,6 +290,8 @@ model DiaperLog {
   customConsistency String?
   occurredAt        DateTime
   notes             String?
+  sicknessEpisodeId String?            // auto-tagged when an active episode exists at log time
+  episode           SicknessEpisode?   @relation(fields: [sicknessEpisodeId], references: [id])
   createdAt         DateTime           @default(now())
 }
 
@@ -312,16 +320,18 @@ model HeightLog {
 }
 
 model MedicationLog {
-  id         String   @id @default(cuid())
-  babyId     String
-  baby       Baby     @relation(fields: [babyId], references: [id])
-  loggedById String
-  name       String
-  dosageMg   Float?
-  dosageNote String?
-  givenAt    DateTime
-  notes      String?
-  createdAt  DateTime @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  name              String
+  dosageMg          Float?
+  dosageNote        String?
+  givenAt           DateTime
+  notes             String?
+  sicknessEpisodeId String?          // auto-tagged when an active episode exists at log time
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model TummyTimeLog {
@@ -337,17 +347,19 @@ model TummyTimeLog {
 }
 
 model MoodLog {
-  id               String          @id @default(cuid())
-  babyId           String
-  baby             Baby            @relation(fields: [babyId], references: [id])
-  loggedById       String
-  mood             MoodType?       // null when logging a custom activity without a mood
-  qualifier        MoodType?       // optional mood attached to an activity (e.g. Bath + Happy)
-  customActivityId String?
-  customActivity   CustomActivity? @relation(fields: [customActivityId], references: [id])
-  occurredAt       DateTime
-  notes            String?
-  createdAt        DateTime        @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  mood              MoodType?        // null when logging a custom activity without a mood
+  qualifier         MoodType?        // optional mood attached to an activity (e.g. Bath + Happy)
+  customActivityId  String?
+  customActivity    CustomActivity?  @relation(fields: [customActivityId], references: [id])
+  occurredAt        DateTime
+  notes             String?
+  sicknessEpisodeId String?          // auto-tagged when an active episode exists at log time
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 // Per-baby custom activities (emoji + name), shown in the mood/activity grid
@@ -473,6 +485,51 @@ model AIWeeklySummary {
   weightChangeOz Float?
   createdAt      DateTime @default(now())
 }
+
+// One episode per illness; at most one active (endedAt null) per baby at a time
+model SicknessEpisode {
+  id              String            @id @default(cuid())
+  babyId          String
+  baby            Baby              @relation(fields: [babyId], references: [id])
+  startedById     String
+  startedAt       DateTime
+  endedAt         DateTime?
+  notes           String?
+  symptoms        SicknessSymptom[]
+  temperatureLogs TemperatureLog[]
+  feedingLogs     FeedingLog[]
+  sleepLogs       SleepLog[]
+  diaperLogs      DiaperLog[]
+  medicationLogs  MedicationLog[]
+  moodLogs        MoodLog[]
+  createdAt       DateTime          @default(now())
+}
+
+// Individual symptoms added during an episode; can record onset/resolution times
+model SicknessSymptom {
+  id         String          @id @default(cuid())
+  episodeId  String
+  episode    SicknessEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  label      String
+  onsetAt    DateTime?
+  resolvedAt DateTime?
+  createdAt  DateTime        @default(now())
+}
+
+// tempF stored as Float; 100.4°F is the fever threshold displayed in the sparkline
+model TemperatureLog {
+  id         String           @id @default(cuid())
+  babyId     String
+  baby       Baby             @relation(fields: [babyId], references: [id])
+  episodeId  String?
+  episode    SicknessEpisode? @relation(fields: [episodeId], references: [id])
+  loggedById String
+  tempF      Float
+  method     TempMethod
+  recordedAt DateTime
+  notes      String?
+  createdAt  DateTime         @default(now())
+}
 ```
 
 ### Enums
@@ -488,6 +545,7 @@ model AIWeeklySummary {
 - `AlertStatus`: `SENT`, `SEEN`, `ACKNOWLEDGED`
 - `MilestoneCategory`: `MOTOR_GROSS`, `MOTOR_FINE`, `SOCIAL`, `LANGUAGE`, `COGNITIVE`, `FEEDING`, `CUSTOM`
 - `AIRole`: `USER`, `ASSISTANT`
+- `TempMethod`: `FOREHEAD`, `EAR`, `RECTAL`, `AXILLARY`, `ORAL`
 
 ---
 
@@ -1145,9 +1203,9 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 **Context:** Parents often struggle to recall exact times, sequences, and medications when speaking to a paediatrician under stress. This feature makes that handoff effortless and safe.
 
-#### Data Model
+#### Data Model ✅ Complete
 
-- [ ] Add `SicknessEpisode`, `SicknessSymptom`, and `TemperatureLog` to Prisma schema:
+- [x] Add `SicknessEpisode`, `SicknessSymptom`, and `TemperatureLog` to Prisma schema:
   ```prisma
   model SicknessEpisode {
     id               String             @id @default(cuid())
@@ -1159,13 +1217,18 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
     notes            String?
     symptoms         SicknessSymptom[]
     temperatureLogs  TemperatureLog[]
+    feedingLogs      FeedingLog[]
+    sleepLogs        SleepLog[]
+    diaperLogs       DiaperLog[]
+    medicationLogs   MedicationLog[]
+    moodLogs         MoodLog[]
     createdAt        DateTime           @default(now())
   }
 
   model SicknessSymptom {
     id          String          @id @default(cuid())
     episodeId   String
-    episode     SicknessEpisode @relation(fields: [episodeId], references: [id])
+    episode     SicknessEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
     label       String          // free text; suggested chips shown in UI
     onsetAt     DateTime?
     resolvedAt  DateTime?
@@ -1194,46 +1257,54 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
     ORAL
   }
   ```
-- [ ] Add optional `sicknessEpisodeId String?` to `FeedingLog`, `SleepLog`, `DiaperLog`, `MedicationLog`, and `MoodLog`; add corresponding Prisma relations
-- [ ] Add `sicknessEpisodes SicknessEpisode[]` and `temperatureLogs TemperatureLog[]` relations to `Baby`
-- [ ] Run migration `add_sickness_episode`
+- [x] Add optional `sicknessEpisodeId String?` to `FeedingLog`, `SleepLog`, `DiaperLog`, `MedicationLog`, and `MoodLog`; add corresponding Prisma relations
+- [x] Add `sicknessEpisodes SicknessEpisode[]` and `temperatureLogs TemperatureLog[]` relations to `Baby`
+- [x] Run migration `add_sickness_episode` (migration: `20260529020950_add_sickness_episode`)
 
-#### API
+#### API ✅ Complete
 
-- [ ] `POST /api/illness` — open a new episode; accepts `{ startedAt, symptoms: string[], notes? }`; 409 if an episode is already active for this baby
-- [ ] `PATCH /api/illness/:id/end` — mark baby as feeling better; sets `endedAt = now()`
-- [ ] `GET /api/illness?babyId=&active=true` — returns the active episode (or `null` if none)
-- [ ] `GET /api/illness?babyId=` — returns all episodes (history)
-- [ ] `POST /api/illness/:id/symptoms` — add a symptom chip to an active episode
-- [ ] `DELETE /api/illness/:id/symptoms/:symptomId` — remove a symptom
-- [ ] `POST /api/illness/:id/temperature` — log a temperature reading; accepts `{ tempF, method, recordedAt, notes? }`; also accepts `tempC` (server converts to °F before storing)
-- [ ] `GET /api/illness/:id/temperatures` — returns all temperature readings for an episode in chronological order
-- [ ] `DELETE /api/illness/:id/temperatures/:tempId` — delete a temperature entry
-- [ ] Server middleware: on `POST /api/feeding`, `POST /api/sleep`, `POST /api/diaper`, `POST /api/medication`, `POST /api/mood` — check for an active `SicknessEpisode` for the baby and automatically set `sicknessEpisodeId` if one exists
-- [ ] Socket.io: emit `illness:started`, `illness:ended`, `illness:symptom:added`, `illness:temp:logged` events
+- [x] `POST /api/illness` — open a new episode; accepts `{ startedAt, symptoms: string[], notes? }`; 409 if an episode is already active for this baby
+- [x] `PATCH /api/illness/:id/end` — mark baby as feeling better; sets `endedAt = now()`
+- [x] `PATCH /api/illness/:id/reopen` — reopen a resolved episode
+- [x] `PATCH /api/illness/:id` — update episode times/notes (`updateEpisodeTimesSchema`)
+- [x] `GET /api/illness?babyId=&active=true` — returns the active episode (or `null` if none)
+- [x] `GET /api/illness?babyId=` — returns all episodes (history)
+- [x] `GET /api/illness/:id` — returns full episode detail with symptoms, temperature logs, and tagged logs
+- [x] `POST /api/illness/:id/symptoms` — add a symptom chip to an active episode
+- [x] `DELETE /api/illness/:id/symptoms/:symptomId` — remove a symptom
+- [x] `POST /api/illness/:id/temperature` — log a temperature reading; accepts `{ tempF, method, recordedAt, notes? }`; also accepts `tempC` (server converts to °F before storing)
+- [x] `DELETE /api/illness/:id/temperatures/:tempId` — delete a temperature entry
+- [x] Auto-tag: on `POST /api/feeding` (start/bottle/pump), `POST /api/sleep/start`, `POST /api/diaper`, `POST /api/medication`, `POST /api/mood` — check for active `SicknessEpisode` and automatically set `sicknessEpisodeId` if one exists (inline Prisma lookup per route, no separate middleware file)
+- [x] Socket.io: emit `illness:started`, `illness:ended`, `illness:symptom:added`, `illness:temp:logged` events
+- [x] Client: `App.tsx` socket handlers invalidate illness query cache on all four events
 
-#### Quick Log — "Sick Baby" Command
+#### Quick Log — "Sick Baby" Command ✅ Partial
 
 - [ ] Extend the NL log parser (`POST /api/ai/log`) to recognise "sick baby" intent alongside the existing log intents
 - [ ] When NL parser returns `intent: "illness:start"`: if no active episode, open a new one and prompt for symptoms; if one is already active, show the current episode summary instead of creating a duplicate
-- [ ] Dashboard quick-log input shows "sick baby" as a suggested chip when no episode is active
-- [ ] When an episode is active, the quick-log area shows "Baby is sick — log is being attached to current illness" context label
+- [x] Dashboard quick-log input shows "sick baby" start button when no episode is active
+- [x] When an episode is active, the quick-log area shows "Logging to illness episode" context label
 
-#### Dashboard Sick Banner
+#### Dashboard Sick Banner ✅ Complete
 
-- [ ] When an active `SicknessEpisode` exists, show a persistent amber banner below the dashboard header: "Baby has been sick since [time/date] · [symptom chips] · [Feel Better] button"
-- [ ] Tapping the banner navigates to the illness detail page
-- [ ] "[Feel Better]" button triggers `PATCH /api/illness/:id/end` with a confirmation bottom sheet
+- [x] When an active `SicknessEpisode` exists, show a persistent amber banner below the dashboard header: "Baby has been sick since [time/date] · [symptom chips] · [Feel Better] button"
+- [x] Tapping the banner navigates to the illness detail page (`/illness/:id`)
+- [x] "[Feel Better]" button triggers `PATCH /api/illness/:id/end` with a `FeelBetterSheet` confirmation bottom sheet showing episode summary (duration, peak temp, symptom count)
 
-#### Illness Detail Page (`/illness/:id`)
+#### Illness Detail Page (`/illness/:id`) ✅ Complete
 
-- [ ] Symptom chips at top: existing chips displayed with an ✕ to remove; `+` chip to add a new one (free-text input with pre-suggested labels: Fever, Runny Nose, Cough, Congestion, Vomiting, Diarrhea, Rash, Fussy, Not Eating, Ear Pain)
-- [ ] Temperature section: "Log Temp" button opens a quick-entry sheet — numeric input (°F/°C toggle stored as user preference), method selector (Forehead, Ear, Rectal, Armpit, Oral), timestamp (defaults to now); list of all readings below with time and method; delete icon per row
-- [ ] Temperature trend mini-chart: small sparkline showing °F over time for the episode duration; fever threshold line at 100.4°F (38°C) drawn in amber; readings above threshold shown as red dots
-- [ ] Full chronological timeline of all logs tagged to this episode: feeds (type, volume/duration), sleeps (type, duration), diapers (type, color), medications (name, dose, time), mood/activity entries
-- [ ] Timeline items show relative time ("2h ago") and absolute time; grouped by day when episode spans multiple days
-- [ ] "Mark as better" button at top (same as dashboard banner action)
-- [ ] Illness history tab: list of past resolved episodes with start/end date, symptoms, and peak temperature if any readings were logged
+- [x] `IllnessLandingPage` at `/illness`: shows active episode card or "no active episode" empty state + resolved episode history list; "Start Episode" button opens `StartEpisodeSheet`
+- [x] `IllnessPage` at `/illness/:id`: tab bar — "Current Episode" / "History"
+- [x] Symptom chips: existing chips displayed with ✕ to remove; `+` chip to add a new one (free-text input + suggested chips from `SUGGESTED_SYMPTOMS`: Fever, Runny Nose, Cough, Congestion, Vomiting, Diarrhea, Rash, Fussy, Not Eating, Ear Pain)
+- [x] Temperature section: "Log Temp" button opens `TempLogSheet` — numeric input with °F/°C toggle, method selector (Forehead, Ear, Rectal, Armpit, Oral), timestamp; list of all readings with time and method; delete icon per row
+- [x] Temperature trend mini-chart: SVG sparkline showing °F over time; amber fever threshold line at 100.4°F; readings above threshold shown as red dots
+- [x] Full chronological timeline of all logs tagged to the episode: feeds (type, volume/duration), sleeps (type, duration), diapers (type, color), medications (name, dose, time), mood/activity entries; grouped by day
+- [x] Timeline items show relative time and absolute time; edit entries link to their respective feature page via chevron (inline editing UX — no swipe-up drawers)
+- [x] `EpisodeTimesCard`: inline form editing (datetime-local inputs inline when "Edit" is clicked — per app UX pattern, not a drawer)
+- [x] "Mark as better" button for active episodes; "Reopen" button for resolved episodes
+- [x] `HistoryTab`: list of resolved episodes with peak temp, duration, symptoms, and "Report →" link placeholder
+- [x] Illness tracker accessible from More page (Thermometer icon) and sidebar Health section
+- [x] `isMoreActive` and `getPageTitle` updated in `AppLayout` for `/illness` routes
 
 #### Illness Export / Doctor Handoff Report
 

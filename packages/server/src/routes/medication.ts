@@ -28,6 +28,11 @@ medicationRouter.post('/', async (req, res) => {
   const parsed = logMedicationSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const activeEpisode = await prisma.sicknessEpisode.findFirst({
+    where: { babyId: parsed.data.babyId, endedAt: null },
+    select: { id: true },
+  })
+
   const log = await prisma.medicationLog.create({
     data: {
       babyId: parsed.data.babyId,
@@ -36,6 +41,7 @@ medicationRouter.post('/', async (req, res) => {
       dosageNote: parsed.data.dosageNote,
       givenAt: parsed.data.givenAt ? new Date(parsed.data.givenAt) : new Date(),
       notes: parsed.data.notes,
+      sicknessEpisodeId: activeEpisode?.id ?? null,
     },
   })
 

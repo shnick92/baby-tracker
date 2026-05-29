@@ -26,6 +26,7 @@ import pushRouter from './routes/push'
 import settingsRouter from './routes/settings'
 import alertsRouter from './routes/alerts'
 import { aiRouter } from './routes/ai'
+import { illnessRouter } from './routes/illness'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
 const app = express()
@@ -85,6 +86,7 @@ app.use('/api/push', pushRouter)
 app.use('/api/settings', settingsRouter)
 app.use('/api/alerts', alertsRouter)
 app.use('/api/ai', aiRouter)
+app.use('/api/illness', illnessRouter)
 
 app.use(errorHandler)
 

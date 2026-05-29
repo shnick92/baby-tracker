@@ -28,6 +28,7 @@ import { MoodPage } from '@features/mood'
 import { HistoryPage } from '@features/history'
 import { CalendarPage } from '@features/calendar'
 import { ChatPage } from '@features/ai'
+import { IllnessPage, IllnessLandingPage, illnessKeys } from '@features/illness'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null; birthDate: string | null }
 
@@ -102,11 +103,25 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ['alerts', babyId] })
     })
 
+    const invalidateIllness = () => {
+      if (!babyId) return
+      queryClient.invalidateQueries({ queryKey: illnessKeys.active(babyId) })
+      queryClient.invalidateQueries({ queryKey: illnessKeys.all(babyId) })
+    }
+    socket.on('illness:started', invalidateIllness)
+    socket.on('illness:ended', invalidateIllness)
+    socket.on('illness:symptom:added', invalidateIllness)
+    socket.on('illness:temp:logged', invalidateIllness)
+
     return () => {
       socket.off('connect')
       socket.off('disconnect')
       socket.off('alert:sos')
       socket.off('alert:acknowledged')
+      socket.off('illness:started')
+      socket.off('illness:ended')
+      socket.off('illness:symptom:added')
+      socket.off('illness:temp:logged')
     }
   }, [accessToken, babyId, setSocketStatus, showAlert, user?.id])
 
@@ -182,6 +197,8 @@ export default function App() {
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/ai/chat" element={<ChatPage />} />
+              <Route path="/illness" element={<IllnessLandingPage />} />
+              <Route path="/illness/:id" element={<IllnessPage />} />
             </Route>
           </Routes>
           <SOSAlert />

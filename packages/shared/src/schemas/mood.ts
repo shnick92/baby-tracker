@@ -11,7 +11,7 @@ export const logMoodSchema = z.object({
   mood: z.enum(MOOD_TYPES).optional(),
   qualifier: z.enum(QUALIFIER_TYPES).optional(),
   customActivityId: z.string().optional(),
-  occurredAt: z.string().datetime().optional(),
+  occurredAt: z.string().datetime({ offset: true }).optional(),
   notes: z.string().max(500, 'Max 500 characters').optional(),
 }).refine(
   (d) => d.mood != null || d.customActivityId != null,
@@ -22,7 +22,7 @@ export const updateMoodSchema = z.object({
   mood: z.enum(MOOD_TYPES).nullable().optional(),
   qualifier: z.enum(QUALIFIER_TYPES).nullable().optional(),
   customActivityId: z.string().nullable().optional(),
-  occurredAt: z.string().datetime().optional(),
+  occurredAt: z.string().datetime({ offset: true }).optional(),
   notes: z.string().max(500, 'Max 500 characters').nullable().optional(),
 })
 

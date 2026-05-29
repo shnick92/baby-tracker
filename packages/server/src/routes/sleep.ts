@@ -28,12 +28,18 @@ sleepRouter.post('/start', async (req, res) => {
   const parsed = startSleepSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const activeEpisode = await prisma.sicknessEpisode.findFirst({
+    where: { babyId: parsed.data.babyId, endedAt: null },
+    select: { id: true },
+  })
+
   const log = await prisma.sleepLog.create({
     data: {
       babyId: parsed.data.babyId,
       loggedById: req.user!.userId,
       type: parsed.data.type,
       startedAt: parsed.data.startedAt ? new Date(parsed.data.startedAt) : new Date(),
+      sicknessEpisodeId: activeEpisode?.id ?? null,
     },
   })
 

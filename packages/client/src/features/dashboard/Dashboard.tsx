@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Moon, Droplets, MoreHorizontal } from 'lucide-react'
+import { Moon, Droplets, MoreHorizontal, Thermometer, Pill } from 'lucide-react'
 
 import { BabyBottleIcon } from '@components/icons'
 import { useAuthStore } from '@stores/authStore'
@@ -26,6 +26,8 @@ import { usePurchases } from '../purchases'
 import { useVisitors } from '../visitors'
 import { SOSButton } from '../alerts'
 import { QuickLogInput, InsightsPanel } from '../ai'
+import { IllnessBanner, StartEpisodeSheet, useActiveEpisode } from '../illness'
+import { TempLogSheet } from '../illness/TempLogSheet'
 
 const SOCKET_RING: Record<string, string> = {
   connecting: '0 0 0 2px #f59e0b',
@@ -447,13 +449,58 @@ function PrepStatsGrid() {
 
 // ── Main export ─────────────────────────────────────────────────────────────
 
+function SickQuickActions({ episodeId }: { episodeId: string }) {
+  const [showTemp, setShowTemp] = useState(false)
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">🤒 Illness Actions</p>
+        <Link to={`/illness/${episodeId}`} className="text-[12px] text-blue-600 dark:text-blue-400 font-medium">View episode →</Link>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setShowTemp(true)}
+          className="py-3 px-2 rounded-xl text-[13px] font-semibold text-amber-600 dark:text-amber-400 border flex items-center justify-center gap-1.5"
+          style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.28)' }}
+        >
+          <Thermometer size={14} /> Log Temp
+        </button>
+        <Link
+          to="/medication"
+          className="py-3 px-2 rounded-xl text-[13px] font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 flex items-center justify-center gap-1.5"
+        >
+          <Pill size={14} /> Log Med
+        </Link>
+        <Link
+          to={`/illness/${episodeId}`}
+          className="py-3 px-2 rounded-xl text-[13px] font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 flex items-center justify-center gap-1.5"
+        >
+          + Symptom
+        </Link>
+        <button
+          type="button"
+          onClick={() => window.alert('Report generation coming soon')}
+          className="py-3 px-2 rounded-xl text-[13px] font-semibold text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 flex items-center justify-center gap-1.5"
+        >
+          📋 Report
+        </button>
+      </div>
+      {showTemp && <TempLogSheet episodeId={episodeId} onClose={() => setShowTemp(false)} />}
+    </div>
+  )
+}
+
 export function Dashboard() {
   const { user, babyId, markPasskeyAdded, setBirthDate } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [showAddPasskey, setShowAddPasskey] = useState(false)
   const [confirmBorn, setConfirmBorn] = useState(false)
   const [birthDateInput, setBirthDateInput] = useState(todayLocalDate)
+  const [showStartEpisode, setShowStartEpisode] = useState(false)
+  const { data: activeEpisode } = useActiveEpisode()
 
   const { data: pregnancyData } = usePregnancyStatus()
   const born = pregnancyData?.born ?? false
@@ -549,6 +596,7 @@ export function Dashboard() {
 
   const mobileNewborn = (
     <div className="space-y-3">
+      {activeEpisode && <SickQuickActions episodeId={activeEpisode.id} />}
       <LastFeedingCard
         lastFed={lastFed}
         activeFeeding={activeFeeding}
@@ -565,7 +613,29 @@ export function Dashboard() {
         />
       </div>
       <QuickLogRow />
-      {babyId && <QuickLogInput babyId={babyId} />}
+      {!activeEpisode && (
+        <button
+          type="button"
+          onClick={() => setShowStartEpisode(true)}
+          className="w-full flex items-center gap-3 py-4 px-4 rounded-xl border transition-opacity active:opacity-70"
+          style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.35)' }}
+        >
+          <span className="text-xl leading-none">🤒</span>
+          <div className="text-left">
+            <p className="text-[14px] font-semibold" style={{ color: '#d97706' }}>Baby sick?</p>
+            <p className="text-[12px]" style={{ color: 'rgba(217,119,6,0.7)' }}>Tap to start an illness episode</p>
+          </div>
+        </button>
+      )}
+      {babyId && activeEpisode && (
+        <div
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[10px] font-semibold uppercase tracking-widest"
+          style={{ background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.25)', color: '#d97706' }}
+        >
+          🤒 Logging to illness episode
+        </div>
+      )}
+      {babyId && <QuickLogInput babyId={babyId} onIllnessStarted={(id) => navigate(`/illness/${id}`)} />}
       {babyId && <InsightsPanel babyId={babyId} />}
       {born && <VisitorsCard />}
     </div>
@@ -596,6 +666,9 @@ export function Dashboard() {
           </div>
         </div>
       </header>
+
+      {/* Sick banner — sticky below header when episode is active */}
+      {born && <div className="md:hidden sticky top-14 z-10"><IllnessBanner /></div>}
 
       {/* Mobile layout */}
       <main className="md:hidden max-w-lg mx-auto px-4 pt-4 pb-6 space-y-3">
@@ -639,6 +712,8 @@ export function Dashboard() {
           <>
             {/* Left column */}
             <div className="space-y-4">
+              <IllnessBanner />
+              {activeEpisode && <SickQuickActions episodeId={activeEpisode.id} />}
               <LastFeedingCard
                 lastFed={lastFed}
                 activeFeeding={activeFeeding}
@@ -655,7 +730,29 @@ export function Dashboard() {
                 />
               </div>
               <QuickLogRow />
-              {babyId && <QuickLogInput babyId={babyId} />}
+              {!activeEpisode && (
+                <button
+                  type="button"
+                  onClick={() => setShowStartEpisode(true)}
+                  className="w-full flex items-center gap-3 py-4 px-4 rounded-xl border transition-opacity active:opacity-70"
+                  style={{ background: 'rgba(245,158,11,0.08)', borderColor: 'rgba(245,158,11,0.35)' }}
+                >
+                  <span className="text-xl leading-none">🤒</span>
+                  <div className="text-left">
+                    <p className="text-[14px] font-semibold" style={{ color: '#d97706' }}>Baby sick?</p>
+                    <p className="text-[12px]" style={{ color: 'rgba(217,119,6,0.7)' }}>Tap to start an illness episode</p>
+                  </div>
+                </button>
+              )}
+              {babyId && activeEpisode && (
+                <div
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[10px] font-semibold uppercase tracking-widest"
+                  style={{ background: 'rgba(245,158,11,0.06)', borderColor: 'rgba(245,158,11,0.25)', color: '#d97706' }}
+                >
+                  🤒 Logging to illness episode
+                </div>
+              )}
+              {babyId && <QuickLogInput babyId={babyId} onIllnessStarted={(id) => navigate(`/illness/${id}`)} />}
             </div>
             {/* Right column */}
             <div className="space-y-4">
@@ -680,6 +777,16 @@ export function Dashboard() {
           </>
         )}
       </main>
+
+      {showStartEpisode && (
+        <StartEpisodeSheet
+          onClose={() => setShowStartEpisode(false)}
+          onStarted={(id) => {
+            setShowStartEpisode(false)
+            navigate(`/illness/${id}`)
+          }}
+        />
+      )}
     </div>
   )
 }

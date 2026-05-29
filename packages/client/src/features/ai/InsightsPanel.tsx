@@ -51,9 +51,16 @@ export function InsightsPanel({ babyId }: Props) {
               <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-full" />
               <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded w-1/2" />
             </div>
-          ) : isError || !data ? (
+          ) : isError ? (
             <div className="text-sm text-gray-400 dark:text-gray-500">
-              Not enough data yet — insights appear after a few days of tracking.
+              Insights unavailable — try again later.
+            </div>
+          ) : !data ? (
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                Not enough tracking data yet. Log at least 5 feedings and 3 sleep sessions over the week for personalized insights.
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">Insights unlock automatically once there's enough data.</p>
             </div>
           ) : (
             <>

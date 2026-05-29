@@ -28,12 +28,18 @@ feedingRouter.post('/start', async (req, res) => {
   const parsed = startBreastFeedSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const activeEpisode = await prisma.sicknessEpisode.findFirst({
+    where: { babyId: parsed.data.babyId, endedAt: null },
+    select: { id: true },
+  })
+
   const log = await prisma.feedingLog.create({
     data: {
       babyId: parsed.data.babyId,
       loggedById: req.user!.userId,
       type: parsed.data.type,
       startedAt: parsed.data.startedAt ? new Date(parsed.data.startedAt) : new Date(),
+      sicknessEpisodeId: activeEpisode?.id ?? null,
     },
   })
 
@@ -71,6 +77,11 @@ feedingRouter.post('/bottle', async (req, res) => {
   const parsed = logBottleSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const activeEpisode = await prisma.sicknessEpisode.findFirst({
+    where: { babyId: parsed.data.babyId, endedAt: null },
+    select: { id: true },
+  })
+
   const log = await prisma.feedingLog.create({
     data: {
       babyId: parsed.data.babyId,
@@ -81,6 +92,7 @@ feedingRouter.post('/bottle', async (req, res) => {
       milkType: parsed.data.milkType ?? 'BREAST_MILK',
       formulaName: parsed.data.formulaName ?? null,
       notes: parsed.data.notes,
+      sicknessEpisodeId: activeEpisode?.id ?? null,
     },
   })
 
@@ -95,6 +107,11 @@ feedingRouter.post('/pump', async (req, res) => {
   const parsed = logPumpSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const activeEpisode = await prisma.sicknessEpisode.findFirst({
+    where: { babyId: parsed.data.babyId, endedAt: null },
+    select: { id: true },
+  })
+
   const log = await prisma.feedingLog.create({
     data: {
       babyId: parsed.data.babyId,
@@ -104,6 +121,7 @@ feedingRouter.post('/pump', async (req, res) => {
       volumeOz: parsed.data.volumeOz,
       durationSec: parsed.data.durationSec,
       notes: parsed.data.notes,
+      sicknessEpisodeId: activeEpisode?.id ?? null,
     },
   })
 

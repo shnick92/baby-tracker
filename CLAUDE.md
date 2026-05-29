@@ -125,6 +125,43 @@ Every session that produces code changes must follow this workflow exactly. `mai
 
 ---
 
+## Testing (REQUIRED)
+
+**Every PR that introduces new behavior must include tests. This is non-negotiable.** Do not open a PR without tests for new code.
+
+### What requires tests
+
+| New code | Required test |
+|----------|---------------|
+| Server service function | Unit test in `packages/server/src/services/*.test.ts` |
+| Server route | Integration test in `packages/server/src/routes/*.test.ts` |
+| Client hook | Unit test in the feature directory `*.test.ts` |
+| Client component with logic | Component test in `*.test.tsx` |
+| Utility function | Unit test next to the util file |
+
+### Test tooling
+
+- **Runner:** Vitest (`npx vitest run` from the repo root or a package)
+- **Server tests:** `environment: 'node'` in `vitest.config.ts`
+- **Client tests:** Vitest + Testing Library (`@testing-library/react`, `@testing-library/user-event`)
+- **Mocking:** `vi.mock(...)` for modules; never mock the database in server tests — use a real test DB or an in-memory SQLite config if available
+- **Assertions:** `expect(...).toBe/toEqual/toMatchObject` — no `any` casts in tests
+
+### Where test files live
+
+```
+packages/server/src/services/ai.test.ts        # Service unit tests
+packages/server/src/routes/illness.test.ts     # Route integration tests
+packages/client/src/features/feeding/useFeedingLogs.test.ts
+packages/client/src/features/ai/QuickLogInput.test.tsx
+```
+
+### What "existing tests must not regress" means
+
+Before opening a PR, run `npx vitest run` and confirm the suite is green. If a test was previously skipped (`.skip` or `xfail`), do not un-skip it as a workaround — fix the underlying issue.
+
+---
+
 ## Commit Conventions (REQUIRED)
 
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). Enforced by `commitlint` + `husky`.

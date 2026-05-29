@@ -177,6 +177,80 @@ async function seedMoodLogs(babyId: string, loggedById: string) {
   console.log('Seeded sample mood logs')
 }
 
+// Dense 7-day feed/sleep/diaper logs for testing AI insights generation.
+// Only runs when SEED_INSIGHTS_DATA=true — avoids polluting the standard dev DB.
+async function seedInsightsData(babyId: string, loggedById: string) {
+  const existing = await prisma.feedingLog.count({ where: { babyId } })
+  if (existing > 0) {
+    console.log('Skipping insights seed — feeding logs already present')
+    return
+  }
+
+  const now = Date.now()
+  const DAY = 24 * 60 * 60 * 1000
+  const HOUR = 60 * 60 * 1000
+
+  // 8 bottle feeds per day for 7 days, ~3h apart with ±15 min jitter
+  for (let day = 6; day >= 0; day--) {
+    for (let feed = 0; feed < 8; feed++) {
+      const jitterMs = (Math.random() - 0.5) * 30 * 60 * 1000
+      const fedAt = new Date(now - day * DAY - feed * 3 * HOUR + jitterMs)
+      await prisma.feedingLog.create({
+        data: {
+          babyId,
+          loggedById,
+          type: 'BOTTLE',
+          startedAt: fedAt,
+          endedAt: new Date(fedAt.getTime() + 20 * 60 * 1000),
+          volumeOz: 3 + Math.random() * 1.5,
+        },
+      })
+    }
+  }
+
+  // 4 naps + 1 night sleep per day for 7 days
+  for (let day = 6; day >= 0; day--) {
+    // Night sleep: 10 PM – 5 AM (7 h)
+    const nightStart = new Date(now - day * DAY - 22 * HOUR)
+    await prisma.sleepLog.create({
+      data: {
+        babyId, loggedById,
+        type: 'NIGHT',
+        startedAt: nightStart,
+        endedAt: new Date(nightStart.getTime() + 7 * HOUR),
+      },
+    })
+    // 4 naps: 9 AM, 12 PM, 3 PM, 6 PM — 45 min each
+    for (const napHour of [9, 12, 15, 18]) {
+      const napStart = new Date(now - day * DAY - (24 - napHour) * HOUR)
+      await prisma.sleepLog.create({
+        data: {
+          babyId, loggedById,
+          type: 'NAP',
+          startedAt: napStart,
+          endedAt: new Date(napStart.getTime() + 45 * 60 * 1000),
+        },
+      })
+    }
+  }
+
+  // 8 diapers per day for 7 days
+  for (let day = 6; day >= 0; day--) {
+    for (let d = 0; d < 8; d++) {
+      const occurredAt = new Date(now - day * DAY - d * 3 * HOUR)
+      await prisma.diaperLog.create({
+        data: {
+          babyId, loggedById,
+          type: d % 3 === 0 ? 'DIRTY' : 'WET',
+          occurredAt,
+        },
+      })
+    }
+  }
+
+  console.log('Seeded 7-day insights data: 56 feeds, 35 sleeps, 56 diapers')
+}
+
 async function main() {
   const u1Name = process.env.SEED_USER_1_NAME ?? 'Nick'
   const u1Email = process.env.SEED_USER_1_EMAIL ?? 'nick@example.com'
@@ -226,6 +300,10 @@ async function main() {
   await seedWeightLogs(baby.id, user1.id)
   await seedTummyTimeLogs(baby.id, user1.id)
   await seedMoodLogs(baby.id, user1.id)
+
+  if (process.env['SEED_INSIGHTS_DATA'] === 'true') {
+    await seedInsightsData(baby.id, user1.id)
+  }
 
   console.log(`Seeded: ${user1.name} (${user1.email}), ${user2.name} (${user2.email}), baby ${baby.id}`)
 }

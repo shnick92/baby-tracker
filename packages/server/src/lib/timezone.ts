@@ -1,10 +1,21 @@
-const TZ = process.env.TIMEZONE ?? 'UTC'
+const TZ = process.env['TIMEZONE'] ?? 'UTC'
+
+// Returns the current local time as a readable string for AI prompts.
+export function nowLocalString(): string {
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: 'numeric', minute: '2-digit', second: '2-digit',
+    hour12: true,
+  }).format(new Date()) + ` (${TZ})`
+}
 
 // Formats a UTC Date as YYYY-MM-DD in the configured local timezone.
 // en-CA locale gives ISO-format date output without any extra separators.
 export function toLocalDay(utcDate: Date): string {
   return utcDate.toLocaleDateString('en-CA', { timeZone: TZ })
 }
+
 
 // Returns the UTC start and end timestamps that bracket the local calendar day
 // identified by dateStr (YYYY-MM-DD). Handles DST by sampling at noon UTC.

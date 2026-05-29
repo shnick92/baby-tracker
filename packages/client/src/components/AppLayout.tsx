@@ -1,3 +1,4 @@
+import { createContext, useContext, useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -12,7 +13,11 @@ import {
   CalendarDays,
   MoreHorizontal,
   Sparkles,
+  Thermometer,
 } from 'lucide-react'
+
+const TopbarActionsContext = createContext<(node: React.ReactNode) => void>(() => {})
+export const useTopbarActions = () => useContext(TopbarActionsContext)
 
 import { api } from '@lib/axios'
 import { useAuthStore } from '@stores/authStore'
@@ -57,6 +62,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
   {
     label: 'Health',
     items: [
+      { to: '/illness', label: 'Illness Tracker', icon: <Thermometer size={16} />, prefix: '/illness' },
       { to: '/medication', label: 'Medication', icon: <Pill size={16} />, prefix: '/medication' },
       { to: '/weight', label: 'Weight & Growth', icon: <Scale size={16} />, prefix: '/weight' },
       { to: '/tummy-time', label: 'Tummy Time', icon: <span className="text-sm">🐢</span>, prefix: '/tummy-time' },
@@ -107,7 +113,8 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/mood') ||
     pathname.startsWith('/history') ||
     pathname.startsWith('/calendar') ||
-    pathname.startsWith('/ai')
+    pathname.startsWith('/ai') ||
+    pathname.startsWith('/illness')
   )
 }
 
@@ -128,6 +135,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/history')) return 'History & Reports'
   if (pathname.startsWith('/calendar')) return 'Calendar'
   if (pathname.startsWith('/ai')) return 'Is This Normal?'
+  if (pathname.startsWith('/illness')) return 'Illness Tracker'
   return 'Baby Tracker'
 }
 
@@ -139,12 +147,14 @@ export function AppLayout() {
   const { user, babyId, logout } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
   const location = useLocation()
+  const [topbarAction, setTopbarAction] = useState<React.ReactNode>(null)
 
   const handleLogout = () => {
     api.post('/api/auth/logout').catch(() => null).finally(() => logout())
   }
 
   return (
+    <TopbarActionsContext.Provider value={setTopbarAction}>
     <div className="md:flex md:h-screen">
       {/* Sidebar — tablet only */}
       <aside className="hidden md:flex md:flex-col md:w-56 md:flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700">
@@ -218,7 +228,10 @@ export function AppLayout() {
         {/* Topbar — tablet only */}
         <div className="hidden md:flex h-12 items-center px-5 justify-between bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
           <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{getPageTitle(location.pathname)}</span>
-          <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate()}</span>
+          <div className="flex items-center gap-4">
+            {topbarAction}
+            <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate()}</span>
+          </div>
         </div>
 
         {/* Offline banner */}
@@ -262,5 +275,6 @@ export function AppLayout() {
         <div className="md:hidden h-[56px] flex-shrink-0" />
       </div>
     </div>
+    </TopbarActionsContext.Provider>
   )
 }

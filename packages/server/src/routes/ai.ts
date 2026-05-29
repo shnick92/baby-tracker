@@ -17,6 +17,7 @@ import {
   isInsightsDailyLimitExceeded,
   logAIUsage,
 } from '../lib/aiGuards'
+import { nowLocalString } from '../lib/timezone'
 
 export const aiRouter = Router()
 aiRouter.use(authMiddleware)
@@ -62,7 +63,7 @@ aiRouter.post('/log', async (req, res) => {
   }
 
   try {
-    const result = await parseNaturalLanguageLog(text, new Date().toISOString(), {
+    const result = await parseNaturalLanguageLog(text, nowLocalString(), {
       babyId,
       userId: req.user!.userId,
     })

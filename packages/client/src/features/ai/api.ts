@@ -7,6 +7,8 @@ export type ParsedLogType =
   | 'diaper'
   | 'medication'
   | 'tummy_time'
+  | 'temperature'
+  | 'illness_start'
   | 'unknown'
 
 export interface ParsedLogResult {
@@ -20,6 +22,7 @@ export interface Insights {
   feedingInterval: { avg24h: number; avg3d: number; avg7d: number }
   sleepPattern: { avgWakeWindowMin: number; longestStretchMin: number; avgDailySleepMin: number }
   summary: string
+  insufficientData?: true
 }
 
 export interface WeeklySummary {
@@ -48,11 +51,12 @@ export async function fetchWeeklySummaries(babyId: string): Promise<WeeklySummar
   return res.data.data
 }
 
-// After NL parsing, commit the log to the appropriate API endpoint
+// After NL parsing, commit the log to the appropriate API endpoint.
+// Returns { episodeId } when type is illness_start, otherwise {}.
 export async function commitParsedLog(
   babyId: string,
   result: ParsedLogResult,
-): Promise<void> {
+): Promise<{ episodeId?: string }> {
   const d = result.data
 
   switch (result.type) {
@@ -65,7 +69,7 @@ export async function commitParsedLog(
         fedAt: d['fedAt'] ?? new Date().toISOString(),
         notes: d['notes'],
       })
-      break
+      return {}
 
     case 'feeding_breast': {
       const startRes = await api.post<{ data: { id: string }; error: null }>('/api/feeding/start', {
@@ -83,7 +87,7 @@ export async function commitParsedLog(
           ).toISOString()
         : new Date().toISOString()
       await api.patch(`/api/feeding/${feedId}/end`, { endedAt })
-      break
+      return {}
     }
 
     case 'sleep': {
@@ -95,7 +99,7 @@ export async function commitParsedLog(
       const sleepId = sleepRes.data.data.id
       const sleepEndedAt = d['endedAt'] ?? new Date().toISOString()
       await api.patch(`/api/sleep/${sleepId}/end`, { endedAt: sleepEndedAt })
-      break
+      return {}
     }
 
     case 'diaper':
@@ -107,7 +111,7 @@ export async function commitParsedLog(
         occurredAt: d['occurredAt'] ?? new Date().toISOString(),
         notes: d['notes'],
       })
-      break
+      return {}
 
     case 'medication':
       await api.post('/api/medication', {
@@ -118,7 +122,7 @@ export async function commitParsedLog(
         givenAt: d['givenAt'] ?? new Date().toISOString(),
         notes: d['notes'],
       })
-      break
+      return {}
 
     case 'tummy_time': {
       const ttRes = await api.post<{ data: { id: string }; error: null }>('/api/tummy-time/start', {
@@ -131,7 +135,38 @@ export async function commitParsedLog(
         ? new Date(new Date(d['startedAt'] as string).getTime() + ttDuration * 1000).toISOString()
         : new Date().toISOString()
       await api.patch(`/api/tummy-time/${ttId}/end`, { endedAt: ttEndedAt })
-      break
+      return {}
+    }
+
+    case 'temperature':
+      await api.post('/api/illness/temperature', {
+        babyId,
+        tempF: d['tempF'],
+        tempC: d['tempC'],
+        method: d['method'] ?? 'FOREHEAD',
+        recordedAt: d['recordedAt'] ?? new Date().toISOString(),
+        notes: d['notes'],
+      })
+      return {}
+
+    case 'illness_start': {
+      const symptoms = (d['symptoms'] as string[] | undefined) ?? []
+      const illnessRes = await api.post<{ data: { id: string }; error: null }>('/api/illness', {
+        babyId,
+        symptoms,
+        notes: d['notes'],
+      })
+      const episodeId = illnessRes.data.data.id
+      // If a temperature value was mentioned alongside the illness, log it against the new episode
+      if (d['tempF'] != null || d['tempC'] != null) {
+        await api.post(`/api/illness/${episodeId}/temperature`, {
+          tempF: d['tempF'],
+          tempC: d['tempC'],
+          method: 'FOREHEAD',
+          recordedAt: new Date().toISOString(),
+        })
+      }
+      return { episodeId }
     }
 
     default:

@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Sparkles, Loader2, Check, X, Moon, Droplets, Pill, HelpCircle } from 'lucide-react'
+import { Sparkles, Loader2, Check, X, Moon, Droplets, Pill, HelpCircle, Thermometer } from 'lucide-react'
 import { BabyBottleIcon } from '@components/icons'
 import { parseLog, commitParsedLog, type ParsedLogResult } from './api'
 
 interface Props {
   babyId: string
+  onIllnessStarted?: (episodeId: string) => void
 }
 
 const LOG_TYPE_LABELS: Record<string, string> = {
@@ -15,6 +16,8 @@ const LOG_TYPE_LABELS: Record<string, string> = {
   diaper: 'Diaper',
   medication: 'Medication',
   tummy_time: 'Tummy time',
+  temperature: 'Temperature logged',
+  illness_start: 'Start illness episode',
   unknown: 'Unknown',
 }
 
@@ -25,6 +28,8 @@ const LOG_TYPE_ICONS: Record<string, React.ReactNode> = {
   diaper: <Droplets size={16} />,
   medication: <Pill size={16} />,
   tummy_time: <span className="text-sm leading-none">🐢</span>,
+  temperature: <Thermometer size={16} className="text-red-500" />,
+  illness_start: <Thermometer size={16} className="text-amber-500" />,
   unknown: <HelpCircle size={16} />,
 }
 
@@ -44,9 +49,11 @@ const INVALIDATE_KEYS: Record<string, string[]> = {
   diaper: ['diapers'],
   medication: ['medications'],
   tummy_time: ['tummyTime'],
+  temperature: ['illnessActive'],
+  illness_start: ['illnessActive'],
 }
 
-export function QuickLogInput({ babyId }: Props) {
+export function QuickLogInput({ babyId, onIllnessStarted }: Props) {
   const [text, setText] = useState('')
   const [parsed, setParsed] = useState<ParsedLogResult | null>(null)
   const [committed, setCommitted] = useState(false)
@@ -62,11 +69,14 @@ export function QuickLogInput({ babyId }: Props) {
 
   const commitMutation = useMutation({
     mutationFn: () => commitParsedLog(babyId, parsed!),
-    onSuccess: () => {
+    onSuccess: ({ episodeId }) => {
       setCommitted(true)
       setText('')
       const keys = INVALIDATE_KEYS[parsed!.type] ?? []
       keys.forEach((k) => queryClient.invalidateQueries({ queryKey: [k, babyId] }))
+      if (parsed!.type === 'illness_start' && episodeId) {
+        onIllnessStarted?.(episodeId)
+      }
       setTimeout(() => {
         setParsed(null)
         setCommitted(false)

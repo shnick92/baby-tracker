@@ -34,6 +34,11 @@ moodRouter.post('/', async (req, res) => {
   const parsed = logMoodSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const activeEpisode = await prisma.sicknessEpisode.findFirst({
+    where: { babyId: parsed.data.babyId, endedAt: null },
+    select: { id: true },
+  })
+
   const log = await prisma.moodLog.create({
     data: {
       babyId: parsed.data.babyId,
@@ -43,6 +48,7 @@ moodRouter.post('/', async (req, res) => {
       customActivityId: parsed.data.customActivityId ?? null,
       occurredAt: parsed.data.occurredAt ? new Date(parsed.data.occurredAt) : new Date(),
       notes: parsed.data.notes,
+      sicknessEpisodeId: activeEpisode?.id ?? null,
     },
     include: { customActivity: true },
   })

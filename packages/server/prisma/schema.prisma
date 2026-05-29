@@ -71,6 +71,8 @@ model Baby {
   aiConversationLogs  AIConversationLog[]
   aiWeeklySummaries   AIWeeklySummary[]
   aiUsageLogs         AIUsageLog[]
+  sicknessEpisodes    SicknessEpisode[]
+  temperatureLogs     TemperatureLog[]
 }
 
 model BabyUser {
@@ -153,33 +155,37 @@ model VisitorSlot {
 }
 
 model FeedingLog {
-  id          String      @id @default(cuid())
-  babyId      String
-  baby        Baby        @relation(fields: [babyId], references: [id])
-  loggedById  String
-  loggedBy    User        @relation(fields: [loggedById], references: [id])
-  type        FeedingType
-  startedAt   DateTime
-  endedAt     DateTime?
-  durationSec Int?
-  volumeOz    Float?
-  milkType    String?
-  formulaName String?
-  notes       String?
-  createdAt   DateTime    @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  loggedBy          User             @relation(fields: [loggedById], references: [id])
+  type              FeedingType
+  startedAt         DateTime
+  endedAt           DateTime?
+  durationSec       Int?
+  volumeOz          Float?
+  milkType          String?
+  formulaName       String?
+  notes             String?
+  sicknessEpisodeId String?
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model SleepLog {
-  id         String    @id @default(cuid())
-  babyId     String
-  baby       Baby      @relation(fields: [babyId], references: [id])
-  loggedById String
-  loggedBy   User      @relation(fields: [loggedById], references: [id])
-  type       SleepType
-  startedAt  DateTime
-  endedAt    DateTime?
-  notes      String?
-  createdAt  DateTime  @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  loggedBy          User             @relation(fields: [loggedById], references: [id])
+  type              SleepType
+  startedAt         DateTime
+  endedAt           DateTime?
+  notes             String?
+  sicknessEpisodeId String?
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model DiaperLog {
@@ -194,6 +200,8 @@ model DiaperLog {
   customConsistency String?
   occurredAt        DateTime
   notes             String?
+  sicknessEpisodeId String?
+  episode           SicknessEpisode?   @relation(fields: [sicknessEpisodeId], references: [id])
   createdAt         DateTime           @default(now())
 }
 
@@ -232,16 +240,18 @@ model WeightLog {
 }
 
 model MedicationLog {
-  id         String   @id @default(cuid())
-  babyId     String
-  baby       Baby     @relation(fields: [babyId], references: [id])
-  loggedById String
-  name       String
-  dosageMg   Float?
-  dosageNote String?
-  givenAt    DateTime
-  notes      String?
-  createdAt  DateTime @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  name              String
+  dosageMg          Float?
+  dosageNote        String?
+  givenAt           DateTime
+  notes             String?
+  sicknessEpisodeId String?
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model TummyTimeLog {
@@ -257,17 +267,19 @@ model TummyTimeLog {
 }
 
 model MoodLog {
-  id               String          @id @default(cuid())
-  babyId           String
-  baby             Baby            @relation(fields: [babyId], references: [id])
-  loggedById       String
-  mood             MoodType?
-  qualifier        MoodType?
-  customActivityId String?
-  customActivity   CustomActivity? @relation(fields: [customActivityId], references: [id])
-  occurredAt       DateTime
-  notes            String?
-  createdAt        DateTime        @default(now())
+  id                String           @id @default(cuid())
+  babyId            String
+  baby              Baby             @relation(fields: [babyId], references: [id])
+  loggedById        String
+  mood              MoodType?
+  qualifier         MoodType?
+  customActivityId  String?
+  customActivity    CustomActivity?  @relation(fields: [customActivityId], references: [id])
+  occurredAt        DateTime
+  notes             String?
+  sicknessEpisodeId String?
+  episode           SicknessEpisode? @relation(fields: [sicknessEpisodeId], references: [id])
+  createdAt         DateTime         @default(now())
 }
 
 model CustomActivity {
@@ -435,4 +447,54 @@ model AIUsageLog {
   outputTokens    Int
   costUsdEstimate Float
   calledAt        DateTime     @default(now())
+}
+
+model SicknessEpisode {
+  id              String            @id @default(cuid())
+  babyId          String
+  baby            Baby              @relation(fields: [babyId], references: [id])
+  startedById     String
+  startedAt       DateTime
+  endedAt         DateTime?
+  notes           String?
+  symptoms        SicknessSymptom[]
+  temperatureLogs TemperatureLog[]
+  feedingLogs     FeedingLog[]
+  sleepLogs       SleepLog[]
+  diaperLogs      DiaperLog[]
+  medicationLogs  MedicationLog[]
+  moodLogs        MoodLog[]
+  createdAt       DateTime          @default(now())
+}
+
+model SicknessSymptom {
+  id         String          @id @default(cuid())
+  episodeId  String
+  episode    SicknessEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  label      String
+  onsetAt    DateTime?
+  resolvedAt DateTime?
+  createdAt  DateTime        @default(now())
+}
+
+model TemperatureLog {
+  id         String           @id @default(cuid())
+  babyId     String
+  baby       Baby             @relation(fields: [babyId], references: [id])
+  episodeId  String?
+  episode    SicknessEpisode? @relation(fields: [episodeId], references: [id])
+  loggedById String
+  tempF      Float
+  method     TempMethod
+  recordedAt DateTime
+  notes      String?
+  createdAt  DateTime         @default(now())
+}
+
+enum TempMethod {
+  FOREHEAD
+  EAR
+  RECTAL
+  AXILLARY
+  ORAL
 }

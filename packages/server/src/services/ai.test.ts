@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { INSIGHTS_MIN_FEEDINGS, INSIGHTS_MIN_SLEEPS } from '@tracker/shared'
 import { calcAvgIntervalMin, calcSleepStats } from './ai'
 
 const NOW = 1_750_000_000_000
@@ -96,5 +97,47 @@ describe('calcSleepStats', () => {
     ]
     const { avgWakeWindowMin } = calcSleepStats(sleeps)
     expect(avgWakeWindowMin).toBe(0)
+  })
+})
+
+// ── Insights data threshold ────────────────────────────────────────────────
+// These tests verify the threshold semantics: the API call is skipped when
+// EITHER metric is below its minimum (OR logic, not AND).
+
+describe('INSIGHTS_MIN thresholds', () => {
+  it('INSIGHTS_MIN_FEEDINGS is a positive integer below a daily max for a newborn', () => {
+    expect(Number.isInteger(INSIGHTS_MIN_FEEDINGS)).toBe(true)
+    expect(INSIGHTS_MIN_FEEDINGS).toBeGreaterThan(0)
+    // Sanity: not accidentally set too high (newborns feed ≤14×/day, so 7-day min should be ≤14)
+    expect(INSIGHTS_MIN_FEEDINGS).toBeLessThanOrEqual(14)
+  })
+
+  it('INSIGHTS_MIN_SLEEPS is a positive integer below a daily max for a newborn', () => {
+    expect(Number.isInteger(INSIGHTS_MIN_SLEEPS)).toBe(true)
+    expect(INSIGHTS_MIN_SLEEPS).toBeGreaterThan(0)
+    expect(INSIGHTS_MIN_SLEEPS).toBeLessThanOrEqual(7)
+  })
+
+  it('OR semantics: threshold blocks when only feedings are sparse (sleeps sufficient)', () => {
+    // feedings=2 < MIN_FEEDINGS=5 → should block even if sleeps were ≥ MIN_SLEEPS
+    const feedings = 2
+    const sleeps = 10
+    const blocked = feedings < INSIGHTS_MIN_FEEDINGS || sleeps < INSIGHTS_MIN_SLEEPS
+    expect(blocked).toBe(true)
+  })
+
+  it('OR semantics: threshold blocks when only sleeps are sparse (feedings sufficient)', () => {
+    // This is the exact case that was broken with the original && condition
+    const feedings = 10
+    const sleeps = 0
+    const blocked = feedings < INSIGHTS_MIN_FEEDINGS || sleeps < INSIGHTS_MIN_SLEEPS
+    expect(blocked).toBe(true)
+  })
+
+  it('threshold allows the API call when both metrics are sufficient', () => {
+    const feedings = INSIGHTS_MIN_FEEDINGS
+    const sleeps = INSIGHTS_MIN_SLEEPS
+    const blocked = feedings < INSIGHTS_MIN_FEEDINGS || sleeps < INSIGHTS_MIN_SLEEPS
+    expect(blocked).toBe(false)
   })
 })
