@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RotateCcw, FileText } from 'lucide-react'
+import { RotateCcw, FileText, ChevronDown } from 'lucide-react'
 
-import { useIllnessMutations } from '../useIllness'
+import { useIllnessMutations, useIllnessReport } from '../useIllness'
 import type { EpisodeDetail } from '../useIllness'
 import { formatDuration } from '../utils/formatters'
 
@@ -16,6 +17,8 @@ type Props = {
 
 export function ResolvedEpisodeDetail({ episode }: Props) {
   const { reopenEpisode } = useIllnessMutations()
+  const { downloadReport, isPending: reportPending } = useIllnessReport()
+  const [showFormatPicker, setShowFormatPicker] = useState(false)
   const navigate = useNavigate()
 
   const duration = episode.endedAt
@@ -57,14 +60,47 @@ export function ResolvedEpisodeDetail({ episode }: Props) {
         </div>
       </div>
 
-      <button
-        type="button"
-        className="w-full py-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-[14px] font-semibold text-gray-600 dark:text-gray-300 flex items-center justify-center gap-2"
-        onClick={() => window.alert('Report generation coming soon')}
-      >
-        <FileText size={16} />
-        Generate Doctor Handoff Report
-      </button>
+      <div className="relative">
+        <div className="flex rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700">
+          <button
+            type="button"
+            disabled={reportPending}
+            className="flex-1 py-4 bg-white dark:bg-gray-800 text-[14px] font-semibold text-gray-600 dark:text-gray-300 flex items-center justify-center gap-2 disabled:opacity-50"
+            onClick={() => downloadReport(episode.id, 'pdf')}
+          >
+            <FileText size={16} />
+            {reportPending ? 'Generating…' : 'Doctor Handoff Report'}
+          </button>
+          <button
+            type="button"
+            disabled={reportPending}
+            aria-label="Choose report format"
+            className="px-4 py-4 bg-white dark:bg-gray-800 border-l border-gray-100 dark:border-gray-700 text-gray-400 disabled:opacity-50"
+            onClick={() => setShowFormatPicker((v) => !v)}
+          >
+            <ChevronDown size={14} />
+          </button>
+        </div>
+
+        {showFormatPicker && (
+          <div className="absolute bottom-full mb-1 right-0 w-44 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-lg z-10 overflow-hidden">
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+              onClick={() => { setShowFormatPicker(false); downloadReport(episode.id, 'pdf') }}
+            >
+              PDF (formatted)
+            </button>
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 text-[13px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700"
+              onClick={() => { setShowFormatPicker(false); downloadReport(episode.id, 'text') }}
+            >
+              Plain text (copy-paste)
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

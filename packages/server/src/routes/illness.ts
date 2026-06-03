@@ -9,6 +9,7 @@ import {
   logTemperatureSchema,
   updateEpisodeTimesSchema,
 } from '@tracker/shared'
+import { fetchIllnessReportData, renderIllnessReportText, renderIllnessReportPdf } from '../services/illnessReport'
 
 const toTitleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase())
 
@@ -62,6 +63,37 @@ illnessRouter.get('/:id', async (req, res) => {
   })
   if (!episode) { res.status(404).json({ data: null, error: 'Episode not found' }); return }
   res.json({ data: episode, error: null })
+})
+
+// GET /api/illness/:id/report?format=pdf|text
+illnessRouter.get('/:id/report', async (req, res) => {
+  const format = (req.query['format'] ?? 'text') as string
+  if (format !== 'pdf' && format !== 'text') {
+    res.status(400).json({ data: null, error: 'format must be pdf or text' })
+    return
+  }
+
+  const data = await fetchIllnessReportData(req.params['id']!)
+  if (!data) {
+    res.status(404).json({ data: null, error: 'Episode not found' })
+    return
+  }
+
+  const babyLabel = (data.babyName ?? 'baby').toLowerCase().replace(/\s+/g, '-')
+  const dateSlug = data.startedAt.toISOString().slice(0, 10)
+  const filename = `illness-report-${babyLabel}-${dateSlug}`
+
+  if (format === 'pdf') {
+    const pdfBuffer = await renderIllnessReportPdf(data)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.pdf"`)
+    res.send(pdfBuffer)
+  } else {
+    const text = renderIllnessReportText(data)
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}.txt"`)
+    res.send(text)
+  }
 })
 
 // POST /api/illness — open new episode

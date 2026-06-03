@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@lib/axios'
 import { useAuthStore } from '@stores/authStore'
@@ -166,4 +167,51 @@ export function useIllnessMutations() {
   })
 
   return { startEpisode, endEpisode, reopenEpisode, addSymptom, removeSymptom, logTemperature, deleteTemperature, updateEpisode }
+}
+
+export type ReportFormat = 'pdf' | 'text'
+
+export function useIllnessReport() {
+  const [isPending, setIsPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function downloadReport(episodeId: string, format: ReportFormat = 'pdf') {
+    setIsPending(true)
+    setError(null)
+    try {
+      const response = await api.get(`/api/illness/${episodeId}/report?format=${format}`, {
+        responseType: 'blob',
+      })
+      const blob = new Blob([response.data as BlobPart], {
+        type: format === 'pdf' ? 'application/pdf' : 'text/plain',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+
+      const disposition = response.headers['content-disposition'] as string | undefined
+      const match = disposition?.match(/filename="([^"]+)"/)
+      a.download = match?.[1] ?? `illness-report.${format}`
+
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      // iOS share sheet: Web Share API if available and file is supported
+      if (navigator.share && format === 'pdf') {
+        const file = new File([blob], a.download, { type: 'application/pdf' })
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Doctor Handoff Report' })
+          return
+        }
+      }
+    } catch {
+      setError('Failed to generate report')
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  return { downloadReport, isPending, error }
 }
