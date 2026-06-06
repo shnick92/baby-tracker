@@ -85,16 +85,15 @@ async function shot(page: Page, name: string): Promise<void> {
 }
 
 // Rename the Playwright video UUID file to a meaningful name.
-// Must be called after ctx.close() — Playwright finalises the file on context close.
-async function renameVideo(ctx: BrowserContext, name: string): Promise<void> {
-  const page = ctx.pages()[0]
-  if (!page) return
-  const video = page.video()
-  if (!video) return
-  const src = await video.path()
+// Pass the page BEFORE calling ctx.close() — after close, ctx.pages() is empty.
+// Playwright finalises the file on context close, so path() must be awaited after close.
+async function renameVideo(page: Awaited<ReturnType<BrowserContext['newPage']>>, baseName: string): Promise<void> {
+  const src = await page.video()?.path()
   if (src && fs.existsSync(src)) {
-    fs.renameSync(src, path.join(VIDEOS_DIR, name))
-    console.log(`  video saved ${name}`)
+    const ext = path.extname(src) // .webm on all platforms
+    const dest = path.join(VIDEOS_DIR, baseName + ext)
+    fs.renameSync(src, dest)
+    console.log(`  video saved ${baseName}${ext}`)
   }
 }
 
@@ -192,8 +191,8 @@ async function main(): Promise<void> {
   await shot(page, 'illness-episode.png')
 
   // ─ illness-report.png — format picker open (PDF vs text) ─────────────────────
-  // The "Download Report" button opens a format picker sheet
-  await page.getByRole('button', { name: /download report/i }).first().click()
+  // Click the chevron button (aria-label="Choose report format") to open the picker
+  await page.getByRole('button', { name: /choose report format/i }).first().click()
   await page.waitForTimeout(400)
   await shot(page, 'illness-report.png')
 
@@ -248,7 +247,7 @@ async function main(): Promise<void> {
     await p.goto(`${FRONTEND_URL}/`, { waitUntil: 'networkidle' })
     await p.waitForTimeout(5500)
     await gifCtx.close()
-    await renameVideo(gifCtx, 'dashboard.mp4')
+    await renameVideo(p, 'dashboard')
   }
 
   // ─ sleep.gif — active nap timer already running from seed ────────────────────
@@ -259,7 +258,7 @@ async function main(): Promise<void> {
     await p.goto(`${FRONTEND_URL}/sleep`, { waitUntil: 'networkidle' })
     await p.waitForTimeout(5500)
     await gifCtx.close()
-    await renameVideo(gifCtx, 'sleep.mp4')
+    await renameVideo(p, 'sleep')
   }
 
   // ─ sos-sheet.gif — SOS bottom sheet slides up ────────────────────────────────
@@ -268,10 +267,13 @@ async function main(): Promise<void> {
     const p = await gifCtx.newPage()
     await login(p)
     await p.goto(`${FRONTEND_URL}/`, { waitUntil: 'networkidle' })
-    await p.getByRole('button', { name: /SOS/i }).first().click()
+    // Icon-variant SOS button in the dashboard header — force:true bypasses Playwright's
+    // visibility actionability check (the element may be obscured by header layering in headless mode)
+    await p.waitForTimeout(1000)
+    await p.locator('[title="Send SOS alert to partner"]').click({ force: true })
     await p.waitForTimeout(3000)
     await gifCtx.close()
-    await renameVideo(gifCtx, 'sos-sheet.mp4')
+    await renameVideo(p, 'sos-sheet')
   }
 
   await browser.close()

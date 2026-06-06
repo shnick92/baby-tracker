@@ -57,9 +57,14 @@ devRouter.post('/seed-demo', async (_req, res) => {
 
   const babyName = process.env.DEMO_BABY_NAME ?? 'Baby'
 
+  // Keep a dueDate so getPregnancyStatus returns non-null and born=true is derived correctly.
+  // Without dueDate the pregnancy service returns null → born defaults to false → SOS button hidden.
+  const dummyDueDate = new Date(birthDate)
+  dummyDueDate.setDate(dummyDueDate.getDate() + 280) // ~40 weeks after birth
+
   await prisma.baby.update({
     where: { id: BABY_ID },
-    data: { name: babyName, birthDate, dueDate: null },
+    data: { name: babyName, birthDate, dueDate: dummyDueDate },
   })
 
   // ── Helper: offset from now ───────────────────────────────────────────────────
