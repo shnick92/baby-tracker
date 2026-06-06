@@ -27,6 +27,7 @@ import settingsRouter from './routes/settings'
 import alertsRouter from './routes/alerts'
 import { aiRouter } from './routes/ai'
 import { illnessRouter } from './routes/illness'
+import { devRouter } from './routes/dev'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
 const app = express()
@@ -65,6 +66,7 @@ if (process.env.NODE_ENV !== 'production') {
     await runWakeWindowCheck()
     res.json({ data: { ok: true }, error: null })
   })
+  app.use('/api/dev', devRouter)
 }
 
 app.use('/api/auth', authRouter)

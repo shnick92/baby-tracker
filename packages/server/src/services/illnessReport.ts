@@ -314,41 +314,23 @@ export async function renderIllnessReportPdf(data: IllnessReportData): Promise<B
 
   if (data.medicationLogs.length > 0) {
     builder.addSectionHeading('Medications')
-    const grouped = new Map<string, typeof data.medicationLogs>()
-    for (const m of data.medicationLogs) {
-      const key = m.dosageNote ? `${m.name} (${m.dosageNote})` : m.name
-      const group = grouped.get(key) ?? []
-      group.push(m)
-      grouped.set(key, group)
-    }
-    for (const [medLabel, doses] of grouped) {
-      builder.addKeyValue(medLabel, `${doses.length} dose${doses.length !== 1 ? 's' : ''}`)
-      const rows = doses.map((d) => [fmtDatetime(d.givenAt), d.notes ?? ''])
-      builder.addTable(['Given at', 'Notes'], rows, [200, 310])
-      builder.addSpacer(0.4)
-    }
+    const rows = data.medicationLogs.map((m) => {
+      const dose = m.dosageNote ?? (m.dosageMg ? `${m.dosageMg} mg` : '')
+      const medicineName = dose ? `${m.name} (${dose})` : m.name
+      return [medicineName, fmtDatetime(m.givenAt), m.notes ?? '']
+    })
+    builder.addTable(['Medicine', 'Given At', 'Notes'], rows, [180, 160, 172])
   }
 
   const chronLog = buildChronologicalLog(data)
   if (chronLog.length > 0) {
     builder.addSectionHeading('Chronological Log')
-    let currentDay = ''
-    const rows: string[][] = []
-    for (const entry of chronLog) {
-      const day = fmtDate(entry.time)
-      if (day !== currentDay) {
-        if (rows.length > 0) builder.addTable(['Time', 'Category', 'Detail'], rows, [80, 90, 340])
-        rows.length = 0
-        currentDay = day
-        builder.addKeyValue('', day)
-      }
-      rows.push([
-        fmtTime(entry.time),
-        entry.category,
-        entry.label + (entry.sub ? ` — ${entry.sub}` : ''),
-      ])
-    }
-    if (rows.length > 0) builder.addTable(['Time', 'Category', 'Detail'], rows, [80, 90, 340])
+    const rows = chronLog.map((entry) => [
+      fmtDatetime(entry.time),
+      entry.category,
+      entry.label + (entry.sub ? ` — ${entry.sub}` : ''),
+    ])
+    builder.addTable(['Date / Time', 'Category', 'Detail'], rows, [160, 90, 260])
   }
 
   if (data.notes) {

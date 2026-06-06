@@ -1456,25 +1456,64 @@ Centralized `/settings` route — one page with feature-scoped sections. Accessi
 
 **Goal:** Anyone who receives or discovers the repo can immediately see what the app looks like before committing to setup.
 
-#### Screenshot Capture
+#### Playwright Automation (`npm run screenshots:all`)
 
-- [ ] Capture final screenshots of every major screen on a physical Android device at 393px CSS width
-- [ ] Capture the same screens on a tablet (≥768px viewport) for any screen with a tablet layout
-- [ ] Store in `/docs/screenshots/mobile/` and `/docs/screenshots/tablet/`
+- [x] `scripts/screenshots.ts` — Playwright script: seeds demo data, captures all screens at Pixel 5 mobile (393×851px), records MP4s for animated flows
+- [x] `scripts/make-gifs.sh` — ffmpeg pipeline: converts MP4 recordings to palette-optimised looping GIFs
+- [x] `POST /api/dev/seed-demo` — dev-only endpoint (returns 403 in production): wipes and re-seeds 5 days of realistic activity, active timers, illness episode, mixed purchase/checklist state
+- [x] Root `package.json` scripts: `screenshots`, `screenshots:gifs`, `screenshots:all`
+- [x] `docs/screenshots/README.md` — prerequisites, usage, table of captured screens
+- [x] `docs/screenshots/videos/` added to `.gitignore`
 
-#### Mockup Alignment
+#### Screens captured — Phase 5 and earlier (all built)
 
-- [ ] Update `mockups.html` to reflect any design changes made during implementation
-- [ ] Add to `mockups.html` any screens added during development that never had a mockup
-- [ ] Add tablet frame variants to `mockups.html` for all screens that have a tablet layout
+| File | Screen |
+|---|---|
+| `mobile/login.png` | Login form with passkey button |
+| `mobile/feeding.png` | Feeding log — quick-log grid |
+| `mobile/sleep-page.png` | Sleep tracker — wake window + active nap |
+| `mobile/diaper.png` | Diaper log — Dirty type expanded |
+| `mobile/medication.png` | Medication log |
+| `mobile/tummy-time.png` | Tummy time log |
+| `mobile/mood.png` | Mood & Activity log |
+| `mobile/growth-chart.png` | Weight growth chart with WHO percentile bands |
+| `mobile/calendar-all.png` | Calendar — all categories |
+| `mobile/calendar-feedings.png` | Calendar — Feedings filter chip active |
+| `mobile/checklist.png` | Hospital bag checklist (~60% checked) |
+| `mobile/purchases.png` | Purchases tracker — mixed statuses |
+| `mobile/visitors.png` | Visitor schedule |
+| `mobile/alerts.png` | SOS alert history |
+| `mobile/ai-chat.png` | "Is This Normal?" AI chat with seeded Q&A |
+| `mobile/history.png` | History & Reports data log view |
+| `mobile/quick-log.png` | Dashboard — AI quick log input |
+| `mobile/illness-landing.png` | Illness episode list |
+| `mobile/illness-episode.png` | Episode detail — symptoms, temp log, meds |
+| `mobile/illness-report.png` | Doctor handoff report format picker |
+| `mobile/more.png` | "More" navigation menu |
+| `gifs/dashboard.gif` | Dashboard — live feeding timer ticking |
+| `gifs/sleep.gif` | Sleep tracker — active nap timer running |
+| `gifs/sos-sheet.gif` | SOS confirmation bottom sheet sliding up |
 
-#### README Assets
+#### Screens to add — Phase 6 (add to script when each feature ships)
 
-- [ ] Add a "What does it look like?" section near the top of the repo README with inline screenshots
+| File | Screen | Feature |
+|---|---|---|
+| `mobile/vaccinations.png` | Full CDC schedule — administered vs pending | Phase 6: Vaccination Tracker |
+| `mobile/milestones.png` | Milestone checklist grouped by age | Phase 6: Milestone Tracking |
+| `mobile/growth-chart-combined.png` | Combined weight + height chart | Phase 6: Height Tracking |
+| `mobile/settings.png` | Settings — account, notifications, display | Phase 6: Settings Page |
+| `mobile/export.png` | Data export — type + date range pickers | Phase 6: Data Export |
+| `mobile/health-summary.png` | Health summary — section picker + download | Phase 6: Health Summary Report |
+
+#### Still to do
+
+- [ ] Run `npm run screenshots:all` against final shipped build and commit resulting PNGs + GIFs
+- [ ] Add a "What does it look like?" section near the top of README with inline screenshots (≥3)
+- [ ] Mockup alignment: update `mockups.html` to reflect any design changes made during implementation
 
 **Acceptance criteria:**
-- A family receiving the repo can see what the app looks like before committing to setup
-- All screenshots reflect the final shipped design
+- `npm run screenshots:all` runs end-to-end with zero manual steps against local Docker stack
+- All 12 screens captured (9 PNGs + 3 GIFs); GIFs loop and are under 2 MB each
 - README has at least 3 inline screenshots
 
 ---

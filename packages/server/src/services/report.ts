@@ -118,13 +118,12 @@ export class PdfReportBuilder {
     const doc = this.doc
     const cols = headers.length
     const widths = colWidths ?? headers.map(() => this.contentWidth / cols)
-    // Explicit line heights so we can advance doc.y manually.
-    // PDFKit advances y after every doc.text() call regardless of lineBreak:false,
-    // so each cell must share the same captured y and we set doc.y explicitly after each row.
     const headerLineH = Math.ceil(FONT_SIZES.small * 1.5)
-    const rowLineH = Math.ceil(FONT_SIZES.body * 1.55)
+    const minRowH = Math.ceil(FONT_SIZES.body * 1.5)
+    // Reserve space for the footer disclaimer so we don't overlap it.
+    const pageBottom = doc.page.height - this.marginLeft - 20
 
-    // header row — capture y once, pass it explicitly to every cell
+    // header row — single line, headers are always short
     doc.fontSize(FONT_SIZES.small).font('Helvetica-Bold').fillColor(COLORS.label)
     const headerY = doc.y
     let x = this.marginLeft
@@ -141,16 +140,30 @@ export class PdfReportBuilder {
       .lineWidth(0.5).strokeColor(COLORS.divider).stroke()
     doc.y = divY + 5
 
-    // data rows — same pattern: one captured y per row
+    // data rows — pre-calculate actual height using heightOfString so word-wrapped
+    // cells don't overflow adjacent columns, and add the page break BEFORE rendering
+    // each row so rowY is always a valid coordinate on the current page.
     doc.fontSize(FONT_SIZES.body).font('Helvetica').fillColor(COLORS.value)
     for (const row of rows) {
+      const cellHeights = row.map((cell, i) =>
+        cell ? Math.max(doc.heightOfString(cell, { width: widths[i]! }), minRowH) : minRowH
+      )
+      const rowH = Math.max(...cellHeights) + 2
+
+      if (doc.y + rowH > pageBottom) {
+        doc.addPage()
+        doc.y = this.marginLeft
+        doc.fontSize(FONT_SIZES.body).font('Helvetica').fillColor(COLORS.value)
+      }
+
       const rowY = doc.y
       x = this.marginLeft
       for (let i = 0; i < row.length; i++) {
-        doc.text(row[i] ?? '', x, rowY, { width: widths[i]!, lineBreak: false })
+        doc.text(row[i] ?? '', x, rowY, { width: widths[i]! })
         x += widths[i]!
       }
-      doc.y = rowY + rowLineH
+      // rowY is always on the current page, so this advance stays within bounds.
+      doc.y = rowY + rowH
     }
     return this
   }
@@ -179,6 +192,10 @@ export class PdfReportBuilder {
       const range = this.doc.bufferedPageRange()
       for (let i = range.start; i < range.start + range.count; i++) {
         this.doc.switchToPage(i)
+        // Temporarily zero the bottom margin so PDFKit doesn't auto-add a new page
+        // when we write text below the content-area boundary (height - margin).
+        const savedBottom = this.doc.page.margins.bottom
+        this.doc.page.margins.bottom = 0
         this.doc
           .fontSize(FONT_SIZES.small)
           .font('Helvetica')
@@ -189,6 +206,7 @@ export class PdfReportBuilder {
             this.doc.page.height - 40,
             { width: this.contentWidth, align: 'center', lineBreak: false },
           )
+        this.doc.page.margins.bottom = savedBottom
       }
 
       this.doc.on('end', () => resolve(Buffer.concat(this.buffers)))

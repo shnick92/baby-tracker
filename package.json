@@ -10,7 +10,10 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "dev": "concurrently -n server,client \"npm run dev -w packages/server\" \"npm run dev -w packages/client\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "screenshots": "npx tsx scripts/screenshots.ts",
+    "screenshots:gifs": "bash scripts/make-gifs.sh",
+    "screenshots:all": "npm run screenshots && npm run screenshots:gifs"
   },
   "lint-staged": {
     "packages/**/*.{ts,tsx,js,mjs}": "eslint --max-warnings 0"
@@ -23,6 +26,7 @@
     "eslint": "^9.17.0",
     "husky": "^9.1.7",
     "lint-staged": "~15.5.0",
+    "playwright": "^1.60.0",
     "prettier": "^3.4.2",
     "typescript-eslint": "^8.19.1"
   },

@@ -31,3 +31,6 @@ yarn-error.log*
 *.sln
 *.sw?
 .DS_Store
+
+# screenshot MP4 recordings (too large to commit; GIFs are committed instead)
+docs/screenshots/videos/
