@@ -49,6 +49,7 @@ All settings are optional — the script reads from `packages/server/.env` autom
 
 | File | Type | Screen |
 |---|---|---|
+| `mobile/dashboard-pregnancy.png` | Screenshot | Dashboard — pregnancy countdown (pre-birth state) |
 | `mobile/login.png` | Screenshot | Login form with passkey button |
 | `mobile/feeding.png` | Screenshot | Feeding log — quick-log grid |
 | `mobile/sleep-page.png` | Screenshot | Sleep tracker — wake window + active nap |
@@ -89,11 +90,12 @@ All settings are optional — the script reads from `packages/server/.env` autom
 
 1. `npm run screenshots` calls `npx tsx scripts/screenshots.ts`, which:
    - Loads `packages/server/.env` so seed credentials resolve automatically
-   - POSTs to `POST /api/dev/seed-demo` (dev only — returns 403 in production) to wipe and recreate all demo activity
-   - Launches Chromium in a Pixel 5 mobile profile
-   - Logs in and navigates each route, taking a screenshot or recording a short MP4
-   - Saves PNGs to `docs/screenshots/mobile/`, MP4s to `docs/screenshots/videos/`
-2. `npm run screenshots:gifs` runs `scripts/make-gifs.sh` which converts every `.mp4` in `videos/` to an optimised GIF using ffmpeg palette-quantisation
+   - POSTs `POST /api/dev/seed-pregnancy` to set the baby to pregnancy state (no birthDate, future dueDate), wipes postnatal data, then captures `dashboard-pregnancy.png`
+   - POSTs `POST /api/dev/seed-demo` to switch the baby to born state and recreate all demo activity
+   - Launches Chromium in a Pixel 5 mobile profile (headless, touch enabled, Android UA)
+   - Logs in and navigates each route, taking a screenshot or recording a short video; GIF contexts reuse auth cookies so the recording skips the login screen entirely
+   - Saves PNGs to `docs/screenshots/mobile/`, videos to `docs/screenshots/videos/`
+2. `npm run screenshots:gifs` runs `scripts/make-gifs.sh` which converts every `.webm`/`.mp4` in `videos/` to an optimised GIF using ffmpeg palette-quantisation
 
 ## Demo data seeded on each run
 
@@ -109,6 +111,7 @@ Each run of `npm run screenshots` wipes and recreates:
 - 1 resolved illness episode with symptoms, temperature readings, and medications
 - Hospital bag checklist ~60% checked
 - 10 purchases (4 BOUGHT, 2 GIFTED, 3 NEEDED, 1 SKIP)
+- 5 visitor slots (generic names, mix of past + upcoming)
 - 1 seeded AI Q&A exchange
 
 The `videos/` directory is git-ignored (MP4 files are ~5–20 MB each). The `mobile/` and `gifs/` directories are committed.

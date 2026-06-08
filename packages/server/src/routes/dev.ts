@@ -45,6 +45,7 @@ devRouter.post('/seed-demo', async (_req, res) => {
     prisma.weightLog.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.aIConversationLog.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.purchase.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.visitorSlot.deleteMany({ where: { babyId: BABY_ID } }),
   ])
 
   // Phase 2: delete episodes (now safe; cascades symptoms via DB)
@@ -327,6 +328,29 @@ devRouter.post('/seed-demo', async (_req, res) => {
     { babyId: BABY_ID, loggedById: USER1, name: 'Vitamin D drops', dosageNote: '400 IU', givenAt: ago(0, 8), notes: null },
   ]
 
+  // ── Visitor slots — generic names, mix of past + upcoming ────────────────────
+
+  const dateStr = (daysOffset: number): string => {
+    const d = new Date()
+    d.setDate(d.getDate() + daysOffset)
+    return d.toISOString().slice(0, 10)
+  }
+
+  const visitorTime = (daysOffset: number, hour: number, minute = 0): Date => {
+    const d = new Date()
+    d.setDate(d.getDate() + daysOffset)
+    d.setHours(hour, minute, 0, 0)
+    return d
+  }
+
+  const visitorData = [
+    { babyId: BABY_ID, name: 'Grandparents', date: dateStr(-14), startTime: visitorTime(-14, 10), endTime: visitorTime(-14, 13), notes: 'Met the baby for the first time' },
+    { babyId: BABY_ID, name: 'Close Friends', date: dateStr(-7), startTime: visitorTime(-7, 14), endTime: visitorTime(-7, 16), notes: null },
+    { babyId: BABY_ID, name: 'Aunt & Uncle', date: dateStr(-3), startTime: visitorTime(-3, 11), endTime: visitorTime(-3, 13, 30), notes: 'Brought dinner' },
+    { babyId: BABY_ID, name: 'Neighbors', date: dateStr(2), startTime: visitorTime(2, 15), endTime: visitorTime(2, 16, 30), notes: null },
+    { babyId: BABY_ID, name: 'Work Colleagues', date: dateStr(5), startTime: null, endTime: null, notes: 'Afternoon visit' },
+  ]
+
   // ── Insert everything ─────────────────────────────────────────────────────────
 
   await Promise.all([
@@ -340,6 +364,7 @@ devRouter.post('/seed-demo', async (_req, res) => {
     prisma.medicationLog.createMany({ data: [...medLogs, ...standaloneMedData] }),
     prisma.tummyTimeLog.createMany({ data: tummyData }),
     prisma.moodLog.createMany({ data: moodData }),
+    prisma.visitorSlot.createMany({ data: visitorData }),
   ])
 
   // ── Mark ~60% of hospital bag checklist items as checked ─────────────────────
@@ -359,4 +384,41 @@ devRouter.post('/seed-demo', async (_req, res) => {
   }
 
   res.json({ data: { ok: true, message: 'Demo data seeded', episodeId: episode.id }, error: null })
+})
+
+// POST /api/dev/seed-pregnancy
+// Resets baby to pregnancy state (no birthDate, future dueDate) and wipes postnatal data.
+// Used to capture the pre-birth dashboard screenshot before running seed-demo.
+devRouter.post('/seed-pregnancy', async (_req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(403).json({ data: null, error: 'Not available in production' })
+    return
+  }
+
+  const BABY_ID = 'seed-baby-001'
+
+  // Wipe postnatal data so the pregnancy dashboard renders correctly
+  await prisma.$transaction([
+    prisma.temperatureLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.medicationLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.feedingLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.sleepLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.diaperLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.moodLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.tummyTimeLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.weightLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.aIConversationLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.visitorSlot.deleteMany({ where: { babyId: BABY_ID } }),
+  ])
+  await prisma.sicknessEpisode.deleteMany({ where: { babyId: BABY_ID } })
+
+  // Set a future due date so the dashboard shows pregnancy countdown
+  const dueDate = new Date('2026-10-15')
+
+  await prisma.baby.update({
+    where: { id: BABY_ID },
+    data: { birthDate: null, dueDate },
+  })
+
+  res.json({ data: { ok: true, message: 'Baby reset to pregnancy state' }, error: null })
 })

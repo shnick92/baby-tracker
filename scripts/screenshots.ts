@@ -57,16 +57,37 @@ async function seedDemo(): Promise<string> {
   return json.data.episodeId
 }
 
+async function seedPregnancy(): Promise<void> {
+  const r = await fetch(`${API_URL}/api/dev/seed-pregnancy`, { method: 'POST' })
+  if (!r.ok) {
+    const body = await r.text()
+    throw new Error(`Pregnancy seed failed (${r.status}): ${body}`)
+  }
+  console.log('  baby reset to pregnancy state')
+}
+
 async function newCtx(
   browser: Awaited<ReturnType<typeof chromium.launch>>,
   opts: { video?: boolean } = {},
 ): Promise<BrowserContext> {
-  return browser.newContext({
+  const ctx = await browser.newContext({
     ...PIXEL5,
     ...(opts.video
       ? { recordVideo: { dir: VIDEOS_DIR, size: { width: 393, height: 851 } } }
       : {}),
   })
+  // Hide TanStack Query DevTools floating icon in every page loaded from this context
+  await ctx.addInitScript(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      .tsqd-parent-container,
+      [data-testid="open-react-query-devtools"],
+      button[aria-label*="TanStack" i],
+      button[aria-label*="devtools" i]
+      { display: none !important; }`
+    document.head.appendChild(style)
+  })
+  return ctx
 }
 
 async function login(page: Page): Promise<void> {
@@ -87,6 +108,20 @@ async function shot(page: Page, name: string): Promise<void> {
 // Rename the Playwright video UUID file to a meaningful name.
 // Pass the page BEFORE calling ctx.close() — after close, ctx.pages() is empty.
 // Playwright finalises the file on context close, so path() must be awaited after close.
+// Login in a non-recording context and return cookies.
+// The server rotates refresh tokens on every /api/auth/refresh call, so these cookies
+// are single-use: consume them in one GIF context before calling this again.
+async function getFreshCookies(
+  browser: Awaited<ReturnType<typeof chromium.launch>>,
+): Promise<ReturnType<BrowserContext['cookies']>> {
+  const ctx = await newCtx(browser)
+  const page = await ctx.newPage()
+  await login(page)
+  const cookies = await ctx.cookies()
+  await ctx.close()
+  return cookies
+}
+
 async function renameVideo(page: Awaited<ReturnType<BrowserContext['newPage']>>, baseName: string): Promise<void> {
   const src = await page.video()?.path()
   if (src && fs.existsSync(src)) {
@@ -101,12 +136,29 @@ async function renameVideo(page: Awaited<ReturnType<BrowserContext['newPage']>>,
 
 async function main(): Promise<void> {
   fs.mkdirSync(MOBILE_DIR, { recursive: true })
+  // Clear videos dir so stale files from prior failed runs don't get converted to GIFs
+  if (fs.existsSync(VIDEOS_DIR)) {
+    for (const f of fs.readdirSync(VIDEOS_DIR)) fs.rmSync(path.join(VIDEOS_DIR, f))
+  }
   fs.mkdirSync(VIDEOS_DIR, { recursive: true })
 
-  console.log('Seeding demo data…')
-  const episodeId = await seedDemo()
-
   const browser = await chromium.launch({ slowMo: 80 })
+
+  // ─ dashboard-pregnancy.png — pregnancy dashboard (before born-baby seed) ─────
+  console.log('\nCapturing pregnancy dashboard…')
+  await seedPregnancy()
+  {
+    const ctx = await newCtx(browser)
+    const page = await ctx.newPage()
+    await login(page)
+    await page.waitForTimeout(600)
+    await shot(page, 'dashboard-pregnancy.png')
+    await ctx.close()
+  }
+
+  // ─ Seed full born-baby demo data ─────────────────────────────────────────────
+  console.log('\nSeeding born-baby demo data…')
+  const episodeId = await seedDemo()
 
   // ─ login.png ─────────────────────────────────────────────────────────────────
   console.log('\nCapturing static screenshots…')
@@ -119,7 +171,9 @@ async function main(): Promise<void> {
     await ctx.close()
   }
 
-  // Shared authenticated context for the remaining static shots
+  // Shared authenticated context for the remaining static shots.
+  // We extract cookies after login so GIF contexts can skip the login flow entirely
+  // (avoids the flash of the login form being filled in the recording).
   const ctx = await newCtx(browser)
   const page = await ctx.newPage()
   await login(page)
@@ -236,14 +290,17 @@ async function main(): Promise<void> {
 
   await ctx.close()
 
-  // ── GIF flows (recorded as MP4, converted by make-gifs.sh) ───────────────────
+  // ── GIF flows (recorded as MP4/webm, converted by make-gifs.sh) ──────────────
+  // The server rotates refresh tokens on every /api/auth/refresh call, so each GIF
+  // context needs its own fresh login (captured in a non-recording context first).
+  // This avoids the login-form flash inside the recording.
   console.log('\nRecording GIF flows…')
 
   // ─ dashboard.gif — feeding timer ticking for ~5s ─────────────────────────────
   {
     const gifCtx = await newCtx(browser, { video: true })
+    await gifCtx.addCookies(await getFreshCookies(browser))
     const p = await gifCtx.newPage()
-    await login(p)
     await p.goto(`${FRONTEND_URL}/`, { waitUntil: 'networkidle' })
     await p.waitForTimeout(5500)
     await gifCtx.close()
@@ -253,8 +310,8 @@ async function main(): Promise<void> {
   // ─ sleep.gif — active nap timer already running from seed ────────────────────
   {
     const gifCtx = await newCtx(browser, { video: true })
+    await gifCtx.addCookies(await getFreshCookies(browser))
     const p = await gifCtx.newPage()
-    await login(p)
     await p.goto(`${FRONTEND_URL}/sleep`, { waitUntil: 'networkidle' })
     await p.waitForTimeout(5500)
     await gifCtx.close()
@@ -264,13 +321,17 @@ async function main(): Promise<void> {
   // ─ sos-sheet.gif — SOS bottom sheet slides up ────────────────────────────────
   {
     const gifCtx = await newCtx(browser, { video: true })
+    await gifCtx.addCookies(await getFreshCookies(browser))
     const p = await gifCtx.newPage()
-    await login(p)
     await p.goto(`${FRONTEND_URL}/`, { waitUntil: 'networkidle' })
-    // Icon-variant SOS button in the dashboard header — force:true bypasses Playwright's
-    // visibility actionability check (the element may be obscured by header layering in headless mode)
-    await p.waitForTimeout(1000)
-    await p.locator('[title="Send SOS alert to partner"]').click({ force: true })
+    // The SOS button renders after usePregnancyStatus resolves (born=true), which
+    // fires sequentially after auth refresh. Poll the DOM directly rather than
+    // using waitForSelector, which can be unreliable inside a recording context.
+    await p.waitForFunction(() => document.querySelector('[title*="SOS"]') !== null, { timeout: 12000 })
+    await p.waitForTimeout(300)
+    // force:true bypasses Playwright's visibility actionability check — the button
+    // may be partially obscured by header layering in headless mode
+    await p.locator('[title*="SOS"]').first().click({ force: true })
     await p.waitForTimeout(3000)
     await gifCtx.close()
     await renameVideo(p, 'sos-sheet')
@@ -280,8 +341,8 @@ async function main(): Promise<void> {
 
   console.log('\nDone.')
   console.log('  Static screenshots → docs/screenshots/mobile/')
-  console.log('  MP4 recordings     → docs/screenshots/videos/')
-  console.log('  Run `npm run screenshots:gifs` to convert MP4s to GIFs.')
+  console.log('  Video recordings   → docs/screenshots/videos/')
+  console.log('  Run `npm run screenshots:gifs` to convert to GIFs.')
 }
 
 main().catch((err) => {
