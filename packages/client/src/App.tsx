@@ -22,13 +22,16 @@ import { DiaperPage } from '@features/diaper'
 import { AlertsPage, SOSAlert } from '@features/alerts'
 import { MorePage } from '@features/more'
 import { MedicationPage } from '@features/medication'
-import { WeightPage } from '@features/weight'
+import { WeightPage, GrowthPage } from '@features/weight'
 import { TummyTimePage } from '@features/tummyTime'
 import { MoodPage } from '@features/mood'
 import { HistoryPage } from '@features/history'
 import { CalendarPage } from '@features/calendar'
 import { ChatPage } from '@features/ai'
 import { IllnessPage, IllnessLandingPage, illnessKeys } from '@features/illness'
+import { MilestonesPage } from '@features/milestones'
+import { VaccinationsPage } from '@features/vaccinations'
+import { BabyNamesPage } from '@features/babyNames'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null; birthDate: string | null }
 
@@ -192,6 +195,7 @@ export default function App() {
               <Route path="/more" element={<MorePage />} />
               <Route path="/medication" element={<MedicationPage />} />
               <Route path="/weight" element={<WeightPage />} />
+              <Route path="/growth" element={<GrowthPage />} />
               <Route path="/tummy-time" element={<TummyTimePage />} />
               <Route path="/mood" element={<MoodPage />} />
               <Route path="/history" element={<HistoryPage />} />
@@ -199,6 +203,9 @@ export default function App() {
               <Route path="/ai/chat" element={<ChatPage />} />
               <Route path="/illness" element={<IllnessLandingPage />} />
               <Route path="/illness/:id" element={<IllnessPage />} />
+              <Route path="/milestones" element={<MilestonesPage />} />
+              <Route path="/vaccinations" element={<VaccinationsPage />} />
+              <Route path="/names" element={<BabyNamesPage />} />
             </Route>
           </Routes>
           <SOSAlert />

@@ -5,13 +5,13 @@
 
 ---
 
-## Progress Update — May 2026
+## Progress Update — June 2026
 
-**Phases 1–5 are complete.** The core tracking loop (feeding, sleep, diaper), all health & growth screens, AI integration (NL logging, pattern insights, chat assistant, weekly digest), and the full design polish pass are all shipped to production on Unraid.
+**Phases 1–5 and the first 3 items of Phase 6 are complete.** Height tracking, milestone checklist, and vaccination tracker are shipped. The Baby Name Tracker (Phase 6.Names) is also complete — names with full-name preview and emoji reactions for both parents.
 
-**Currently in testing mode** with synthetic data — reports (Phase 6 data export) not yet validated against real data.
+**Currently in progress:** Phase 6 remaining items (Data Export, Push Notifications, Settings Page, Final QA).
 
-**Up next:** Phase 5.5 ESM Migration (server modernisation), Phase 5.AI-Hardening (cost & safety guards before baby arrives), Phase 5.Illness (Sick Baby episode tracking, a new feature planned for use from day one), then Phase 6 (Polish: milestones, vaccinations, export, settings).
+**Up next:** Data Export page (`/settings/export`), Settings page, push notification reminders.
 
 ---
 
@@ -1278,10 +1278,10 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 - [x] Socket.io: emit `illness:started`, `illness:ended`, `illness:symptom:added`, `illness:temp:logged` events
 - [x] Client: `App.tsx` socket handlers invalidate illness query cache on all four events
 
-#### Quick Log — "Sick Baby" Command ✅ Partial
+#### Quick Log — "Sick Baby" Command ✅ Complete
 
-- [ ] Extend the NL log parser (`POST /api/ai/log`) to recognise "sick baby" intent alongside the existing log intents
-- [ ] When NL parser returns `intent: "illness:start"`: if no active episode, open a new one and prompt for symptoms; if one is already active, show the current episode summary instead of creating a duplicate
+- [x] Extend the NL log parser (`POST /api/ai/log`) to recognise "sick baby" intent alongside the existing log intents (`illness_start` intent in `services/ai.ts`)
+- [x] When NL parser returns `intent: "illness:start"`: if no active episode, open a new one and prompt for symptoms; if one is already active, the server returns 409 and the client navigates to the existing episode via `onIllnessStarted` callback
 - [x] Dashboard quick-log input shows "sick baby" start button when no episode is active
 - [x] When an episode is active, the quick-log area shows "Logging to illness episode" context label
 
@@ -1334,32 +1334,35 @@ Scope expanded beyond original plan to include activity+mood combining, custom a
 
 **Goal:** App feels production-quality and ready for the intense first weeks of newborn life.
 
-#### Height Tracking + Growth Chart
+#### Height Tracking + Growth Chart ✅ Complete
 
 Companion to the existing weight chart — log height measurements from checkups and visualise them on a line chart with WHO percentile curves.
 
-- [ ] Add `HeightLog` to Prisma schema + migrate (`add_height_log`)
-- [ ] Height entry UI: inches (with cm/in toggle; stored normalised as inches)
-- [ ] Growth chart: line chart of height over time (same Recharts pattern as weight chart)
-- [ ] WHO length/height percentile overlay (hardcode percentile curves for 0–6 months, same approach as weight)
-- [ ] Combine weight and height into a unified "Growth" page (or tab strip) so both charts are reachable in one place
+- [x] Add `HeightLog` to Prisma schema + migrate (`add_height_vaccinations_names`)
+- [x] Height entry UI: inches (with cm/in toggle; stored normalised as inches)
+- [x] Growth chart: line chart of height over time (same Recharts pattern as weight chart)
+- [x] WHO length/height percentile overlay (hardcode percentile curves for 0–6 months, same approach as weight) — `whoHeightData.ts`
+- [x] Combine weight and height into a unified "Growth" page (tab strip) at `/growth` — `GrowthPage.tsx` with Weight/Height tabs; sidebar and MorePage updated
 
 **Acceptance criteria:**
 - Height entry takes the same number of taps as weight entry
 - Height chart renders correctly on mobile with WHO percentile lines visually distinct from actual data
 
-#### Milestone Tracking
+#### Milestone Tracking ✅ Complete
 
-- [ ] Add Milestone to Prisma schema + migrate
-- [ ] Pre-seed CDC developmental milestones for months 1–6
-- [ ] Milestone checklist UI: grouped by age/category
-- [ ] Mark milestone achieved with date + optional photo note
+- [x] `Milestone` model was already in Prisma schema (added Phase 4); `MilestoneCategory` enum includes `CUSTOM`
+- [x] Pre-seed CDC developmental milestones for months 1–6 — auto-seeded on first `GET /api/milestones?babyId=` call when no milestones exist for a baby
+- [x] Milestone checklist UI at `/milestones`: grouped by category with collapsible sections, progress bar per category, overall progress bar
+- [x] Mark milestone achieved with date (inline date picker on tap) — can also un-achieve; custom milestones can be deleted
+- [x] Add custom milestone via inline form; `POST /api/milestones` for custom, `DELETE /api/milestones/:id` for custom only
+- [x] Socket.io: emit `milestone:created` / `milestone:updated` / `milestone:deleted`
+- [x] Accessible from Health section in sidebar + More page (Star icon)
 
 **Acceptance criteria:**
 - All CDC milestones for 0–6 months pre-populated
 - Marking a milestone takes 2 taps
 
-#### Vaccination Tracker
+#### Vaccination Tracker ✅ Complete
 
 Not a replacement for official records — a quick reference to track which doses have been administered and when.
 
@@ -1372,17 +1375,16 @@ CDC-recommended schedule for 0–18 months, each entry with a key, display name,
 - HepB (Doses 1–3), RV (Doses 1–3), DTaP (Doses 1–4), Hib (Doses 1–4), PCV (Doses 1–4), IPV (Doses 1–3), COVID-19, Influenza, MMR (Dose 1), Varicella (Dose 1), HepA (Dose 1)
 
 **Tasks:**
-- [ ] Add `VaccinationRecord` to Prisma schema + migrate; add `vaccinationRecords` relation to `Baby`
-- [ ] Shared vaccine schedule list in `packages/shared/src/vaccines.ts` — array of `{ key, name, doseNumber, recommendedAge }` objects
-- [ ] REST endpoints: `POST /api/vaccinations` (log a dose), `GET /api/vaccinations?babyId=`, `PATCH /api/vaccinations/:id`, `DELETE /api/vaccinations/:id`
-- [ ] Vaccination page UI at `/vaccination` (accessible from Health section in sidebar + More page)
-  - Full schedule displayed grouped by age window (Birth, 2 months, 4 months, etc.)
-  - Administered doses: shown with date, greyed out, non-selectable — full schedule always visible so parents can see what's upcoming
-  - Not-yet-administered doses: selectable from a dropdown/picker or inline tap
-  - Tapping an unadministered dose opens a small form: date (defaults to today), lot number (optional), provider (optional), notes (optional)
+- [x] Add `VaccinationRecord` to Prisma schema + migrate; add `vaccinationRecords` relation to `Baby`
+- [x] Shared vaccine schedule list in `packages/shared/src/vaccines.ts` — array of `{ key, name, doseNumber, recommendedAge, ageWindowMonths }` objects
+- [x] REST endpoints: `POST /api/vaccinations` (log a dose), `GET /api/vaccinations?babyId=`, `PATCH /api/vaccinations/:id`, `DELETE /api/vaccinations/:id`
+- [x] Vaccination page UI at `/vaccinations` (accessible from Health section in sidebar + More page)
+  - Full schedule displayed grouped by age window (Birth, 1–2 months, 2 months, etc.)
+  - Administered doses: shown with date and provider; full schedule always visible so parents can see upcoming doses
+  - Not-yet-administered doses: "Log" button opens inline form with date, lot number, provider, notes
   - Edit and delete buttons on each administered row
-- [ ] Loading skeleton; no layout shift
-- [ ] Socket.io: emit `vaccination:created` / `vaccination:updated` / `vaccination:deleted` for real-time sync
+- [x] Socket.io: emit `vaccination:created` / `vaccination:updated` / `vaccination:deleted` for real-time sync
+- [x] Prominent disclaimer on every page: "This is an informal record — not an official medical document."
 
 **Acceptance criteria:**
 - Full CDC schedule visible at a glance; administered doses clearly distinguished from pending
@@ -1449,6 +1451,66 @@ Centralized `/settings` route — one page with feature-scoped sections. Accessi
 
 - [ ] Full regression test: all features on both phones
 - [ ] Performance audit: Lighthouse PWA score ≥ 90
+
+---
+
+### Phase 6.Names: Baby Name Tracker
+
+**Goal:** Both parents can build a shared list of first/middle name candidates, see each full name preview with the family surname, and react to each other's additions with emoji — creating a low-friction way to find a name you both love.
+
+**Context:** Added as a Phase 6 companion feature. Routes already connected; Prisma models `BabyName` and `BabyNameReaction` already in schema + migrated.
+
+#### Data model
+
+```prisma
+model BabyName {
+  id          String             @id @default(cuid())
+  babyId      String
+  baby        Baby               @relation(...)
+  firstName   String
+  middleName  String?
+  addedById   String             // user who added it; can only edit/delete their own
+  reactions   BabyNameReaction[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model BabyNameReaction {
+  id        String   @id @default(cuid())
+  nameId    String
+  name      BabyName @relation(...)
+  userId    String
+  emoji     String   // one emoji per user per name (upsert)
+  @@unique([nameId, userId])
+}
+```
+
+#### Configuration
+
+- `VITE_FAMILY_SURNAME` client env var controls the surname shown in the full-name preview (e.g. `VITE_FAMILY_SURNAME=Stone` shows "Emma Grace Stone"). Falls back to empty if not set.
+
+#### Tasks ✅ Complete
+
+- [x] `BabyName` and `BabyNameReaction` added to Prisma schema; migrated (`add_height_vaccinations_names`)
+- [x] `addBabyNameSchema`, `updateBabyNameSchema`, `reactToBabyNameSchema` in `packages/shared/src/schemas/babyName.ts`
+- [x] `GET /api/baby-names?babyId=` — list all names with reactions included
+- [x] `POST /api/baby-names` — add a name; addedById set server-side from JWT
+- [x] `PATCH /api/baby-names/:id` — edit first/middle name; 403 if not your name
+- [x] `DELETE /api/baby-names/:id` — delete; 403 if not your name
+- [x] `PUT /api/baby-names/:id/reaction` — upsert one emoji reaction per user per name
+- [x] `DELETE /api/baby-names/:id/reaction` — remove your reaction
+- [x] Socket.io: emit `babyName:created`, `babyName:updated`, `babyName:deleted`, `babyName:reacted` for real-time sync
+- [x] Client feature at `/names`: `BabyNamesPage`, `useBabyNames` hook
+  - Full name preview: First + Middle + FAMILY_SURNAME for each candidate
+  - Your reaction: single emoji from a picker (8 choices); tap to remove
+  - Partner reaction: shown alongside your own
+  - Add / Edit / Delete your own names; can't edit partner's names
+- [x] Accessible from Pregnancy group in sidebar + More page (Baby icon)
+
+**Acceptance criteria:**
+- Adding a name and seeing the full-name preview takes 2 taps
+- Partner's reaction appears in real time without page refresh
+- Family surname shown in preview when `VITE_FAMILY_SURNAME` is set
 
 ---
 
@@ -1584,6 +1646,32 @@ Tailscale is optional but gives the cleanest remote access story — app stays o
   - Update Nginx to serve on 443 with the Tailscale-issued cert (`/var/lib/tailscale/certs/`)
   - Test: open the app from each phone on both WiFi and mobile data
   - Optional: lock down the tailnet ACL so only the two parent devices can reach the server
+
+#### Theme Customization Guide
+
+Forking families may want different accent colors — e.g. a family that knows the gender might want all-pink or all-blue rather than the default gender-neutral pink↔blue gradient used on the Baby Names page.
+
+**Approach:** All theme color tokens live in a single config file so forkers can retheme the app without touching component code.
+
+**Tasks:**
+- [ ] Create `packages/client/src/lib/theme.ts` — export a `THEME` object with named color tokens:
+  ```ts
+  export const THEME = {
+    // Baby Names page gradient endpoints — change both to retheme that page
+    namesFrom: 'pink-500',   // Tailwind color stop, left side
+    namesTo:   'blue-500',   // Tailwind color stop, right side
+    // Primary action color used across the rest of the app
+    primary: 'indigo',       // Tailwind color family used for buttons, rings, etc.
+  }
+  ```
+- [ ] Update `BabyNamesPage` to read `THEME.namesFrom` / `THEME.namesTo` for the gradient (instead of hardcoded Tailwind classes). Because Tailwind purges unused classes, ship a `safelist` in `tailwind.config.ts` covering the full set of gradient variants for the supported color pairs.
+- [ ] Document the customization in a **"Customising the theme"** section in `README` on the `forkable` branch: list the supported color pairs, explain the safelist requirement, and show a before/after example.
+- [ ] Add `VITE_NAMES_GRADIENT_FROM` and `VITE_NAMES_GRADIENT_TO` as optional client env vars (defaulting to `pink-500` / `blue-500`) so families can override without touching source code — just set them in `.env` before building.
+
+**Acceptance criteria:**
+- A forker can change the Baby Names gradient to all-pink (girl) or all-blue (boy) by setting two env vars and rebuilding — no component code changes required
+- The rest of the app's primary color can be changed in one place in `theme.ts`
+- The customization is documented on the `forkable` branch README
 
 **Acceptance criteria:**
 - Someone with a Docker-capable home server can follow the Docker Compose guide and reach the app on their phone with no prior questions answered by us

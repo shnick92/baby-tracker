@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma'
+import { CDC_MILESTONES } from '@tracker/shared'
 
 export const devRouter = Router()
 
@@ -43,6 +44,8 @@ devRouter.post('/seed-demo', async (_req, res) => {
     prisma.moodLog.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.tummyTimeLog.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.weightLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.heightLog.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.vaccinationRecord.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.aIConversationLog.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.purchase.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.visitorSlot.deleteMany({ where: { babyId: BABY_ID } }),
@@ -50,6 +53,11 @@ devRouter.post('/seed-demo', async (_req, res) => {
 
   // Phase 2: delete episodes (now safe; cascades symptoms via DB)
   await prisma.sicknessEpisode.deleteMany({ where: { babyId: BABY_ID } })
+
+  // Phase 3: wipe milestones and baby names (separate from episode FK chain)
+  await prisma.babyNameReaction.deleteMany({ where: { name: { babyId: BABY_ID } } })
+  await prisma.babyName.deleteMany({ where: { babyId: BABY_ID } })
+  await prisma.milestone.deleteMany({ where: { babyId: BABY_ID } })
 
   // ── Update baby ───────────────────────────────────────────────────────────────
 
@@ -351,6 +359,71 @@ devRouter.post('/seed-demo', async (_req, res) => {
     { babyId: BABY_ID, name: 'Work Colleagues', date: dateStr(5), startTime: null, endTime: null, notes: 'Afternoon visit' },
   ]
 
+  // ── Height logs — 3 measurements spanning 6 weeks ────────────────────────────
+
+  const heightData = [
+    { babyId: BABY_ID, loggedById: USER2, inches: 19.5, recordedAt: ago(42), notes: 'Birth length' },
+    { babyId: BABY_ID, loggedById: USER1, inches: 21.0, recordedAt: ago(28), notes: '2 week checkup' },
+    { babyId: BABY_ID, loggedById: USER2, inches: 22.5, recordedAt: ago(7), notes: '1 month checkup' },
+  ]
+
+  // ── Milestones — seed all CDC milestones; mark a handful as achieved ─────────
+
+  const milestoneInserts = CDC_MILESTONES.map((m) => ({
+    babyId: BABY_ID,
+    category: m.category,
+    label: m.label,
+  }))
+
+  await prisma.milestone.createMany({ data: milestoneInserts })
+
+  // Mark a few 1-month milestones as achieved (baby is 6 weeks old)
+  const achievedLabels = [
+    'Lifts head briefly when on tummy',
+    'Looks at your face',
+    'Makes sounds other than crying',
+    'Reacts to loud sounds',
+    'Seems calmer when spoken to or picked up',
+    'Smiles when you talk or smile (social smile)',
+  ]
+  for (const label of achievedLabels) {
+    await prisma.milestone.updateMany({
+      where: { babyId: BABY_ID, label },
+      data: { achievedAt: ago(7 + Math.floor(Math.random() * 14)) },
+    })
+  }
+
+  // ── Vaccination records — first doses administered at birth and 2 weeks ──────
+
+  const vaccinationData = [
+    { babyId: BABY_ID, vaccineKey: 'hepb-1', administeredAt: ago(42), lotNumber: 'AB12345', provider: 'Hospital L&D', notes: 'Given in hospital at birth' },
+    { babyId: BABY_ID, vaccineKey: 'hepb-2', administeredAt: ago(7), lotNumber: null, provider: 'Dr. Nguyen', notes: '1 month checkup' },
+  ]
+
+  // ── Baby names — a few candidates with reactions ──────────────────────────────
+
+  const nameEntries = [
+    { babyId: BABY_ID, firstName: 'Eleanor', middleName: 'Rose', addedById: USER1 },
+    { babyId: BABY_ID, firstName: 'Charlotte', middleName: 'Mae', addedById: USER2 },
+    { babyId: BABY_ID, firstName: 'Vivian', middleName: null, addedById: USER1 },
+    { babyId: BABY_ID, firstName: 'Juniper', middleName: 'Grace', addedById: USER2 },
+  ]
+
+  // Insert names one by one so we get their IDs for reactions
+  const createdNames = await Promise.all(
+    nameEntries.map((n) => prisma.babyName.create({ data: n }))
+  )
+
+  // Seed reactions: USER1 loves Eleanor, likes Charlotte; USER2 likes Eleanor, loves Charlotte
+  const reactionData = [
+    { nameId: createdNames[0]!.id, userId: USER1, emoji: '❤️' },
+    { nameId: createdNames[0]!.id, userId: USER2, emoji: '😍' },
+    { nameId: createdNames[1]!.id, userId: USER1, emoji: '🤔' },
+    { nameId: createdNames[1]!.id, userId: USER2, emoji: '❤️' },
+    { nameId: createdNames[2]!.id, userId: USER1, emoji: '✨' },
+    { nameId: createdNames[3]!.id, userId: USER2, emoji: '😍' },
+  ]
+
   // ── Insert everything ─────────────────────────────────────────────────────────
 
   await Promise.all([
@@ -358,6 +431,9 @@ devRouter.post('/seed-demo', async (_req, res) => {
     prisma.sleepLog.createMany({ data: sleepData }),
     prisma.diaperLog.createMany({ data: diaperData }),
     prisma.weightLog.createMany({ data: weightData }),
+    prisma.heightLog.createMany({ data: heightData }),
+    prisma.vaccinationRecord.createMany({ data: vaccinationData }),
+    prisma.babyNameReaction.createMany({ data: reactionData }),
     prisma.aIConversationLog.createMany({ data: aiData }),
     prisma.purchase.createMany({ data: purchaseData }),
     prisma.temperatureLog.createMany({ data: tempLogs }),

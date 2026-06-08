@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Sparkles, Thermometer } from 'lucide-react'
+import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Sparkles, Thermometer, Syringe, Star, Baby } from 'lucide-react'
 import { useAuthStore } from '@stores/authStore'
 
 type MoreItem = {
@@ -47,10 +47,28 @@ const MEDICATION: MoreItem = {
   description: 'Track medications, doses, and timing',
 }
 const WEIGHT: MoreItem = {
-  to: '/weight',
+  to: '/growth',
   icon: <Scale size={22} />,
   label: 'Weight & Growth',
-  description: 'Weight log and growth chart with WHO reference',
+  description: 'Weight & height logs with WHO reference charts',
+}
+const MILESTONES: MoreItem = {
+  to: '/milestones',
+  icon: <Star size={22} />,
+  label: 'Milestones',
+  description: 'Track CDC developmental milestones and custom achievements',
+}
+const VACCINATIONS: MoreItem = {
+  to: '/vaccinations',
+  icon: <Syringe size={22} />,
+  label: 'Vaccinations',
+  description: 'Track administered doses against the CDC recommended schedule',
+}
+const BABY_NAMES: MoreItem = {
+  to: '/names',
+  icon: <Baby size={22} />,
+  label: 'Baby Names',
+  description: 'Add name candidates and react with your partner',
 }
 const TUMMY_TIME: MoreItem = {
   to: '/tummy-time',
@@ -92,15 +110,15 @@ const PREGNANCY_PREP: MoreItem = {
 // ── Groups ─────────────────────────────────────────────────────────────────
 
 const BABY_MODE_GROUPS: MoreGroup[] = [
-  { label: 'Health', items: [ILLNESS, AI_CHAT, MEDICATION, WEIGHT, TUMMY_TIME, MOOD] },
+  { label: 'Health', items: [ILLNESS, AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
   { label: 'Planning', items: [VISITORS, PURCHASES, PREGNANCY_PREP] },
   { label: 'System', items: [ALERTS] },
 ]
 
 const PREGNANCY_MODE_GROUPS: MoreGroup[] = [
-  { label: 'Planning', items: [PREGNANCY_PREP, PURCHASES, VISITORS] },
-  { label: 'Health', items: [AI_CHAT, MEDICATION, WEIGHT, TUMMY_TIME, MOOD, ILLNESS] },
+  { label: 'Planning', items: [BABY_NAMES, PREGNANCY_PREP, PURCHASES, VISITORS] },
+  { label: 'Health', items: [AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD, ILLNESS] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
   { label: 'System', items: [ALERTS] },
 ]

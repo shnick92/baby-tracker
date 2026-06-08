@@ -1,4 +1,7 @@
 export { WeightPage } from './WeightPage'
+export { GrowthPage } from './GrowthPage'
 export { useWeightLogs, formatWeight, totalLbs } from './useWeightLogs'
+export { useHeightLogs, formatHeight, heightKeys } from './useHeightLogs'
 export { weightKeys } from './queryKeys'
 export type { WeightLog } from './useWeightLogs'
+export type { HeightLog } from './useHeightLogs'

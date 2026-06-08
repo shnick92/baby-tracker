@@ -14,6 +14,9 @@ import {
   MoreHorizontal,
   Sparkles,
   Thermometer,
+  Syringe,
+  Star,
+  Baby,
 } from 'lucide-react'
 
 const TopbarActionsContext = createContext<(node: React.ReactNode) => void>(() => {})
@@ -64,10 +67,18 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { to: '/illness', label: 'Illness Tracker', icon: <Thermometer size={16} />, prefix: '/illness' },
       { to: '/medication', label: 'Medication', icon: <Pill size={16} />, prefix: '/medication' },
-      { to: '/weight', label: 'Weight & Growth', icon: <Scale size={16} />, prefix: '/weight' },
+      { to: '/growth', label: 'Weight & Growth', icon: <Scale size={16} />, prefix: '/growth' },
+      { to: '/milestones', label: 'Milestones', icon: <Star size={16} />, prefix: '/milestones' },
+      { to: '/vaccinations', label: 'Vaccinations', icon: <Syringe size={16} />, prefix: '/vaccinations' },
       { to: '/tummy-time', label: 'Tummy Time', icon: <span className="text-sm">🐢</span>, prefix: '/tummy-time' },
       { to: '/mood', label: 'Mood & Activity', icon: <span className="text-sm">😊</span>, prefix: '/mood' },
       { to: '/ai/chat', label: 'Is This Normal?', icon: <Sparkles size={16} />, prefix: '/ai' },
+    ],
+  },
+  {
+    label: 'Pregnancy',
+    items: [
+      { to: '/names', label: 'Baby Names', icon: <Baby size={16} />, prefix: '/names' },
     ],
   },
   {
@@ -109,12 +120,16 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/alerts') ||
     pathname.startsWith('/medication') ||
     pathname.startsWith('/weight') ||
+    pathname.startsWith('/growth') ||
     pathname.startsWith('/tummy-time') ||
     pathname.startsWith('/mood') ||
     pathname.startsWith('/history') ||
     pathname.startsWith('/calendar') ||
     pathname.startsWith('/ai') ||
-    pathname.startsWith('/illness')
+    pathname.startsWith('/illness') ||
+    pathname.startsWith('/milestones') ||
+    pathname.startsWith('/vaccinations') ||
+    pathname.startsWith('/names')
   )
 }
 
@@ -130,12 +145,16 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/alerts')) return 'Alert History'
   if (pathname.startsWith('/medication')) return 'Medication'
   if (pathname.startsWith('/weight')) return 'Weight'
+  if (pathname.startsWith('/growth')) return 'Weight & Growth'
   if (pathname.startsWith('/tummy-time')) return 'Tummy Time'
   if (pathname.startsWith('/mood')) return 'Mood & Activity'
   if (pathname.startsWith('/history')) return 'History & Reports'
   if (pathname.startsWith('/calendar')) return 'Calendar'
   if (pathname.startsWith('/ai')) return 'Is This Normal?'
   if (pathname.startsWith('/illness')) return 'Illness Tracker'
+  if (pathname.startsWith('/milestones')) return 'Milestones'
+  if (pathname.startsWith('/vaccinations')) return 'Vaccinations'
+  if (pathname.startsWith('/names')) return 'Baby Names'
   return 'Baby Tracker'
 }
 

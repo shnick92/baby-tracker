@@ -61,11 +61,13 @@ model Baby {
   sleepLogs       SleepLog[]
   diaperLogs      DiaperLog[]
   weightLogs      WeightLog[]
+  heightLogs      HeightLog[]
   medicationLogs  MedicationLog[]
   tummyTimeLogs   TummyTimeLog[]
   moodLogs        MoodLog[]
-  customActivities CustomActivity[]
-  milestones      Milestone[]
+  customActivities    CustomActivity[]
+  milestones          Milestone[]
+  vaccinationRecords  VaccinationRecord[]
   sleepSettings       SleepSettings?
   emergencyAlerts     EmergencyAlert[]
   aiConversationLogs  AIConversationLog[]
@@ -73,6 +75,7 @@ model Baby {
   aiUsageLogs         AIUsageLog[]
   sicknessEpisodes    SicknessEpisode[]
   temperatureLogs     TemperatureLog[]
+  babyNames           BabyName[]
 }
 
 model BabyUser {
@@ -497,4 +500,54 @@ enum TempMethod {
   RECTAL
   AXILLARY
   ORAL
+}
+
+// Height stored in inches; UI offers cm/in toggle
+model HeightLog {
+  id         String   @id @default(cuid())
+  babyId     String
+  baby       Baby     @relation(fields: [babyId], references: [id])
+  loggedById String
+  inches     Float
+  recordedAt DateTime
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+
+// vaccineKey is a plain string referencing the hardcoded schedule in packages/shared/src/vaccines.ts
+model VaccinationRecord {
+  id             String   @id @default(cuid())
+  babyId         String
+  baby           Baby     @relation(fields: [babyId], references: [id])
+  vaccineKey     String
+  administeredAt DateTime
+  lotNumber      String?
+  provider       String?
+  notes          String?
+  createdAt      DateTime @default(now())
+}
+
+// Baby name candidates — one record per name, one emoji reaction per parent
+model BabyName {
+  id          String     @id @default(cuid())
+  babyId      String
+  baby        Baby       @relation(fields: [babyId], references: [id])
+  firstName   String
+  middleName  String?
+  addedById   String
+  reactions   BabyNameReaction[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model BabyNameReaction {
+  id         String   @id @default(cuid())
+  nameId     String
+  name       BabyName @relation(fields: [nameId], references: [id], onDelete: Cascade)
+  userId     String
+  emoji      String   // single emoji e.g. "❤️" "😍" "🤔" "👎"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([nameId, userId])
 }

@@ -16,6 +16,7 @@ import { sleepRouter } from './routes/sleep'
 import { diaperRouter } from './routes/diaper'
 import { medicationRouter } from './routes/medication'
 import { weightRouter } from './routes/weight'
+import { heightRouter } from './routes/height'
 import { tummyTimeRouter } from './routes/tummyTime'
 import { moodRouter } from './routes/mood'
 import { historyRouter } from './routes/history'
@@ -27,6 +28,9 @@ import settingsRouter from './routes/settings'
 import alertsRouter from './routes/alerts'
 import { aiRouter } from './routes/ai'
 import { illnessRouter } from './routes/illness'
+import { milestonesRouter } from './routes/milestones'
+import { vaccinationsRouter } from './routes/vaccinations'
+import { babyNamesRouter } from './routes/babyNames'
 import { devRouter } from './routes/dev'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
@@ -80,6 +84,7 @@ app.use('/api/sleep', sleepRouter)
 app.use('/api/diaper', diaperRouter)
 app.use('/api/medication', medicationRouter)
 app.use('/api/weight', weightRouter)
+app.use('/api/height', heightRouter)
 app.use('/api/tummy-time', tummyTimeRouter)
 app.use('/api/mood', moodRouter)
 app.use('/api/history', historyRouter)
@@ -90,6 +95,9 @@ app.use('/api/settings', settingsRouter)
 app.use('/api/alerts', alertsRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/illness', illnessRouter)
+app.use('/api/milestones', milestonesRouter)
+app.use('/api/vaccinations', vaccinationsRouter)
+app.use('/api/baby-names', babyNamesRouter)
 
 app.use(errorHandler)
 
