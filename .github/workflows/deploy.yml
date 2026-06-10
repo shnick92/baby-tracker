@@ -49,5 +49,6 @@ jobs:
             VITE_API_URL=
             VITE_SOCKET_URL=
             VITE_VAPID_PUBLIC_KEY=${{ secrets.VITE_VAPID_PUBLIC_KEY }}
+            VITE_FAMILY_SURNAME=${{ vars.VITE_FAMILY_SURNAME }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
