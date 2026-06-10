@@ -43,6 +43,8 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `DEMO_BABY_NAME` | `Baby` | Baby name shown in seeded data |
 | `TIMEZONE` | `America/Chicago` | Browser timezone for screenshots |
 
+`VITE_FAMILY_SURNAME` (from `packages/client/.env`) is automatically read and stripped from the baby-names screenshot so no real surname appears in committed images.
+
 ## Screens captured
 
 ### Currently built — captured by this script
@@ -71,17 +73,19 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `mobile/illness-episode.png` | Screenshot | Episode detail — symptoms, temp log, meds |
 | `mobile/illness-report.png` | Screenshot | Doctor handoff report format picker |
 | `mobile/more.png` | Screenshot | "More" navigation menu |
+| `mobile/dashboard.png` | Screenshot | Dashboard — newborn state (feeding/sleep/diaper summary) |
+| `mobile/sleep.png` | Screenshot | Sleep tracker — active nap timer |
+| `mobile/baby-names.png` | Screenshot | Baby name shortlist with emoji reactions (surname stripped) |
 | `gifs/dashboard.gif` | GIF | Dashboard — live feeding timer ticking |
 | `gifs/sleep.gif` | GIF | Sleep tracker — active nap timer running |
 | `gifs/sos-sheet.gif` | GIF | SOS confirmation bottom sheet sliding up |
 
-### Planned Phase 6 screens — add to script when features ship
+### Planned screens — add to script when features ship
 
-| File | Screen | Phase 6 feature |
+| File | Screen | Feature |
 |---|---|---|
 | `mobile/vaccinations.png` | Vaccination tracker — full CDC schedule | Phase 6: Vaccination Tracker |
 | `mobile/milestones.png` | Milestone checklist — grouped by age | Phase 6: Milestone Tracking |
-| `mobile/growth-chart-combined.png` | Combined weight + height chart | Phase 6: Height Tracking |
 | `mobile/settings.png` | Settings page — account, notifications, display | Phase 6: Settings Page |
 | `mobile/export.png` | Data export page — type + date range pickers | Phase 6: Data Export |
 | `mobile/health-summary.png` | Health summary report — section picker | Phase 6: Health Summary Report |
@@ -112,6 +116,7 @@ Each run of `npm run screenshots` wipes and recreates:
 - Hospital bag checklist ~60% checked
 - 10 purchases (4 BOUGHT, 2 GIFTED, 3 NEEDED, 1 SKIP)
 - 5 visitor slots (generic names, mix of past + upcoming)
+- 4 baby name candidates with emoji reactions from both parents
 - 1 seeded AI Q&A exchange
 
 The `videos/` directory is git-ignored (MP4 files are ~5–20 MB each). The `mobile/` and `gifs/` directories are committed.

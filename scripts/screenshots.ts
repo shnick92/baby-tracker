@@ -30,6 +30,15 @@ const ROOT = path.resolve(__dirname, '..')
 const MOBILE_DIR = path.join(ROOT, 'docs/screenshots/mobile')
 const VIDEOS_DIR = path.join(ROOT, 'docs/screenshots/videos')
 
+// Read VITE_FAMILY_SURNAME from client .env so we can strip it from screenshots
+const clientEnvRaw = fs.existsSync(path.join(ROOT, 'packages/client/.env'))
+  ? fs.readFileSync(path.join(ROOT, 'packages/client/.env'), 'utf8')
+  : ''
+const FAMILY_SURNAME = (() => {
+  const line = clientEnvRaw.split('\n').find((l) => l.startsWith('VITE_FAMILY_SURNAME='))
+  return line ? line.split('=').slice(1).join('=').trim() : ''
+})()
+
 // Pixel 5 — 393×851 logical px, 2.75× DPR, Android Chrome UA
 const PIXEL5 = {
   viewport: { width: 393, height: 851 },
@@ -280,13 +289,41 @@ async function main(): Promise<void> {
   await page.waitForTimeout(300)
   await shot(page, 'more.png')
 
+  // ─ dashboard.png — newborn state dashboard (static, replaces dashboard.gif) ───
+  await page.goto(`${FRONTEND_URL}/`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(600)
+  await shot(page, 'dashboard.png')
+
+  // ─ sleep.png — sleep page with active nap timer (static, replaces sleep.gif) ──
+  await page.goto(`${FRONTEND_URL}/sleep`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await shot(page, 'sleep.png')
+
+  // ─ baby-names.png — name candidates with emoji reactions ─────────────────────
+  // Strips VITE_FAMILY_SURNAME from rendered text so no real surname appears in
+  // the screenshot (it's baked into the bundle at build time).
+  await page.goto(`${FRONTEND_URL}/names`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  if (FAMILY_SURNAME) {
+    await page.evaluate((surname) => {
+      const pattern = new RegExp('\\s+' + surname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+      const walk = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+          node.textContent = node.textContent.replace(pattern, '')
+        }
+        node.childNodes.forEach(walk)
+      }
+      walk(document.body)
+    }, FAMILY_SURNAME)
+  }
+  await shot(page, 'baby-names.png')
+
   // ── Planned Phase 6 screens — add captures here when features ship ────────────
   // TODO vaccinations.png   → /vaccination   (Phase 6: Vaccination Tracker)
   // TODO milestones.png     → /milestones    (Phase 6: Milestone Tracking)
   // TODO settings.png       → /settings      (Phase 6: Settings Page)
   // TODO export.png         → /settings/export (Phase 6: Data Export Page)
   // TODO health-summary.png → /settings/export + health summary tab
-  // NOTE growth-chart.png will gain a height series once Phase 6 height tracking ships
 
   await ctx.close()
 

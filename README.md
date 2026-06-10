@@ -6,15 +6,19 @@ A private, self-hosted Progressive Web App for tracking pregnancy milestones and
 
 ## What Does It Look Like?
 
-> Screenshots and GIFs are generated automatically by `npm run screenshots:all`. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for how to run it.
+> Screenshots are generated automatically by `npm run screenshots`. See [`docs/screenshots/README.md`](docs/screenshots/README.md) for how to run it.
 
 | Login | Dashboard | Feeding |
 |:---:|:---:|:---:|
-| ![login](docs/screenshots/mobile/login.png) | ![dashboard](docs/screenshots/gifs/dashboard.gif) | ![feeding](docs/screenshots/mobile/feeding.png) |
+| ![login](docs/screenshots/mobile/login.png) | ![dashboard](docs/screenshots/mobile/dashboard.png) | ![feeding](docs/screenshots/mobile/feeding.png) |
 
 | Sleep | Illness Episode | AI Chat |
 |:---:|:---:|:---:|
-| ![sleep](docs/screenshots/gifs/sleep.gif) | ![illness](docs/screenshots/mobile/illness-episode.png) | ![ai-chat](docs/screenshots/mobile/ai-chat.png) |
+| ![sleep](docs/screenshots/mobile/sleep.png) | ![illness](docs/screenshots/mobile/illness-episode.png) | ![ai-chat](docs/screenshots/mobile/ai-chat.png) |
+
+| Baby Names | Growth Chart | Calendar |
+|:---:|:---:|:---:|
+| ![baby-names](docs/screenshots/mobile/baby-names.png) | ![growth](docs/screenshots/mobile/growth-chart.png) | ![calendar](docs/screenshots/mobile/calendar-all.png) |
 
 ---
 
@@ -115,6 +119,7 @@ The data export page will let you select data types (feeding, sleep, diapers, me
 - Hospital bag checklists (mom's bag, baby's bag, home prep, before-you-leave)
 - Purchase tracker with status cycling (Needed → Bought / Gifted / Skip)
 - Visitor schedule planner with optional time windows
+- Baby name shortlist with per-parent emoji reactions and real-time sync
 
 **Newborn phase (Phase 3+):**
 - Feeding log with live breastfeed timer (left/right side tracking) and bottle/pump volume entry
@@ -238,6 +243,7 @@ Edit `packages/client/.env`:
 VITE_API_URL=https://<your-tailscale-hostname>
 VITE_SOCKET_URL=https://<your-tailscale-hostname>
 VITE_VAPID_PUBLIC_KEY=<same-as-server>
+VITE_FAMILY_SURNAME=<your-family-surname>   # shown in baby name previews; optional
 ```
 
 ### 4. Start the Stack
@@ -267,10 +273,11 @@ This creates exactly two user accounts from your `SEED_USER_*` env vars. After f
 
 ### 7. Set Up CI/CD (Optional)
 
-Push to `main` triggers automatic builds and deploys via Watchtower. Add these secrets to your GitHub repo:
+Push to `main` triggers automatic builds and deploys via Watchtower. Add these secrets and variables to your GitHub repo:
 
-- `DOCKERHUB_USERNAME`
-- `DOCKERHUB_TOKEN`
+- `DOCKERHUB_USERNAME` (secret)
+- `DOCKERHUB_TOKEN` (secret)
+- `VITE_FAMILY_SURNAME` (repository variable — baked into the client bundle at build time)
 
 Configure Watchtower on your server to poll Docker Hub for new images.
 
