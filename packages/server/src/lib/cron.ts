@@ -12,6 +12,7 @@ export async function runWakeWindowCheck(): Promise<void> {
     include: {
       parents: { include: { user: { include: { pushSubscriptions: true } } } },
       sleepSettings: true,
+      notificationSettings: true,
       sleepLogs: { orderBy: { startedAt: 'desc' }, take: 1 },
     },
   })
@@ -19,6 +20,12 @@ export async function runWakeWindowCheck(): Promise<void> {
   const now = Date.now()
 
   for (const baby of babies) {
+    // Wake window alerts default ON; can be disabled per baby in Settings
+    if (baby.notificationSettings?.wakeWindowAlertEnabled === false) {
+      console.log(`[cron] baby ${baby.id}: wake window alerts disabled, skipping`)
+      continue
+    }
+
     const lastSleep = baby.sleepLogs[0]
     if (!lastSleep || lastSleep.endedAt === null) {
       console.log(`[cron] baby ${baby.id}: skipping — no completed sleep log`)
@@ -88,8 +95,15 @@ async function runWeeklySummaries(): Promise<void> {
     return
   }
 
-  const babies = await prisma.baby.findMany({ select: { id: true } })
+  const babies = await prisma.baby.findMany({
+    select: { id: true, notificationSettings: { select: { weeklyDigestEnabled: true } } },
+  })
   for (const baby of babies) {
+    // Weekly digest defaults ON; can be disabled per baby in Settings
+    if (baby.notificationSettings?.weeklyDigestEnabled === false) {
+      console.log(`[cron] baby ${baby.id}: weekly digest disabled, skipping`)
+      continue
+    }
     try {
       const { content, totalFeeds, totalSleepMin, totalDiapers, weightChangeOz } =
         await generateWeeklySummaryText(baby.id)
@@ -144,12 +158,83 @@ async function runDailyCostCheck(io: Server): Promise<void> {
   }
 }
 
+export async function runFeedingReminderCheck(): Promise<void> {
+  const babies = await prisma.baby.findMany({
+    where: { notificationSettings: { feedingReminderEnabled: true } },
+    include: {
+      parents: { include: { user: { include: { pushSubscriptions: true } } } },
+      notificationSettings: true,
+      feedingLogs: { orderBy: { startedAt: 'desc' }, take: 1 },
+    },
+  })
+
+  const now = Date.now()
+
+  for (const baby of babies) {
+    const settings = baby.notificationSettings!
+    const lastFeed = baby.feedingLogs[0]
+    if (!lastFeed) {
+      console.log(`[cron] baby ${baby.id}: no feedings logged, skipping reminder`)
+      continue
+    }
+
+    const sinceMs = now - new Date(lastFeed.startedAt).getTime()
+    const intervalMs = settings.feedingReminderMinutes * 60 * 1000
+    if (sinceMs < intervalMs) continue
+
+    // Cooldown: one reminder per interval
+    if (settings.lastFeedingNotifiedAt) {
+      const sinceNotifyMs = now - new Date(settings.lastFeedingNotifiedAt).getTime()
+      if (sinceNotifyMs < intervalMs) continue
+    }
+
+    const sinceMin = Math.round(sinceMs / 60000)
+    const h = Math.floor(sinceMin / 60)
+    const m = sinceMin % 60
+    const ago = h > 0 ? `${h}h ${m}m` : `${m}m`
+
+    const subs = baby.parents.flatMap((bu) => bu.user.pushSubscriptions)
+    console.log(`[cron] baby ${baby.id}: feeding reminder — last fed ${ago} ago, ${subs.length} subscription(s)`)
+
+    const results = await Promise.allSettled(
+      subs.map((sub) =>
+        sendPush(sub, {
+          title: 'Feeding reminder',
+          body: `No feeding logged in ${ago}. Time for a feed?`,
+        }),
+      ),
+    )
+
+    await Promise.all(results.map(async (r, i) => {
+      if (r.status === 'rejected') {
+        const err = r.reason as WebPushError
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await prisma.pushSubscription.delete({ where: { endpoint: subs[i].endpoint } }).catch(() => {})
+        }
+      }
+    }))
+
+    const anySent = results.some((r) => r.status === 'fulfilled')
+    if (anySent || subs.length === 0) {
+      await prisma.notificationSettings.update({
+        where: { babyId: baby.id },
+        data: { lastFeedingNotifiedAt: new Date() },
+      })
+    }
+  }
+}
+
 export function startCronJobs(io: Server): void {
   cron.schedule('*/5 * * * *', async () => {
     try {
       await runWakeWindowCheck()
     } catch (err) {
       console.error('[cron] wake-window check failed:', err)
+    }
+    try {
+      await runFeedingReminderCheck()
+    } catch (err) {
+      console.error('[cron] feeding reminder check failed:', err)
     }
   })
 

@@ -12,7 +12,7 @@ function todayLocalDate() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 import { useSocketStore } from '@stores/socketStore'
-import { formatTimeAgo, formatDuration } from '@lib/utils'
+import { formatTimeAgo, formatDuration, syncRingClass } from '@lib/utils'
 import { api } from '@lib/axios'
 import { useElapsedSeconds } from '@hooks/useElapsedSeconds'
 import { AddPasskeyButton } from '../auth/AddPasskeyButton'
@@ -28,12 +28,6 @@ import { SOSButton } from '../alerts'
 import { QuickLogInput, InsightsPanel } from '../ai'
 import { IllnessBanner, StartEpisodeSheet, useActiveEpisode } from '../illness'
 import { TempLogSheet } from '../illness/TempLogSheet'
-
-const SOCKET_RING: Record<string, string> = {
-  connecting: '0 0 0 2px #f59e0b',
-  synced: '0 0 0 2px #22c55e',
-  unsynced: '0 0 0 2px #ef4444',
-}
 
 const FEEDING_LABEL: Record<string, string> = {
   BREAST_LEFT: 'Breast · Left',
@@ -659,8 +653,7 @@ export function Dashboard() {
         <div className="flex items-center gap-2">
           {babyId && born && <SOSButton babyId={babyId} />}
           <div
-            className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300"
-            style={{ boxShadow: SOCKET_RING[socketStatus] }}
+            className={`w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300 ${syncRingClass(socketStatus)}`}
           >
             {user?.name?.[0]?.toUpperCase() ?? '?'}
           </div>

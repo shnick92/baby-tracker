@@ -31,6 +31,7 @@ import { illnessRouter } from './routes/illness'
 import { milestonesRouter } from './routes/milestones'
 import { vaccinationsRouter } from './routes/vaccinations'
 import { babyNamesRouter } from './routes/babyNames'
+import { exportRouter } from './routes/export'
 import { devRouter } from './routes/dev'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
 
@@ -92,6 +93,7 @@ app.use('/api/calendar', calendarRouter)
 app.use('/s', shortLinkRouter)
 app.use('/api/push', pushRouter)
 app.use('/api/settings', settingsRouter)
+app.use('/api/export', exportRouter)
 app.use('/api/alerts', alertsRouter)
 app.use('/api/ai', aiRouter)
 app.use('/api/illness', illnessRouter)

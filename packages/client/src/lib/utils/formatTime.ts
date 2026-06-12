@@ -23,6 +23,14 @@ export function formatOz(oz: number): string {
   return `${oz % 1 === 0 ? oz : oz.toFixed(1)} oz`
 }
 
+const ML_PER_OZ = 29.5735
+
+// Formats a stored-oz volume in the user's preferred display unit.
+export function formatVolume(oz: number, unit: 'oz' | 'ml'): string {
+  if (unit === 'ml') return `${Math.round(oz * ML_PER_OZ)} ml`
+  return formatOz(oz)
+}
+
 export function toDatetimeLocal(isoString: string): string {
   const d = new Date(isoString)
   const pad = (n: number) => String(n).padStart(2, '0')

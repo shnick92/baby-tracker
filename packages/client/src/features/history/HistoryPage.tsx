@@ -11,11 +11,12 @@ import {
 } from 'recharts'
 
 import { useAuthStore } from '@stores/authStore'
+import { ExportContent } from '@features/settings'
 
 import { useDailyHistory, useWeeklyHistory } from './useHistory'
 import { HistorySkeleton } from './HistorySkeleton'
 
-type Tab = 'daily' | 'weekly'
+type Tab = 'daily' | 'weekly' | 'export'
 
 function formatSec(sec: number): string {
   if (sec === 0) return '0m'
@@ -286,19 +287,23 @@ export function HistoryPage() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-4 md:max-w-2xl">
-        {/* Tab selector */}
+        {/* Tab selector — flex-nowrap keeps all 3 in a single row on mobile */}
         <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1 mb-4">
-          {(['weekly', 'daily'] as Tab[]).map((t) => (
+          {([
+            ['weekly', 'Summary'],
+            ['daily', 'Daily'],
+            ['export', 'Export'],
+          ] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 tab === t
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
-              {t === 'weekly' ? '7-Day Summary' : 'Daily View'}
+              {label}
             </button>
           ))}
         </div>
@@ -318,8 +323,10 @@ export function HistoryPage() {
 
         {tab === 'weekly' ? (
           <WeeklyView babyId={babyId!} />
-        ) : (
+        ) : tab === 'daily' ? (
           <DailyView babyId={babyId!} date={date} />
+        ) : (
+          <ExportContent />
         )}
       </div>
     </div>

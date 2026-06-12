@@ -12,6 +12,7 @@ import {
   History,
   CalendarDays,
   MoreHorizontal,
+  Settings,
   Sparkles,
   Thermometer,
   Syringe,
@@ -23,16 +24,12 @@ const TopbarActionsContext = createContext<(node: React.ReactNode) => void>(() =
 export const useTopbarActions = () => useContext(TopbarActionsContext)
 
 import { api } from '@lib/axios'
+import { syncRingClass } from '@lib/utils'
 import { useAuthStore } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
 import { SOSButton } from '@features/alerts'
+import { InstallPrompt } from './InstallPrompt'
 import { BabyBottleIcon } from '@components/icons'
-
-const SOCKET_RING: Record<string, string> = {
-  connecting: '0 0 0 2px #f59e0b',
-  synced: '0 0 0 2px #22c55e',
-  unsynced: '0 0 0 2px #ef4444',
-}
 
 type NavItem = {
   to: string
@@ -99,6 +96,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: 'System',
     items: [
       { to: '/alerts', label: 'Alert History', icon: <Bell size={16} />, prefix: '/alerts' },
+      { to: '/settings', label: 'Settings', icon: <Settings size={16} />, prefix: '/settings' },
     ],
   },
 ]
@@ -129,7 +127,8 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/illness') ||
     pathname.startsWith('/milestones') ||
     pathname.startsWith('/vaccinations') ||
-    pathname.startsWith('/names')
+    pathname.startsWith('/names') ||
+    pathname.startsWith('/settings')
   )
 }
 
@@ -155,6 +154,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/milestones')) return 'Milestones'
   if (pathname.startsWith('/vaccinations')) return 'Vaccinations'
   if (pathname.startsWith('/names')) return 'Baby Names'
+  if (pathname.startsWith('/settings')) return 'Settings'
   return 'Baby Tracker'
 }
 
@@ -223,8 +223,7 @@ export function AppLayout() {
           {babyId && <SOSButton babyId={babyId} variant="full" />}
           <div className="flex items-center gap-3 px-1">
             <div
-              className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300 flex-shrink-0"
-              style={{ boxShadow: SOCKET_RING[socketStatus] }}
+              className={`w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300 flex-shrink-0 ${syncRingClass(socketStatus)}`}
             >
               {user?.name?.[0]?.toUpperCase() ?? '?'}
             </div>
@@ -252,13 +251,6 @@ export function AppLayout() {
             <span className="text-xs text-gray-400 dark:text-gray-500">{formatDate()}</span>
           </div>
         </div>
-
-        {/* Offline banner */}
-        {socketStatus === 'unsynced' && (
-          <div className="bg-red-500 text-white text-xs font-medium text-center py-1.5 px-4">
-            Offline — changes will sync when reconnected
-          </div>
-        )}
 
         <div className="flex-1 min-h-0 md:overflow-y-auto">
           <Outlet />
@@ -293,6 +285,8 @@ export function AppLayout() {
         {/* Bottom nav spacer on mobile */}
         <div className="md:hidden h-[56px] flex-shrink-0" />
       </div>
+
+      <InstallPrompt />
     </div>
     </TopbarActionsContext.Provider>
   )

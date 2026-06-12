@@ -62,3 +62,19 @@ export function usePushSubscription(enabled: boolean): void {
     })
   }, [enabled])
 }
+
+// Unsubscribes this device from push and removes the registration server-side.
+// Used by the Settings push toggle.
+export async function disablePush(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (!sub) return
+    await api.delete('/api/push/subscribe', { data: { endpoint: sub.endpoint } }).catch(() => null)
+    await sub.unsubscribe()
+    console.log('[push] unsubscribed')
+  } catch (err) {
+    console.error('[push] unsubscribe failed:', err)
+  }
+}

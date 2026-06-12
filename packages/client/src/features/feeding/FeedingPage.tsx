@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
 import { useAuthStore } from '@stores/authStore'
-import { formatDuration, formatTimeAgo, formatOz, toDatetimeLocal } from '@lib/utils'
+import { useSettingsStore } from '@stores/settingsStore'
+import { formatDuration, formatTimeAgo, formatVolume, toDatetimeLocal } from '@lib/utils'
 import { useElapsedSeconds } from '@hooks/useElapsedSeconds'
 import { TrashIcon, PencilIcon } from '@components/icons'
 
@@ -63,6 +64,7 @@ function FeedDot({ type }: { type: string }) {
 
 export function FeedingPage() {
   const { babyId } = useAuthStore()
+  const units = useSettingsStore((s) => s.units)
   const {
     logs, isLoading, activeSession, feedCountToday, knownFormulaNames,
     startMutation, endMutation, logBottleMutation, logPumpMutation, editMutation, deleteMutation,
@@ -565,7 +567,7 @@ export function FeedingPage() {
                                 : FEEDING_TYPE_LABEL[log.type]}
                             {log.volumeOz != null && (
                               <span className="text-gray-500 dark:text-gray-400 font-normal">
-                                {' · '}{formatOz(log.volumeOz)}
+                                {' · '}{formatVolume(log.volumeOz, units)}
                               </span>
                             )}
                           </p>

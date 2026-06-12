@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Sparkles, Thermometer, Syringe, Star, Baby } from 'lucide-react'
+import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Settings, Sparkles, Thermometer, Syringe, Star, Baby } from 'lucide-react'
 import { useAuthStore } from '@stores/authStore'
 
 type MoreItem = {
@@ -94,6 +94,12 @@ const ALERTS: MoreItem = {
   label: 'Alert History',
   description: 'Recent SOS alerts sent and received',
 }
+const SETTINGS: MoreItem = {
+  to: '/settings',
+  icon: <Settings size={22} />,
+  label: 'Settings',
+  description: 'Theme, units & notifications',
+}
 const PURCHASES: MoreItem = {
   to: '/purchases',
   icon: <ShoppingBag size={22} />,
@@ -113,14 +119,14 @@ const BABY_MODE_GROUPS: MoreGroup[] = [
   { label: 'Health', items: [ILLNESS, AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
   { label: 'Planning', items: [VISITORS, PURCHASES, PREGNANCY_PREP] },
-  { label: 'System', items: [ALERTS] },
+  { label: 'System', items: [ALERTS, SETTINGS] },
 ]
 
 const PREGNANCY_MODE_GROUPS: MoreGroup[] = [
   { label: 'Planning', items: [BABY_NAMES, PREGNANCY_PREP, PURCHASES, VISITORS] },
   { label: 'Health', items: [AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD, ILLNESS] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
-  { label: 'System', items: [ALERTS] },
+  { label: 'System', items: [ALERTS, SETTINGS] },
 ]
 
 // ── Page ───────────────────────────────────────────────────────────────────

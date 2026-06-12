@@ -1,5 +1,6 @@
 export { ProtectedRoute } from './ProtectedRoute'
 export { AppLayout } from './AppLayout'
 export { Toast } from './Toast'
+export { InstallPrompt } from './InstallPrompt'
 export { ClipboardIcon, ShoppingBagIcon, UsersIcon, HomeIcon, TrashIcon, PencilIcon } from './icons'
 export { TextLineSkeleton, CardSkeleton, StatSkeleton, AvatarSkeleton } from './skeletons'

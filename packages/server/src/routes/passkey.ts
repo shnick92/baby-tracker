@@ -185,3 +185,24 @@ passkeyRouter.post('/auth/verify', async (req, res) => {
     error: null,
   })
 })
+
+// GET /api/auth/passkey/credentials — list the current user's registered passkeys
+passkeyRouter.get('/credentials', authMiddleware, async (req, res) => {
+  const credentials = await prisma.credential.findMany({
+    where: { userId: req.user!.userId },
+    select: { id: true, deviceName: true, createdAt: true, lastUsedAt: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  res.json({ data: credentials, error: null })
+})
+
+// DELETE /api/auth/passkey/credentials/:id — remove one of the current user's passkeys
+passkeyRouter.delete('/credentials/:id', authMiddleware, async (req, res) => {
+  const credential = await prisma.credential.findUnique({ where: { id: req.params.id } })
+  if (!credential || credential.userId !== req.user!.userId) {
+    res.status(404).json({ data: null, error: 'Passkey not found' })
+    return
+  }
+  await prisma.credential.delete({ where: { id: credential.id } })
+  res.json({ data: { ok: true }, error: null })
+})

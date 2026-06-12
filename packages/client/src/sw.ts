@@ -1,5 +1,8 @@
 import { precacheAndRoute } from 'workbox-precaching'
 import { clientsClaim } from 'workbox-core'
+import { registerRoute } from 'workbox-routing'
+import { NetworkFirst } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -11,6 +14,22 @@ self.addEventListener('message', (event) => {
 
 clientsClaim()
 precacheAndRoute(self.__WB_MANIFEST)
+
+// Offline read access: cache GET /api/* responses, network-first with a
+// 48h cached fallback. Auth and file-download routes are excluded — auth
+// responses must never be stale and exports are large one-shot downloads.
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    url.pathname.startsWith('/api/') &&
+    !url.pathname.startsWith('/api/auth') &&
+    !url.pathname.startsWith('/api/export'),
+  new NetworkFirst({
+    cacheName: 'api-reads',
+    networkTimeoutSeconds: 4,
+    plugins: [new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 48 * 3600 })],
+  }),
+)
 
 self.addEventListener('push', (event) => {
   if (!event.data) return

@@ -1,3 +1,5 @@
 export { groupBy } from './groupBy'
 export { formatDueMonthYear, formatHeaderDate, greeting } from './formatDate'
-export { formatDuration, formatTimeAgo, formatOz, toDatetimeLocal } from './formatTime'
+export { formatDuration, formatTimeAgo, formatOz, formatVolume, toDatetimeLocal } from './formatTime'
+export { resolveTheme, applyTheme, watchSystemTheme, THEME_COLORS } from './theme'
+export { syncRingClass } from './syncRing'

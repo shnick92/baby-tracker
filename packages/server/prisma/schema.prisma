@@ -69,6 +69,7 @@ model Baby {
   milestones          Milestone[]
   vaccinationRecords  VaccinationRecord[]
   sleepSettings       SleepSettings?
+  notificationSettings NotificationSettings?
   emergencyAlerts     EmergencyAlert[]
   aiConversationLogs  AIConversationLog[]
   aiWeeklySummaries   AIWeeklySummary[]
@@ -217,6 +218,18 @@ model SleepSettings {
   wakeWindowMaxMinutes Int       @default(120)
   lastWakeNotifiedAt   DateTime?
   updatedAt            DateTime  @updatedAt
+}
+
+model NotificationSettings {
+  id                     String    @id @default(cuid())
+  babyId                 String    @unique
+  baby                   Baby      @relation(fields: [babyId], references: [id])
+  feedingReminderEnabled Boolean   @default(false)
+  feedingReminderMinutes Int       @default(180)
+  wakeWindowAlertEnabled Boolean   @default(true)
+  weeklyDigestEnabled    Boolean   @default(true)
+  lastFeedingNotifiedAt  DateTime?
+  updatedAt              DateTime  @updatedAt
 }
 
 model PushSubscription {

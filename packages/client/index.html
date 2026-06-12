@@ -9,6 +9,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Baby Tracker</title>
+    <script>
+      // Apply persisted theme before first paint to avoid a flash of the
+      // wrong theme. Mirrors stores/settingsStore.ts (key: tracker-settings).
+      try {
+        var pref = (JSON.parse(localStorage.getItem('tracker-settings')) || {}).state || {}
+        var dark =
+          pref.theme === 'light'
+            ? false
+            : pref.theme === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              : true
+        document.documentElement.classList.toggle('dark', dark)
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', dark ? '#111827' : '#ffffff')
+      } catch (e) { /* default dark stays */ }
+    </script>
   </head>
   <body>
     <div id="root"></div>

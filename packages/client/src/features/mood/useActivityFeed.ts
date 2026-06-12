@@ -2,8 +2,9 @@ import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@lib/axios'
+import { useSettingsStore } from '@stores/settingsStore'
 import { getSocket } from '@lib/socket'
-import { formatDuration, formatOz } from '@lib/utils'
+import { formatDuration, formatVolume } from '@lib/utils'
 
 import type { MoodLog } from './useMoodLogs'
 import { moodKeys } from './queryKeys'
@@ -71,9 +72,9 @@ const DIAPER_CONFIG: Record<DiaperLog['type'], { emoji: string; label: string }>
   BOTH:  { emoji: '💩', label: 'Wet + dirty' },
 }
 
-function feedingToItem(log: FeedingLog): FeedItem {
+function feedingToItem(log: FeedingLog, units: 'oz' | 'ml'): FeedItem {
   const detail =
-    log.volumeOz != null ? formatOz(log.volumeOz) :
+    log.volumeOz != null ? formatVolume(log.volumeOz, units) :
     log.durationSec != null ? formatDuration(log.durationSec) : null
   const cfg = FEEDING_CONFIG[log.type]
   return { source: 'feeding', id: log.id, time: log.startedAt, ...cfg, detail }
@@ -130,6 +131,7 @@ function moodToItem(log: MoodLog): FeedItem {
 
 export function useActivityFeed(babyId: string) {
   const queryClient = useQueryClient()
+  const units = useSettingsStore((s) => s.units)
 
   const moodQuery = useQuery({
     queryKey: moodKeys.list(babyId),
@@ -191,7 +193,7 @@ export function useActivityFeed(babyId: string) {
 
   const feedItems: FeedItem[] = [
     ...moodLogs.map(moodToItem),
-    ...(feedingQuery.data ?? []).filter((l) => l.endedAt != null || l.volumeOz != null).map(feedingToItem),
+    ...(feedingQuery.data ?? []).filter((l) => l.endedAt != null || l.volumeOz != null).map((l) => feedingToItem(l, units)),
     ...(diaperQuery.data ?? []).map(diaperToItem),
     ...(sleepQuery.data ?? []).filter((l) => l.endedAt != null).map(sleepToItem),
     ...(tummyTimeQuery.data ?? []).filter((l) => l.endedAt != null).map(tummyTimeToItem),

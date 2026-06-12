@@ -9,7 +9,9 @@ import { connectSocket, disconnectSocket, getSocket } from '@lib/socket'
 import { useAuthStore, type AuthUser } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
 import { useSosStore } from '@stores/sosStore'
+import { useSettingsStore } from '@stores/settingsStore'
 import { usePushSubscription } from '@hooks/usePushSubscription'
+import { applyTheme, watchSystemTheme } from '@lib/utils'
 import { ProtectedRoute, AppLayout, Toast } from '@components'
 import { LoginPage } from '@features/auth'
 import { Dashboard } from '@features/dashboard'
@@ -32,6 +34,7 @@ import { IllnessPage, IllnessLandingPage, illnessKeys } from '@features/illness'
 import { MilestonesPage } from '@features/milestones'
 import { VaccinationsPage } from '@features/vaccinations'
 import { BabyNamesPage } from '@features/babyNames'
+import { SettingsPage } from '@features/settings'
 
 type RefreshData = { accessToken: string; user: AuthUser; babyId: string | null; birthDate: string | null }
 
@@ -72,7 +75,8 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
     if (isError) setBootstrapped()
   }, [isError, setBootstrapped])
 
-  usePushSubscription(!!accessToken)
+  const pushEnabled = useSettingsStore((s) => s.pushEnabled)
+  usePushSubscription(!!accessToken && pushEnabled)
 
   // Connect socket when authenticated, disconnect on logout
   useEffect(() => {
@@ -175,9 +179,19 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function ThemeEffect() {
+  const theme = useSettingsStore((s) => s.theme)
+  useEffect(() => {
+    applyTheme(theme)
+    return watchSystemTheme(theme)
+  }, [theme])
+  return null
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeEffect />
       <BrowserRouter>
         <ScrollToTop />
         <AuthBootstrap>
@@ -206,6 +220,7 @@ export default function App() {
               <Route path="/milestones" element={<MilestonesPage />} />
               <Route path="/vaccinations" element={<VaccinationsPage />} />
               <Route path="/names" element={<BabyNamesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Routes>
           <SOSAlert />
