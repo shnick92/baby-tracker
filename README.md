@@ -244,7 +244,10 @@ VITE_API_URL=https://<your-tailscale-hostname>
 VITE_SOCKET_URL=https://<your-tailscale-hostname>
 VITE_VAPID_PUBLIC_KEY=<same-as-server>
 VITE_FAMILY_SURNAME=<your-family-surname>   # shown in baby name previews; optional
+VITE_APP_URL=https://<your-tailscale-hostname>  # optional; enables purchase shortlinks
 ```
+
+**`VITE_APP_URL` is optional.** When set, a shortlink copy button (🔗) appears on each purchase — it generates a short `/s/:code` URL that redirects to the original product. The `/s/:code` endpoint is public (no auth), so anyone who can reach your server can follow the redirect. If you're not using Tailscale or don't have a publicly accessible URL, leave it unset — the clipboard (📋) button always copies the original product URL directly, which works for everyone without needing server access.
 
 ### 4. Start the Stack
 
@@ -277,7 +280,9 @@ Push to `main` triggers automatic builds and deploys via Watchtower. Add these s
 
 - `DOCKERHUB_USERNAME` (secret)
 - `DOCKERHUB_TOKEN` (secret)
+- `VITE_VAPID_PUBLIC_KEY` (secret — same as in `packages/server/.env`)
 - `VITE_FAMILY_SURNAME` (repository variable — baked into the client bundle at build time)
+- `VITE_APP_URL` (repository variable — your Tailscale hostname; used as the base URL for purchase shortlinks)
 
 Configure Watchtower on your server to poll Docker Hub for new images.
 

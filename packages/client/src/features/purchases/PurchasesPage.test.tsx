@@ -189,13 +189,30 @@ describe('PurchasesPage', () => {
     expect(visitLink).toHaveAttribute('target', '_blank')
   })
 
-  it('shows a copy-link icon for purchases that have a shortCode', async () => {
+  it('shows the shortlink copy button only when VITE_APP_URL is configured', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+
+    // Without VITE_APP_URL (default in tests), button is hidden
+    renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+    expect(screen.queryByRole('button', { name: 'Copy short link for Crib' })).not.toBeInTheDocument()
+  })
+
+  it('shows the shortlink copy button when VITE_APP_URL is set', async () => {
+    vi.stubEnv('VITE_APP_URL', 'https://myserver.ts.net')
+    vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
+    renderWithProviders(<PurchasesPage />)
+    await screen.findByText('Crib')
+    expect(screen.getByRole('button', { name: 'Copy short link for Crib' })).toBeInTheDocument()
+    vi.unstubAllEnvs()
+  })
+
+  it('shows a copy-original-url button for purchases that have a url', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: mockResponse })
     renderWithProviders(<PurchasesPage />)
 
     await screen.findByText('Crib')
-    // p1 has shortCode 'abc123'
-    expect(screen.getByRole('button', { name: 'Copy short link for Crib' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy original URL for Crib' })).toBeInTheDocument()
   })
 
   it('does not show link icons for purchases without a url or shortCode', async () => {
@@ -206,6 +223,7 @@ describe('PurchasesPage', () => {
     // p2 has no url or shortCode
     expect(screen.queryByRole('link', { name: 'Open link for Breast pump' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Copy short link for Breast pump' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Copy original URL for Breast pump' })).not.toBeInTheDocument()
   })
 
   it('price inputs have step="any" to allow decimal values', async () => {

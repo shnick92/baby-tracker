@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
 import { groupBy } from '@lib/utils/groupBy'
-import { TrashIcon, PencilIcon, ExternalLinkIcon, LinkIcon, CheckIcon } from '@components/icons'
+import { TrashIcon, PencilIcon, ExternalLinkIcon, LinkIcon, CheckIcon, ClipboardIcon } from '@components/icons'
 import type { PurchaseStatus } from '@tracker/shared'
 
 import { usePurchases } from './usePurchases'
@@ -53,11 +53,23 @@ export function PurchasesPage() {
   const [addingItem, setAddingItem] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null)
 
-  const handleCopyLink = (id: string, shortCode: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/s/${shortCode}`)
+  // Shortlinks are only useful if a canonical public URL is configured —
+  // without it the /s/:code route is unreachable from outside Tailscale.
+  const shortlinkBase: string | undefined = import.meta.env.VITE_APP_URL || undefined
+
+  const handleCopyShortlink = (id: string, shortCode: string) => {
+    if (!shortlinkBase) return
+    navigator.clipboard.writeText(`${shortlinkBase}/s/${shortCode}`)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const handleCopyUrl = (id: string, url: string) => {
+    navigator.clipboard.writeText(url)
+    setCopiedUrlId(id)
+    setTimeout(() => setCopiedUrlId(null), 2000)
   }
   const { data, isLoading, cycleMutation, addMutation, editMutation, deleteItemMutation, deleteGroupMutation } = usePurchases()
 
@@ -243,22 +255,38 @@ export function PurchasesPage() {
                         )}
                       </div>
                       {purchase.url && (
-                        <a
-                          href={purchase.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                          aria-label={`Open link for ${purchase.name}`}
-                        >
-                          <ExternalLinkIcon />
-                        </a>
+                        <>
+                          <a
+                            href={purchase.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                            aria-label={`Open link for ${purchase.name}`}
+                          >
+                            <ExternalLinkIcon />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyUrl(purchase.id, purchase.url!)}
+                            className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                            aria-label={`Copy original URL for ${purchase.name}`}
+                            title="Copy original URL (works without Tailscale)"
+                          >
+                            {copiedUrlId === purchase.id ? (
+                              <CheckIcon className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <ClipboardIcon />
+                            )}
+                          </button>
+                        </>
                       )}
-                      {purchase.shortCode && (
+                      {purchase.shortCode && shortlinkBase && (
                         <button
                           type="button"
-                          onClick={() => handleCopyLink(purchase.id, purchase.shortCode!)}
+                          onClick={() => handleCopyShortlink(purchase.id, purchase.shortCode!)}
                           className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                           aria-label={`Copy short link for ${purchase.name}`}
+                          title="Copy short link"
                         >
                           {copiedId === purchase.id ? (
                             <CheckIcon className="w-4 h-4 text-green-500" />
