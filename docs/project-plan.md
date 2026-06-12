@@ -7,11 +7,13 @@
 
 ## Progress Update — June 2026
 
-**Phases 1–5 and the first 3 items of Phase 6 are complete.** Height tracking, milestone checklist, and vaccination tracker are shipped. The Baby Name Tracker (Phase 6.Names) is also complete — names with full-name preview and emoji reactions for both parents.
+**Phases 1–6 are complete.** All core features are shipped: daily tracking (feeding, sleep, diapers, mood), health & growth (weight/height charts, medication log, tummy time, illness tracker, vaccinations), milestones, baby names, AI assistant, calendar, data export (raw CSV/PDF + health summary report), settings (notifications, theme, passkeys, unit preference), and push notifications.
 
-**Currently in progress:** Phase 6 remaining items (Data Export, Push Notifications, Settings Page, Final QA).
+**Deferred follow-ups (not blocking Phase 7):**
+- Offline write queue (log entries made offline sync on reconnect) — needs real-device testing
+- Feeding settings (default milk type, saved formula names autocomplete presets)
 
-**Up next:** Data Export page (`/settings/export`), Settings page, push notification reminders.
+**Up next:** Phase 7 — postpartum and long-term tracking features.
 
 ---
 

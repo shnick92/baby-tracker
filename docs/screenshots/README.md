@@ -43,11 +43,11 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `DEMO_BABY_NAME` | `Baby` | Baby name shown in seeded data |
 | `TIMEZONE` | `America/Chicago` | Browser timezone for screenshots |
 
+**Before running:** set `VITE_PLAYWRIGHT=true` in `packages/client/.env` and restart the Vite dev server. This suppresses the TanStack Query DevTools floating button from screenshots. Unset (or remove) the value after the run.
+
 `VITE_FAMILY_SURNAME` (from `packages/client/.env`) is automatically read and stripped from the baby-names screenshot so no real surname appears in committed images.
 
 ## Screens captured
-
-### Currently built — captured by this script
 
 | File | Type | Screen |
 |---|---|---|
@@ -60,6 +60,7 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `mobile/tummy-time.png` | Screenshot | Tummy time log |
 | `mobile/mood.png` | Screenshot | Mood & Activity log |
 | `mobile/growth-chart.png` | Screenshot | Weight growth chart with WHO percentile bands |
+| `mobile/growth-height.png` | Screenshot | Height growth chart with WHO percentile bands |
 | `mobile/calendar-all.png` | Screenshot | Calendar — all categories |
 | `mobile/calendar-feedings.png` | Screenshot | Calendar — Feedings filter chip active |
 | `mobile/checklist.png` | Screenshot | Hospital bag checklist (~60% checked) |
@@ -67,7 +68,9 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `mobile/visitors.png` | Screenshot | Visitor schedule |
 | `mobile/alerts.png` | Screenshot | SOS alert history |
 | `mobile/ai-chat.png` | Screenshot | "Is This Normal?" AI chat with seeded Q&A |
-| `mobile/history.png` | Screenshot | History & Reports data log view |
+| `mobile/history.png` | Screenshot | History & Reports — weekly summary tab |
+| `mobile/export.png` | Screenshot | History & Reports — Export tab, raw data |
+| `mobile/health-summary.png` | Screenshot | History & Reports — Export tab, Health Summary |
 | `mobile/quick-log.png` | Screenshot | Dashboard — AI quick log input |
 | `mobile/illness-landing.png` | Screenshot | Illness episode list |
 | `mobile/illness-episode.png` | Screenshot | Episode detail — symptoms, temp log, meds |
@@ -76,19 +79,12 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `mobile/dashboard.png` | Screenshot | Dashboard — newborn state (feeding/sleep/diaper summary) |
 | `mobile/sleep.png` | Screenshot | Sleep tracker — active nap timer |
 | `mobile/baby-names.png` | Screenshot | Baby name shortlist with emoji reactions (surname stripped) |
+| `mobile/vaccinations.png` | Screenshot | Vaccination tracker — CDC schedule with due/overdue status |
+| `mobile/milestones.png` | Screenshot | Milestone tracker — grouped by age range |
+| `mobile/settings.png` | Screenshot | Settings page — account, notifications, display |
 | `gifs/dashboard.gif` | GIF | Dashboard — live feeding timer ticking |
 | `gifs/sleep.gif` | GIF | Sleep tracker — active nap timer running |
 | `gifs/sos-sheet.gif` | GIF | SOS confirmation bottom sheet sliding up |
-
-### Planned screens — add to script when features ship
-
-| File | Screen | Feature |
-|---|---|---|
-| `mobile/vaccinations.png` | Vaccination tracker — full CDC schedule | Phase 6: Vaccination Tracker |
-| `mobile/milestones.png` | Milestone checklist — grouped by age | Phase 6: Milestone Tracking |
-| `mobile/settings.png` | Settings page — account, notifications, display | Phase 6: Settings Page |
-| `mobile/export.png` | Data export page — type + date range pickers | Phase 6: Data Export |
-| `mobile/health-summary.png` | Health summary report — section picker | Phase 6: Health Summary Report |
 
 ## How it works
 

@@ -85,16 +85,27 @@ async function newCtx(
       ? { recordVideo: { dir: VIDEOS_DIR, size: { width: 393, height: 851 } } }
       : {}),
   })
-  // Hide TanStack Query DevTools floating icon in every page loaded from this context
+  // Hide TanStack Query DevTools floating icon in every page loaded from this context.
+  // Uses both a static style injection and a MutationObserver to catch elements
+  // that mount after React hydrates.
   await ctx.addInitScript(() => {
-    const style = document.createElement('style')
-    style.textContent = `
-      .tsqd-parent-container,
+    const HIDE_CSS = `
+      .tsqd-parent-container, .tsqd-open-btn-container, .tsqd-open-btn,
       [data-testid="open-react-query-devtools"],
+      button[aria-label="Open React Query Devtools"],
+      button[aria-label="Open TanStack Query Devtools"],
       button[aria-label*="TanStack" i],
       button[aria-label*="devtools" i]
-      { display: none !important; }`
+      { display: none !important; visibility: hidden !important; }`
+    const style = document.createElement('style')
+    style.textContent = HIDE_CSS
     document.head.appendChild(style)
+    // Also hide any elements that mount after React renders
+    const observer = new MutationObserver(() => {
+      const el = document.querySelector('.tsqd-open-btn-container, .tsqd-open-btn')
+      if (el) (el as HTMLElement).style.setProperty('display', 'none', 'important')
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
   })
   return ctx
 }
@@ -224,13 +235,19 @@ async function main(): Promise<void> {
   await page.waitForTimeout(600)
   await shot(page, 'ai-chat.png')
 
-  // ─ growth-chart.png — wait for SVG to render ─────────────────────────────────
-  await page.goto(`${FRONTEND_URL}/weight`, { waitUntil: 'networkidle' })
+  // ─ growth-chart.png — unified Growth page, Weight tab (WHO percentile curves) ──
+  await page.goto(`${FRONTEND_URL}/growth`, { waitUntil: 'networkidle' })
   await page.waitForSelector('svg', { timeout: 8000 }).catch(() => null)
   await page.waitForTimeout(500)
   await shot(page, 'growth-chart.png')
 
-  // ─ history.png ────────────────────────────────────────────────────────────────
+  // ─ growth-height.png — Height tab on same Growth page ─────────────────────────
+  await page.getByRole('button', { name: /height/i }).click()
+  await page.waitForSelector('svg', { timeout: 8000 }).catch(() => null)
+  await page.waitForTimeout(400)
+  await shot(page, 'growth-height.png')
+
+  // ─ history.png — History & Reports page, 7-Day Summary tab ───────────────────
   await page.goto(`${FRONTEND_URL}/history`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(600)
   await shot(page, 'history.png')
@@ -307,23 +324,44 @@ async function main(): Promise<void> {
   if (FAMILY_SURNAME) {
     await page.evaluate((surname) => {
       const pattern = new RegExp('\\s+' + surname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
-      const walk = (node: Node) => {
-        if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+      const stack: Node[] = [document.body]
+      while (stack.length) {
+        const node = stack.pop()!
+        if (node.nodeType === 3 && node.textContent) {
           node.textContent = node.textContent.replace(pattern, '')
         }
-        node.childNodes.forEach(walk)
+        for (const child of Array.from(node.childNodes)) stack.push(child)
       }
-      walk(document.body)
     }, FAMILY_SURNAME)
   }
   await shot(page, 'baby-names.png')
 
-  // ── Planned Phase 6 screens — add captures here when features ship ────────────
-  // TODO vaccinations.png   → /vaccination   (Phase 6: Vaccination Tracker)
-  // TODO milestones.png     → /milestones    (Phase 6: Milestone Tracking)
-  // TODO settings.png       → /settings      (Phase 6: Settings Page)
-  // TODO export.png         → /settings/export (Phase 6: Data Export Page)
-  // TODO health-summary.png → /settings/export + health summary tab
+  // ─ vaccinations.png ──────────────────────────────────────────────────────────
+  await page.goto(`${FRONTEND_URL}/vaccinations`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await shot(page, 'vaccinations.png')
+
+  // ─ milestones.png ─────────────────────────────────────────────────────────────
+  await page.goto(`${FRONTEND_URL}/milestones`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await shot(page, 'milestones.png')
+
+  // ─ settings.png ───────────────────────────────────────────────────────────────
+  await page.goto(`${FRONTEND_URL}/settings`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+  await shot(page, 'settings.png')
+
+  // ─ export.png — Export tab inside History & Reports, raw data sub-tab ────────
+  await page.goto(`${FRONTEND_URL}/history`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  await page.getByRole('button', { name: /^export$/i }).click()
+  await page.waitForTimeout(600)
+  await shot(page, 'export.png')
+
+  // ─ health-summary.png — switch to Health Summary sub-tab ─────────────────────
+  await page.getByRole('button', { name: /health summary/i }).click()
+  await page.waitForTimeout(400)
+  await shot(page, 'health-summary.png')
 
   await ctx.close()
 
