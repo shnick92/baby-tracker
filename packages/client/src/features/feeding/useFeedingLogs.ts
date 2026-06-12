@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@lib/axios'
 import { getSocket } from '@lib/socket'
+import { enqueueOffline, getQueueCount, isOfflineError } from '@lib/offlineQueue'
+import { useSocketStore } from '@stores/socketStore'
 import type { FeedingType, UpdateFeedingInput } from '@tracker/shared'
 
 import { feedingKeys } from './queryKeys'
@@ -26,6 +28,7 @@ type FeedingListResponse = { data: FeedingLog[]; error: null }
 
 export function useFeedingLogs(babyId: string) {
   const queryClient = useQueryClient()
+  const setQueueCount = useSocketStore((s) => s.setOfflineQueueCount)
 
   const query = useQuery({
     queryKey: feedingKeys.list(babyId),
@@ -63,12 +66,24 @@ export function useFeedingLogs(babyId: string) {
     mutationFn: ({ volumeOz, milkType, formulaName }: { volumeOz: number; milkType?: string; formulaName?: string }) =>
       api.post('/api/feeding/bottle', { babyId, volumeOz, milkType, formulaName }).then((r) => r.data.data as FeedingLog),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: feedingKeys.list(babyId) }),
+    onError: async (error, variables) => {
+      if (isOfflineError(error)) {
+        await enqueueOffline('/api/feeding/bottle', { babyId, ...variables })
+        setQueueCount(await getQueueCount())
+      }
+    },
   })
 
   const logPumpMutation = useMutation({
     mutationFn: ({ volumeOz, durationSec }: { volumeOz: number; durationSec?: number }) =>
       api.post('/api/feeding/pump', { babyId, volumeOz, durationSec }).then((r) => r.data.data as FeedingLog),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: feedingKeys.list(babyId) }),
+    onError: async (error, variables) => {
+      if (isOfflineError(error)) {
+        await enqueueOffline('/api/feeding/pump', { babyId, ...variables })
+        setQueueCount(await getQueueCount())
+      }
+    },
   })
 
   const editMutation = useMutation({

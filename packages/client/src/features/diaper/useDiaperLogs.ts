@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@lib/axios'
 import { getSocket } from '@lib/socket'
+import { enqueueOffline, getQueueCount, isOfflineError } from '@lib/offlineQueue'
+import { useSocketStore } from '@stores/socketStore'
 import type { DiaperType, DiaperColor, DiaperConsistency, UpdateDiaperInput } from '@tracker/shared'
 
 import { diaperKeys } from './queryKeys'
@@ -32,6 +34,7 @@ export type LogDiaperPayload = {
 
 export function useDiaperLogs(babyId: string) {
   const queryClient = useQueryClient()
+  const setQueueCount = useSocketStore((s) => s.setOfflineQueueCount)
 
   const query = useQuery({
     queryKey: diaperKeys.list(babyId),
@@ -57,6 +60,12 @@ export function useDiaperLogs(babyId: string) {
     mutationFn: (payload: LogDiaperPayload) =>
       api.post('/api/diaper', { babyId, ...payload }).then((r) => r.data.data as DiaperLog),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: diaperKeys.list(babyId) }),
+    onError: async (error, variables) => {
+      if (isOfflineError(error)) {
+        await enqueueOffline('/api/diaper', { babyId, ...variables })
+        setQueueCount(await getQueueCount())
+      }
+    },
   })
 
   const editMutation = useMutation({

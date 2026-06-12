@@ -20,7 +20,7 @@ const FILTERS: FilterKey[] = ['all', 'feedings', 'sleep', 'diapers', 'visitors']
 
 const DOT_BG: Record<Exclude<FilterKey, 'all'>, string> = {
   feedings: 'bg-blue-400',
-  sleep: 'bg-green-400',
+  sleep: 'bg-green-400 dot-sleep',
   diapers: 'bg-amber-400',
   visitors: 'bg-purple-400',
 }

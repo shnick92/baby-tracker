@@ -65,6 +65,7 @@ function FeedDot({ type }: { type: string }) {
 export function FeedingPage() {
   const { babyId } = useAuthStore()
   const units = useSettingsStore((s) => s.units)
+  const defaultMilkType = useSettingsStore((s) => s.defaultMilkType)
   const {
     logs, isLoading, activeSession, feedCountToday, knownFormulaNames,
     startMutation, endMutation, logBottleMutation, logPumpMutation, editMutation, deleteMutation,
@@ -75,7 +76,7 @@ export function FeedingPage() {
   const [formulaSuggestions, setFormulaSuggestions] = useState<string[]>([])
   const formulaInputRef = useRef<HTMLInputElement | null>(null)
 
-  const bottleForm = useForm<BottleForm>({ resolver: zodResolver(bottleSchema), defaultValues: { milkType: 'BREAST_MILK' } })
+  const bottleForm = useForm<BottleForm>({ resolver: zodResolver(bottleSchema), defaultValues: { milkType: defaultMilkType } })
   const pumpForm = useForm<PumpForm>({ resolver: zodResolver(pumpSchema) })
   const editForm = useForm<EditFeedingForm>({ resolver: zodResolver(editFeedingSchema) })
 
@@ -94,7 +95,7 @@ export function FeedingPage() {
         : false
 
   const handleTabChange = (tab: Tab) => {
-    if (tab !== 'BOTTLE') bottleForm.reset({ milkType: 'BREAST_MILK' })
+    if (tab !== 'BOTTLE') bottleForm.reset({ milkType: defaultMilkType })
     if (tab !== 'PUMP') pumpForm.reset()
     setFormulaSuggestions([])
     setActiveTab(tab)
@@ -132,7 +133,7 @@ export function FeedingPage() {
       milkType: values.milkType,
       formulaName: values.milkType === 'FORMULA' ? (values.formulaName || undefined) : undefined,
     })
-    bottleForm.reset({ milkType: 'BREAST_MILK' })
+    bottleForm.reset({ milkType: defaultMilkType })
     setFormulaSuggestions([])
   })
 

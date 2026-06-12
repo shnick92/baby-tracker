@@ -3,6 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
+import { Pill } from 'lucide-react'
+
 import { useAuthStore } from '@stores/authStore'
 import { TrashIcon, PencilIcon } from '@components/icons'
 
@@ -152,7 +154,9 @@ export function MedicationPage() {
                   Last given
                 </p>
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">💊</span>
+                  <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                    <Pill size={18} className="text-purple-500 dark:text-purple-400" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                       {lastGiven.name}
@@ -383,8 +387,8 @@ export function MedicationPage() {
 
                     return (
                       <div key={log.id} className="flex items-start gap-3 px-4 py-3">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-base flex-shrink-0">
-                          💊
+                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                          <Pill size={14} className="text-purple-500 dark:text-purple-400" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
@@ -425,7 +429,7 @@ export function MedicationPage() {
 
             {logs.length === 0 && !showForm && (
               <div className="text-center py-12">
-                <p className="text-3xl mb-2">💊</p>
+                <Pill size={40} className="text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                 <p className="text-sm text-gray-400 dark:text-gray-500">No medication logs yet</p>
                 <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">Tap "Log Medication" to get started</p>
               </div>

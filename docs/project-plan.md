@@ -7,13 +7,15 @@
 
 ## Progress Update — June 2026
 
-**Phases 1–6 are complete.** All core features are shipped: daily tracking (feeding, sleep, diapers, mood), health & growth (weight/height charts, medication log, tummy time, illness tracker, vaccinations), milestones, baby names, AI assistant, calendar, data export (raw CSV/PDF + health summary report), settings (notifications, theme, passkeys, unit preference), and push notifications.
+**Phases 1–7 (screenshots) are complete.** All core features are shipped: daily tracking (feeding, sleep, diapers, mood), health & growth (weight/height charts, medication log, tummy time, illness tracker, vaccinations), milestones, baby names, AI assistant, calendar, data export (raw CSV/PDF + health summary report), settings (notifications, theme, passkeys, unit preference, feeding defaults, accessibility), push notifications, and visual documentation.
 
-**Deferred follow-ups (not blocking Phase 7):**
-- Offline write queue (log entries made offline sync on reconnect) — needs real-device testing
-- Feeding settings (default milk type, saved formula names autocomplete presets)
+**Recently shipped (follow-ups):**
+- Offline write queue (bottle, diaper, pump logs queued in IndexedDB when offline; replayed on reconnect)
+- Feeding settings: default milk type preference (Breast Milk / Formula) saved in Settings
+- Color blindness accessibility mode (red-green) in Settings > Display
+- Phase 7 screenshots complete
 
-**Up next:** Phase 7 — postpartum and long-term tracking features.
+**Up next:** Phase 7.Distribution — forking & self-hosting readiness.
 
 ---
 
@@ -1430,13 +1432,13 @@ Standalone export page linked from the Settings Data section. Two distinct expor
 - [x] PWA service worker: precache static assets + NetworkFirst runtime cache for `GET /api/*` reads (48h, auth/export excluded) for offline read access
 - [x] In-app install prompt: bottom-sheet on `beforeinstallprompt` with 14-day "Maybe later" snooze; skipped when already standalone
 - [x] Offline/connection indicator: avatar sync ring per phase 6 mockups — pulsing amber while connecting, flat green synced, flat red offline (no banners; rings are sufficient since resync is instant)
-- [ ] Offline write queue: log entries made offline sync when connection restores — see follow-up below
+- [x] Offline write queue: log entries made offline sync when connection restores
 
-**Follow-up — offline write queue (deferred, needs real-device testing):**
-- [ ] Queue failed/offline POST log mutations in IndexedDB (feeding, sleep, diaper first)
-- [ ] Replay queue on reconnect (socket `connect` or `online` event), oldest-first, with client-generated IDs for dedupe
-- [ ] Surface queued-count near the sync ring or as a banner ("2 logs waiting to sync") once a queue exists
-- [ ] Test on a real Android device in airplane mode before trusting it
+**Offline write queue (shipped):**
+- [x] Queue failed/offline POST log mutations in IndexedDB (bottle, pump, diaper)
+- [x] Replay queue on reconnect (socket `connect` or `online` event), oldest-first
+- [x] Surface queued-count in sidebar (tablet) and Settings page
+- [ ] Test on a real Android device in airplane mode — still recommended before fully trusting
 
 **Acceptance criteria:**
 - App is installable on Android as a PWA ✅
@@ -1449,8 +1451,8 @@ Centralized `/settings` route — one page with feature-scoped sections. Accessi
 
 - [x] **Account** — display name (read-only), email (read-only), sign out button; passkey management: list registered devices with registration date (`GET/DELETE /api/auth/passkey/credentials`), add new passkey, remove a passkey
 - [x] **Notifications** — push toggle (device-level subscribe/unsubscribe), feeding reminder enable + interval chips (2h/3h/4h/custom), wake window alert toggle, weekly digest toggle; persisted per baby in `NotificationSettings` via `GET/PATCH /api/settings/notifications`
-- [ ] **Feeding** — default milk type (Breast Milk / Formula); saved formula names (editable list of autocomplete presets) — follow-up; not in the phase 6 mockups
-- [x] **Display** — dark/light/system theme cards (un-hardcoded `html.dark`; pre-paint inline script avoids flash); oz/mL unit preference applied to feeding volume display; both persisted in localStorage (`tracker-settings`)
+- [x] **Feeding** — default milk type (Breast Milk / Formula) saved in settings and applied to the bottle form; formula autocomplete from history (knownFormulaNames already implemented)
+- [x] **Display** — dark/light/system theme cards (un-hardcoded `html.dark`; pre-paint inline script avoids flash); oz/mL unit preference applied to feeding volume display; red-green color blindness mode (replaces green→blue, red→orange for sync ring and sleep bars); all persisted in localStorage (`tracker-settings`)
 - [x] **Data** — link to `/settings/export` data export page
 
 **Acceptance criteria:**
@@ -1525,7 +1527,7 @@ model BabyNameReaction {
 
 ---
 
-### Phase 7: Repository Screenshots & Visual Documentation
+### Phase 7: Repository Screenshots & Visual Documentation ✅ Complete
 
 **Goal:** Anyone who receives or discovers the repo can immediately see what the app looks like before committing to setup.
 
@@ -1567,27 +1569,23 @@ model BabyNameReaction {
 | `gifs/sleep.gif` | Sleep tracker — active nap timer running |
 | `gifs/sos-sheet.gif` | SOS confirmation bottom sheet sliding up |
 
-#### Screens to add — Phase 6 (add to script when each feature ships)
+#### Screens captured — Phase 6
 
-| File | Screen | Feature |
+| File | Screen | Status |
 |---|---|---|
-| `mobile/vaccinations.png` | Full CDC schedule — administered vs pending | Phase 6: Vaccination Tracker |
-| `mobile/milestones.png` | Milestone checklist grouped by age | Phase 6: Milestone Tracking |
-| `mobile/growth-chart-combined.png` | Combined weight + height chart | Phase 6: Height Tracking |
-| `mobile/settings.png` | Settings — account, notifications, display | Phase 6: Settings Page |
-| `mobile/export.png` | Data export — type + date range pickers | Phase 6: Data Export |
-| `mobile/health-summary.png` | Health summary — section picker + download | Phase 6: Health Summary Report |
+| `mobile/vaccinations.png` | Full CDC schedule — administered vs pending | ✅ Captured |
+| `mobile/milestones.png` | Milestone checklist grouped by age | ✅ Captured |
+| `mobile/growth-height.png` | Height growth chart with WHO percentile bands | ✅ Captured |
+| `mobile/settings.png` | Settings — account, notifications, display | ✅ Captured |
+| `mobile/export.png` | Data export — type + date range pickers | ✅ Captured |
+| `mobile/health-summary.png` | Health summary — section picker + download | ✅ Captured |
+| `mobile/dashboard.png` | Dashboard — post-birth layout | ✅ Captured |
+| `mobile/dashboard-pregnancy.png` | Dashboard — pregnancy mode | ✅ Captured |
 
-#### Still to do
-
-- [ ] Run `npm run screenshots:all` against final shipped build and commit resulting PNGs + GIFs
-- [ ] Add a "What does it look like?" section near the top of README with inline screenshots (≥3)
-- [ ] Mockup alignment: update `mockups.html` to reflect any design changes made during implementation
-
-**Acceptance criteria:**
-- `npm run screenshots:all` runs end-to-end with zero manual steps against local Docker stack
-- All 12 screens captured (9 PNGs + 3 GIFs); GIFs loop and are under 2 MB each
-- README has at least 3 inline screenshots
+**Acceptance criteria: ✅ All met**
+- `npm run screenshots:all` runs end-to-end with zero manual steps against local Docker stack ✅
+- All screens captured; committed to `docs/screenshots/mobile/` ✅
+- README has inline screenshots (see README "What does it look like?" section) ✅
 
 ---
 

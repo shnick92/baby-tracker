@@ -1,4 +1,4 @@
-import type { ThemePreference } from '@stores/settingsStore'
+import type { ThemePreference, ColorBlindMode } from '@stores/settingsStore'
 
 export const THEME_COLORS = { dark: '#111827', light: '#ffffff' } as const
 
@@ -19,6 +19,11 @@ export function applyTheme(pref: ThemePreference): void {
   document
     .querySelector('meta[name="theme-color"]')
     ?.setAttribute('content', THEME_COLORS[resolved])
+}
+
+// Applies or removes the red-green color-blindness override class on <html>.
+export function applyColorBlindMode(mode: ColorBlindMode): void {
+  document.documentElement.classList.toggle('cb-rg', mode === 'rg')
 }
 
 // Re-applies on OS theme change while pref is 'system'. Returns a cleanup fn.

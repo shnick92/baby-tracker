@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 
 import { useAuthStore } from '@stores/authStore'
+import { useSettingsStore } from '@stores/settingsStore'
 import { TrashIcon, PencilIcon } from '@components/icons'
 
 import { useWeightLogs, totalLbs, formatWeight } from './useWeightLogs'
@@ -308,6 +309,10 @@ function HeightTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 function HeightTab({ babyId, birthDate }: { babyId: string; birthDate: Date | null }) {
   const { logs, isLoading, logMutation, editMutation, deleteMutation } = useHeightLogs(babyId)
+  const colorBlindMode = useSettingsStore((s) => s.colorBlindMode)
+  const heightPercentileColors = colorBlindMode === 'rg'
+    ? { band: '#93c5fd', mid: '#3b82f6' }
+    : { band: '#6ee7b7', mid: '#10b981' }
   const [showForm, setShowForm] = useState(false)
   const [editingLog, setEditingLog] = useState<HeightLog | null>(null)
   const [useCm, setUseCm] = useState(false)
@@ -418,9 +423,9 @@ function HeightTab({ babyId, birthDate }: { babyId: string; birthDate: Date | nu
                 <YAxis domain={['auto', 'auto']} tick={{ fontSize: 10, fill: '#9ca3af' }} unit=" in" width={48} />
                 <Tooltip content={<HeightTooltip />} cursor={false} />
                 <Legend iconType="line" iconSize={12} wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
-                <Line name="3rd %ile" type="monotone" dataKey="p3" stroke="#6ee7b7" strokeWidth={1} strokeDasharray="4 3" dot={false} activeDot={false} connectNulls legendType="line" />
-                <Line name="50th %ile" type="monotone" dataKey="p50" stroke="#10b981" strokeWidth={1.5} strokeDasharray="6 3" dot={false} activeDot={false} connectNulls />
-                <Line name="97th %ile" type="monotone" dataKey="p97" stroke="#6ee7b7" strokeWidth={1} strokeDasharray="4 3" dot={false} activeDot={false} connectNulls legendType="line" />
+                <Line name="3rd %ile" type="monotone" dataKey="p3" stroke={heightPercentileColors.band} strokeWidth={1} strokeDasharray="4 3" dot={false} activeDot={false} connectNulls legendType="line" />
+                <Line name="50th %ile" type="monotone" dataKey="p50" stroke={heightPercentileColors.mid} strokeWidth={1.5} strokeDasharray="6 3" dot={false} activeDot={false} connectNulls />
+                <Line name="97th %ile" type="monotone" dataKey="p97" stroke={heightPercentileColors.band} strokeWidth={1} strokeDasharray="4 3" dot={false} activeDot={false} connectNulls legendType="line" />
                 <Line name="Baby" type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2.5} dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} connectNulls />
               </ComposedChart>
             </ResponsiveContainer>

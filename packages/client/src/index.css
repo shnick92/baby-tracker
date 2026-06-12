@@ -38,3 +38,137 @@ html.dark body {
   0%, 100% { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.9); }
   50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.15); }
 }
+
+/* ─── Red-green color blindness (deuteranopia / protanopia) overrides ─────────
+   Applied via html.cb-rg — toggled by applyColorBlindMode() in theme.ts.
+   Maps every green/emerald accent to a blue equivalent and the key "danger"
+   red rings to orange so status is distinguishable without red-green perception.
+   All selectors use !important to beat Tailwind's specificity. */
+
+/* Sync ring */
+html.cb-rg .sync-ring.synced  { box-shadow: 0 0 0 2px #3b82f6; }
+html.cb-rg .sync-ring.unsynced { box-shadow: 0 0 0 2px #f97316; }
+
+/* Sleep bars (semantic class names added in sleepBarColor()) */
+html.cb-rg .sleep-bar-good { background-color: #3b82f6 !important; }
+html.cb-rg .sleep-bar-poor { background-color: #f97316 !important; }
+
+/* ── Emerald accent colours (toggles on-state, active buttons, card borders) */
+html.cb-rg .bg-emerald-400   { background-color: #60a5fa !important; }
+html.cb-rg .bg-emerald-500   { background-color: #3b82f6 !important; }
+html.cb-rg .bg-emerald-600   { background-color: #2563eb !important; }
+html.cb-rg .border-emerald-400 { border-color: #60a5fa !important; }
+html.cb-rg .border-emerald-500 { border-color: #3b82f6 !important; }
+html.cb-rg .ring-emerald-400 { --tw-ring-color: #60a5fa !important; }
+html.cb-rg .ring-emerald-500 { --tw-ring-color: #3b82f6 !important; }
+html.cb-rg .text-emerald-400 { color: #60a5fa !important; }
+html.cb-rg .text-emerald-500 { color: #3b82f6 !important; }
+html.cb-rg .text-emerald-600 { color: #2563eb !important; }
+
+/* ── Green text & background (weight delta, status labels, progress bars) */
+html.cb-rg .text-green-300 { color: #93c5fd !important; }
+html.cb-rg .text-green-400 { color: #60a5fa !important; }
+html.cb-rg .text-green-500 { color: #3b82f6 !important; }
+html.cb-rg .text-green-600 { color: #2563eb !important; }
+html.cb-rg .text-green-700 { color: #1d4ed8 !important; }
+html.cb-rg .bg-green-400  { background-color: #60a5fa !important; }
+html.cb-rg .bg-green-500  { background-color: #3b82f6 !important; }
+html.cb-rg .bg-green-50   { background-color: #eff6ff !important; }
+html.cb-rg .bg-green-100  { background-color: #dbeafe !important; }
+html.cb-rg .border-green-200  { border-color: #bfdbfe !important; }
+
+/* Tailwind opacity-modifier variants (bg-green-900/20 etc.) */
+html.cb-rg .bg-emerald-50\/50  { background-color: rgba(239,246,255,.5)  !important; }
+html.cb-rg .bg-emerald-900\/20 { background-color: rgba(30,58,138,.2)   !important; }
+html.cb-rg .bg-emerald-900\/30 { background-color: rgba(30,58,138,.3)   !important; }
+html.cb-rg .bg-emerald-900\/40 { background-color: rgba(30,58,138,.4)   !important; }
+html.cb-rg .bg-green-900\/20   { background-color: rgba(30,58,138,.2)   !important; }
+html.cb-rg .bg-green-900\/30   { background-color: rgba(30,58,138,.3)   !important; }
+html.cb-rg .bg-green-900\/40   { background-color: rgba(30,58,138,.4)   !important; }
+html.cb-rg .border-green-300\/40 { border-color: rgba(147,197,253,.4)   !important; }
+html.cb-rg .border-green-400\/40 { border-color: rgba(96,165,250,.4)    !important; }
+
+/* ── Dark-mode variant overrides (dark:text-green-*, dark:bg-green-* etc.)
+   Tailwind generates these as separate classes; selectors must match exactly. */
+html.dark.cb-rg .dark\:text-green-300  { color: #93c5fd !important; }
+html.dark.cb-rg .dark\:text-green-400  { color: #60a5fa !important; }
+html.dark.cb-rg .dark\:text-green-500  { color: #3b82f6 !important; }
+html.dark.cb-rg .dark\:text-emerald-400 { color: #60a5fa !important; }
+
+html.dark.cb-rg .dark\:bg-green-400    { background-color: #60a5fa !important; }
+html.dark.cb-rg .dark\:bg-green-500    { background-color: #3b82f6 !important; }
+html.dark.cb-rg .dark\:bg-green-900\/20 { background-color: rgba(30,58,138,.2) !important; }
+html.dark.cb-rg .dark\:bg-green-900\/30 { background-color: rgba(30,58,138,.3) !important; }
+html.dark.cb-rg .dark\:bg-green-900\/40 { background-color: rgba(30,58,138,.4) !important; }
+html.dark.cb-rg .dark\:bg-emerald-900\/10 { background-color: rgba(30,58,138,.1) !important; }
+html.dark.cb-rg .dark\:bg-emerald-900\/20 { background-color: rgba(30,58,138,.2) !important; }
+html.dark.cb-rg .dark\:bg-emerald-900\/30 { background-color: rgba(30,58,138,.3) !important; }
+html.dark.cb-rg .dark\:bg-emerald-900\/40 { background-color: rgba(30,58,138,.4) !important; }
+
+html.dark.cb-rg .dark\:border-green-700    { border-color: #1d4ed8 !important; }
+html.dark.cb-rg .dark\:border-green-800\/50 { border-color: rgba(30,58,138,.5) !important; }
+
+/* ── Red / rose → orange (fever indicators, SOS button, "Sign out", sleep-bar-poor)
+   Keeps destructive/alert semantics visible without relying on red vs green. */
+html.cb-rg .text-red-300  { color: #fed7aa !important; }
+html.cb-rg .text-red-400  { color: #f97316 !important; }
+html.cb-rg .text-red-500  { color: #ea580c !important; }
+html.cb-rg .text-red-600  { color: #c2410c !important; }
+html.cb-rg .text-red-700  { color: #9a3412 !important; }
+html.cb-rg .text-rose-300 { color: #fed7aa !important; }
+html.cb-rg .text-rose-400 { color: #f97316 !important; }
+html.cb-rg .text-rose-500 { color: #ea580c !important; }
+html.cb-rg .text-rose-700 { color: #9a3412 !important; }
+
+html.cb-rg .bg-red-50    { background-color: #fff7ed !important; }
+html.cb-rg .bg-red-100   { background-color: #ffedd5 !important; }
+html.cb-rg .bg-red-400   { background-color: #fb923c !important; }
+html.cb-rg .bg-red-500   { background-color: #f97316 !important; }
+html.cb-rg .bg-red-600   { background-color: #ea580c !important; }
+html.cb-rg .bg-rose-100  { background-color: #ffedd5 !important; }
+html.cb-rg .bg-rose-400  { background-color: #fb923c !important; }
+html.cb-rg .bg-rose-500  { background-color: #f97316 !important; }
+
+html.cb-rg .border-red-100   { border-color: #ffedd5 !important; }
+html.cb-rg .border-red-200   { border-color: #fed7aa !important; }
+html.cb-rg .border-red-400   { border-color: #fb923c !important; }
+html.cb-rg .border-red-500   { border-color: #f97316 !important; }
+html.cb-rg .ring-red-400     { --tw-ring-color: #fb923c !important; }
+html.cb-rg .ring-red-500     { --tw-ring-color: #f97316 !important; }
+
+html.cb-rg .bg-red-900\/20  { background-color: rgba(154,52,18,.2) !important; }
+html.cb-rg .bg-red-900\/30  { background-color: rgba(154,52,18,.3) !important; }
+html.cb-rg .bg-rose-900\/40 { background-color: rgba(154,52,18,.4) !important; }
+html.cb-rg .border-red-800      { border-color: #9a3412 !important; }
+html.cb-rg .border-red-800\/40  { border-color: rgba(154,52,18,.4) !important; }
+html.cb-rg .border-red-800\/50  { border-color: rgba(154,52,18,.5) !important; }
+
+/* Dark-mode red/rose variants */
+html.dark.cb-rg .dark\:text-red-300  { color: #fed7aa !important; }
+html.dark.cb-rg .dark\:text-red-400  { color: #f97316 !important; }
+html.dark.cb-rg .dark\:text-red-500  { color: #ea580c !important; }
+html.dark.cb-rg .dark\:text-rose-300 { color: #fed7aa !important; }
+html.dark.cb-rg .dark\:text-rose-400 { color: #f97316 !important; }
+
+html.dark.cb-rg .dark\:bg-red-900\/20  { background-color: rgba(154,52,18,.2) !important; }
+html.dark.cb-rg .dark\:bg-red-900\/30  { background-color: rgba(154,52,18,.3) !important; }
+html.dark.cb-rg .dark\:bg-rose-900\/40 { background-color: rgba(154,52,18,.4) !important; }
+html.dark.cb-rg .dark\:border-red-800\/40 { border-color: rgba(154,52,18,.4) !important; }
+html.dark.cb-rg .dark\:border-red-800\/50 { border-color: rgba(154,52,18,.5) !important; }
+html.dark.cb-rg .dark\:border-red-800     { border-color: #9a3412 !important; }
+html.dark.cb-rg .dark\:ring-red-400       { --tw-ring-color: #fb923c !important; }
+html.dark.cb-rg .dark\:ring-red-500       { --tw-ring-color: #f97316 !important; }
+html.dark.cb-rg .dark\:border-red-500     { border-color: #f97316 !important; }
+
+/* ── Semantic activity-dot overrides (prevent green→blue collision in cb-rg mode)
+   CalendarPage: sleep category dot; HistoryPage: medication dot.
+   Cyan is distinguishable from blue for deuteranopes. */
+html.cb-rg .dot-sleep      { background-color: #06b6d4 !important; }
+html.cb-rg .dot-medication { background-color: #06b6d4 !important; }
+
+/* Pseudo-class red variants (focus/hover/active) */
+html.cb-rg .focus\:ring-red-400:focus    { --tw-ring-color: #fb923c !important; }
+html.cb-rg .hover\:text-red-400:hover    { color: #f97316 !important; }
+html.cb-rg .hover\:bg-red-50:hover       { background-color: #fff7ed !important; }
+html.cb-rg .hover\:bg-red-900\/20:hover  { background-color: rgba(154,52,18,.2) !important; }
+html.cb-rg .active\:bg-red-600:active    { background-color: #ea580c !important; }

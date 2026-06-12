@@ -33,9 +33,11 @@ function fmtMin(minutes: number): string {
 
 function sleepBarColor(durSec: number, idealSec: number): string {
   const pct = (durSec / idealSec) * 100
-  if (pct >= 80) return 'bg-green-400 dark:bg-green-500'
-  if (pct >= 50) return 'bg-amber-400 dark:bg-amber-500'
-  return 'bg-rose-400 dark:bg-rose-500'
+  // Semantic class names (sleep-bar-good / sleep-bar-poor) are targeted by
+  // the html.cb-rg CSS rule in index.css for red-green colour blindness mode.
+  if (pct >= 80) return 'sleep-bar-good bg-green-400 dark:bg-green-500'
+  if (pct >= 50) return 'sleep-bar-neutral bg-amber-400 dark:bg-amber-500'
+  return 'sleep-bar-poor bg-rose-400 dark:bg-rose-500'
 }
 
 const settingsSchema = z.object({

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { resolveTheme, applyTheme, THEME_COLORS } from './theme'
+import { resolveTheme, applyTheme, applyColorBlindMode, THEME_COLORS } from './theme'
 import { formatVolume } from './formatTime'
 
 describe('resolveTheme', () => {
@@ -37,6 +37,23 @@ describe('applyTheme', () => {
   it('resolves system to the OS preference', () => {
     applyTheme('system') // matchMedia mocked to prefer light
     expect(document.documentElement.classList.contains('dark')).toBe(false)
+  })
+})
+
+describe('applyColorBlindMode', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('cb-rg')
+  })
+
+  it('adds cb-rg class when mode is rg', () => {
+    applyColorBlindMode('rg')
+    expect(document.documentElement.classList.contains('cb-rg')).toBe(true)
+  })
+
+  it('removes cb-rg class when mode is none', () => {
+    document.documentElement.classList.add('cb-rg')
+    applyColorBlindMode('none')
+    expect(document.documentElement.classList.contains('cb-rg')).toBe(false)
   })
 })
 

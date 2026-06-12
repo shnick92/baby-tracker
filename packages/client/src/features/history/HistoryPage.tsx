@@ -120,7 +120,7 @@ function DailyView({ babyId, date }: { babyId: string; date: string }) {
     blue: 'bg-blue-400',
     indigo: 'bg-indigo-400',
     amber: 'bg-amber-400',
-    green: 'bg-green-400',
+    green: 'bg-green-400 dot-medication',
     teal: 'bg-teal-400',
     purple: 'bg-purple-400',
   }

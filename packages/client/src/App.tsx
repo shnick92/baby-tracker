@@ -11,7 +11,8 @@ import { useSocketStore } from '@stores/socketStore'
 import { useSosStore } from '@stores/sosStore'
 import { useSettingsStore } from '@stores/settingsStore'
 import { usePushSubscription } from '@hooks/usePushSubscription'
-import { applyTheme, watchSystemTheme } from '@lib/utils'
+import { useOfflineSync } from '@hooks/useOfflineSync'
+import { applyTheme, applyColorBlindMode, watchSystemTheme } from '@lib/utils'
 import { ProtectedRoute, AppLayout, Toast } from '@components'
 import { LoginPage } from '@features/auth'
 import { Dashboard } from '@features/dashboard'
@@ -188,13 +189,29 @@ function ThemeEffect() {
   return null
 }
 
+function ColorBlindEffect() {
+  const colorBlindMode = useSettingsStore((s) => s.colorBlindMode)
+  useEffect(() => {
+    applyColorBlindMode(colorBlindMode)
+  }, [colorBlindMode])
+  return null
+}
+
+function OfflineSyncEffect() {
+  const babyId = useAuthStore((s) => s.babyId)
+  useOfflineSync(babyId ?? '')
+  return null
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeEffect />
+      <ColorBlindEffect />
       <BrowserRouter>
         <ScrollToTop />
         <AuthBootstrap>
+          <OfflineSyncEffect />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

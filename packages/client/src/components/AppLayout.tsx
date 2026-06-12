@@ -165,6 +165,7 @@ function formatDate(): string {
 export function AppLayout() {
   const { user, babyId, logout } = useAuthStore()
   const socketStatus = useSocketStore((s) => s.status)
+  const offlineQueueCount = useSocketStore((s) => s.offlineQueueCount)
   const location = useLocation()
   const [topbarAction, setTopbarAction] = useState<React.ReactNode>(null)
 
@@ -221,6 +222,13 @@ export function AppLayout() {
 
         <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 space-y-2">
           {babyId && <SOSButton babyId={babyId} variant="full" />}
+          {offlineQueueCount > 0 && (
+            <div className="flex items-center gap-2 px-1 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/20">
+              <span className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                ⏳ {offlineQueueCount} queued
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-3 px-1">
             <div
               className={`w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-semibold text-blue-700 dark:text-blue-300 flex-shrink-0 ${syncRingClass(socketStatus)}`}

@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, CalendarClock, KeyRound, Moon as MoonIcon, Ruler, Trash2 } from 'lucide-react'
+import { Bell, BabyIcon, CalendarClock, Eye, KeyRound, Moon as MoonIcon, Ruler, Trash2 } from 'lucide-react'
 
 import { api } from '@lib/axios'
 import { useAuthStore } from '@stores/authStore'
+import { useSocketStore } from '@stores/socketStore'
 import { useSettingsStore, type ThemePreference } from '@stores/settingsStore'
-import { applyTheme, watchSystemTheme } from '@lib/utils'
+import { applyTheme, applyColorBlindMode, watchSystemTheme } from '@lib/utils'
 import { disablePush } from '@hooks/usePushSubscription'
 import { AddPasskeyButton } from '@features/auth'
+import { BabyBottleIcon } from '@components/icons'
 import { TextLineSkeleton } from '@components/skeletons'
 
 import { useNotificationSettings, useUpdateNotificationSettings } from './useNotificationSettings'
@@ -89,7 +91,11 @@ function NotificationSettingsSkeleton() {
 
 export function SettingsPage() {
   const { user, babyId, logout } = useAuthStore()
-  const { theme, units, pushEnabled, setTheme, setUnits, setPushEnabled } = useSettingsStore()
+  const {
+    theme, units, pushEnabled, defaultMilkType, colorBlindMode,
+    setTheme, setUnits, setPushEnabled, setDefaultMilkType, setColorBlindMode,
+  } = useSettingsStore()
+  const offlineQueueCount = useSocketStore((s) => s.offlineQueueCount)
 
   const { data: notif, isLoading: notifLoading } = useNotificationSettings(babyId)
   const updateNotif = useUpdateNotificationSettings(babyId)
@@ -105,6 +111,10 @@ export function SettingsPage() {
     applyTheme(theme)
     return watchSystemTheme(theme)
   }, [theme])
+
+  useEffect(() => {
+    applyColorBlindMode(colorBlindMode)
+  }, [colorBlindMode])
 
   const handlePushToggle = (enabled: boolean) => {
     setPushEnabled(enabled)
@@ -160,8 +170,52 @@ export function SettingsPage() {
             </section>
 
             <section>
+              <p className={sectionLabelCls}>Feeding</p>
+              <div className={`${cardCls} divide-y divide-gray-100 dark:divide-gray-700`}>
+                <SettingsRow
+                  icon={<BabyIcon size={18} />}
+                  label="Default milk type"
+                  sub="Pre-selected when logging a bottle"
+                  action={
+                    <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                      {(['BREAST_MILK', 'FORMULA'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setDefaultMilkType(t)}
+                          className={`px-3 py-2 text-xs font-semibold min-w-[44px] min-h-[40px] transition-colors ${
+                            defaultMilkType === t
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-transparent text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {t === 'BREAST_MILK' ? 'Breast' : 'Formula'}
+                        </button>
+                      ))}
+                    </div>
+                  }
+                />
+                {offlineQueueCount > 0 && (
+                  <div className="px-4 py-3 flex items-center gap-3">
+                    <span className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 text-amber-600 dark:text-amber-400 text-base">
+                      ⏳
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {offlineQueueCount} log{offlineQueueCount !== 1 ? 's' : ''} waiting to sync
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        Will upload automatically on reconnect
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section>
               <p className={sectionLabelCls}>Display</p>
-              <div className={cardCls}>
+              <div className={`${cardCls} divide-y divide-gray-100 dark:divide-gray-700`}>
                 <SettingsRow
                   icon={<Ruler size={18} />}
                   label="Volume units"
@@ -183,6 +237,18 @@ export function SettingsPage() {
                         </button>
                       ))}
                     </div>
+                  }
+                />
+                <SettingsRow
+                  icon={<Eye size={18} />}
+                  label="Color blindness mode"
+                  sub="Replaces red/green with blue/orange"
+                  action={
+                    <Toggle
+                      checked={colorBlindMode === 'rg'}
+                      onChange={(v) => setColorBlindMode(v ? 'rg' : 'none')}
+                      label="Red-green color blindness mode"
+                    />
                   }
                 />
               </div>
@@ -291,7 +357,9 @@ export function SettingsPage() {
                 <>
                   <div className={`${cardCls} p-4`}>
                     <div className="flex items-center gap-3">
-                      <span className="text-xl">🍼</span>
+                      <span className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center flex-shrink-0 text-gray-600 dark:text-gray-300">
+                        <BabyBottleIcon size={18} />
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Feeding Reminder</p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Remind me if no feed is logged</p>
