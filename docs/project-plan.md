@@ -15,7 +15,7 @@
 - Color blindness accessibility mode (red-green) in Settings > Display
 - Phase 7 screenshots complete
 
-**Up next:** Phase 7.Distribution — forking & self-hosting readiness.
+**Up next:** Phase 7.Distribution — public open-source release via two-repo sync (`shnick92/baby-tracker`). Hosting guide shipped (PR #70). Next: create the public repo, commit generic icon, wire up `sync-public.yml` GitHub Action.
 
 ---
 
@@ -1589,104 +1589,58 @@ model BabyNameReaction {
 
 ---
 
-### Phase 7.Distribution: Forking & Self-Hosting Readiness
+### Phase 7.Distribution: Public Release as Maintained Open-Source ✅ In Progress
 
-**Goal:** Someone we personally share this with can fork the repo, swap in their own icon, stand it up on hardware they already own, and have it running with minimal guesswork.
+**Goal:** Publish Baby Tracker as a maintained open-source project that any family can fork, self-host, and receive ongoing updates from.
 
-> This is a personal share, not a public release. Guides are best-effort; we've only tested our own Unraid + Tailscale path. Docker Compose is Docker Compose — whether the host is Unraid, a Pi, a Synology, or a Linux box, the same Compose file runs on all of them.
+> **Pivot from original plan (June 2026):** This was originally scoped as a "personal share" with a single private repo and a `forkable` branch. We pivoted to a two-repo maintained open-source model: the private repo (`shnick92/tracker`) stays as the personal deployment; a new public repo (e.g. `shnick92/baby-tracker`) is the canonical open-source release. GitHub doesn't support per-branch visibility, so the two-repo approach is the only clean path to keeping personal icons private while making the codebase public. The public repo is actively maintained — not just a one-time dump — so users who fork early can pull upstream to get new features.
 
-#### PWA Icon Strategy
+#### Repository Strategy
 
-Personal icons stay on `main` (private repo, no reason to hide them). A `forkable` branch holds the generic icons and is kept automatically in sync with `main` via a GitHub Action — zero manual maintenance.
+| Repo | Visibility | Purpose |
+|---|---|---|
+| `shnick92/tracker` (this repo) | Private | Personal deployment; personalized icons, our Unraid/Tailscale setup; source of truth for all development |
+| `shnick92/baby-tracker` (new) | Public | Maintained open-source release; generic icon; what everyone else forks |
 
-**Branch setup (one-time):**
-- [ ] Create `forkable` branch from `main`
-- [ ] Source or design a clean generic icon (simple vector — baby bottle, heart, or abstract mark) at 192×192, 512×512, and 512×512 maskable
-- [ ] Commit the generic icons to `packages/client/public/icons/` on `forkable` — this is the only commit ever made directly to this branch
+All development happens in the private repo. A GitHub Action syncs every push to `main` into the public repo, swapping the personalized icon for the generic crescent moon in the process.
 
-**Auto-sync action (`.github/workflows/sync-forkable.yml`):**
-- [ ] Create a workflow that triggers on every push to `main` and runs:
-  ```bash
-  git checkout forkable
-  git merge main -X ours --no-edit
-  git push origin forkable
-  ```
-  `git merge -X ours` automatically resolves any conflict by taking `forkable`'s version — the generic icons are always preserved; all code changes flow through from `main` untouched. Since code is never committed directly to `forkable`, real conflicts cannot occur.
+#### Setup Tasks
 
-**Documentation:**
-- [ ] Add a short **"Customising the icon"** section to the README on `forkable`: where the files live, required sizes (192px, 512px, maskable 512px), and where the manifest references them in `vite.config.ts`
-- [ ] README on `forkable` notes that this branch tracks `main` automatically and is the intended fork target
+**Public repo (one-time):**
+- [ ] Create `shnick92/baby-tracker` as a new public GitHub repo
+- [ ] Initial push: the private repo's `main` branch with personalized icon replaced by the generic crescent moon (`packages/client/public/icons/`)
+- [ ] Add a `CONTRIBUTING.md` explaining the two-repo structure (issues go here; development happens upstream)
 
-**Result:** `main` deploys personal icons to production via the existing CI pipeline. `forkable` always has the latest code with generic icons within seconds of a `main` push. Forkers get working icons with no extra steps.
+**Auto-sync action (`.github/workflows/sync-public.yml`) in the private repo:**
+- [ ] Trigger on every push to `main`
+- [ ] Checkout the private repo, replace the four icon PNGs with the generic crescent moon versions
+- [ ] Force-push the result to `shnick92/baby-tracker` main using a PAT stored as `PUBLIC_REPO_TOKEN` in the private repo's secrets
+- [ ] The sync takes <30 seconds; the public repo is always within one push of the private one
 
-#### Self-Hosting Guide
+**Generic icon:**
+- [x] Crescent moon on dark navy background — generated at 192px, 512px, and maskable variants (ready, just not committed to private `main`)
+- [ ] Commit generic icons to a holding branch or directly in the sync workflow script
 
-One guide covers all local hosting options because Unraid, Raspberry Pi, Synology, and a Linux box all just run Docker Compose.
+#### Self-Hosting Guide ✅ Complete
 
-- [ ] Create `docs/self-hosting/docker-compose.md` — the primary guide:
-  - Prerequisites: Docker Engine + Docker Compose plugin (or Docker Desktop); Git
-  - Clone the repo, copy `.env.example` files, fill in required values (DB credentials, JWT secrets, VAPID keys, `APP_URL`)
-  - `docker compose up -d` — explain what each service is (client/Nginx, server, Postgres)
-  - First-run seed: `docker compose exec server npm run seed`
-  - How to reach the app: `http://localhost` or over the network
-  - Platform notes (callout boxes, not separate guides):
-    - **Unraid**: run the Compose stack via Unraid's Docker Compose manager or the community Compose plugin; everything else is identical
-    - **Raspberry Pi 4+**: multi-arch images are already built by CI; note swap config for Postgres on low-RAM boards
-    - **Synology NAS**: import the Compose file via Container Manager; use Synology's built-in reverse proxy for HTTPS
-  - Troubleshooting section: DB connection refused, CORS errors, push notifications not working, Watchtower not pulling new images
-  - **Privacy callout**: running without Tailscale means the app is LAN-only unless you open a port — if you open it to the internet, add firewall rules or HTTP basic auth at the Nginx layer
+- [x] `docs/hosting.md` — covers six deployment options: home server + Tailscale (existing README), Cloudflare Tunnel, VPS + Caddy, Railway, Render, Fly.io; each with cost/privacy trade-offs, env var config, and Docker setup
 
-- [ ] Create `docs/self-hosting/cloud.md` — short optional note for people without a home server:
-  - One paragraph on Fly.io / Railway / Render as an option
-  - Honest trade-off: data leaves the home network; fine for some families, not the intent of this project
-  - No step-by-step (too platform-specific and untested); just enough to point someone in the right direction
+#### Issue Management
 
-#### Tailscale Setup Guide
-
-Tailscale is optional but gives the cleanest remote access story — app stays on the home network, accessible from anywhere, with a valid HTTPS cert and no port forwarding.
-
-- [ ] Create `docs/self-hosting/tailscale.md`:
-  - What Tailscale does and why it's the recommended remote access option for this app (stays private, no port forwarding, valid HTTPS cert)
-  - Create a Tailscale account; free tier supports 2 users + 1 server
-  - Install Tailscale on the host machine (Linux package or Unraid plugin)
-  - Install Tailscale on both phones (Android + iOS); note phones must be in the same tailnet as the server
-  - Enable **MagicDNS** for a stable hostname instead of a changing IP
-  - Enable **HTTPS** in the Tailscale admin console; update `APP_URL` in `.env` to use the `https://` hostname
-  - Update Nginx to serve on 443 with the Tailscale-issued cert (`/var/lib/tailscale/certs/`)
-  - Test: open the app from each phone on both WiFi and mobile data
-  - Optional: lock down the tailnet ACL so only the two parent devices can reach the server
+Issues filed on the public repo (`shnick92/baby-tracker`) are the primary feedback channel. No automated mirroring to the private repo — just watch the public issues tab and pull in relevant items to this project plan manually. Issues inform the roadmap but carry no support obligation.
 
 #### Theme Customization Guide
 
-Forking families may want different accent colors — e.g. a family that knows the gender might want all-pink or all-blue rather than the default gender-neutral pink↔blue gradient used on the Baby Names page.
+Forking families may want different accent colors — e.g. all-pink or all-blue rather than the default gender-neutral palette.
 
-**Approach:** All theme color tokens live in a single config file so forkers can retheme the app without touching component code.
-
-**Tasks:**
-- [ ] Create `packages/client/src/lib/theme.ts` — export a `THEME` object with named color tokens:
-  ```ts
-  export const THEME = {
-    // Baby Names page gradient endpoints — change both to retheme that page
-    namesFrom: 'pink-500',   // Tailwind color stop, left side
-    namesTo:   'blue-500',   // Tailwind color stop, right side
-    // Primary action color used across the rest of the app
-    primary: 'indigo',       // Tailwind color family used for buttons, rings, etc.
-  }
-  ```
-- [ ] Update `BabyNamesPage` to read `THEME.namesFrom` / `THEME.namesTo` for the gradient (instead of hardcoded Tailwind classes). Because Tailwind purges unused classes, ship a `safelist` in `tailwind.config.ts` covering the full set of gradient variants for the supported color pairs.
-- [ ] Document the customization in a **"Customising the theme"** section in `README` on the `forkable` branch: list the supported color pairs, explain the safelist requirement, and show a before/after example.
-- [ ] Add `VITE_NAMES_GRADIENT_FROM` and `VITE_NAMES_GRADIENT_TO` as optional client env vars (defaulting to `pink-500` / `blue-500`) so families can override without touching source code — just set them in `.env` before building.
+- [ ] Add `VITE_NAMES_GRADIENT_FROM` and `VITE_NAMES_GRADIENT_TO` as optional client env vars (defaulting to `pink-500` / `blue-500`) so families can change the Baby Names page gradient without touching source code
+- [ ] Document in README: where the icons live, required sizes, how to set gradient env vars
 
 **Acceptance criteria:**
-- A forker can change the Baby Names gradient to all-pink (girl) or all-blue (boy) by setting two env vars and rebuilding — no component code changes required
-- The rest of the app's primary color can be changed in one place in `theme.ts`
-- The customization is documented on the `forkable` branch README
-
-**Acceptance criteria:**
-- Someone with a Docker-capable home server can follow the Docker Compose guide and reach the app on their phone with no prior questions answered by us
-- The Tailscale guide is self-contained; someone can set up remote access from scratch using it alone
-- README has a "Self-Hosting" section linking both guides
-- Repo contains no personally identifiable icons
+- The public repo is live and forkable with generic icons and working docs
+- The sync action keeps the public repo up to date within seconds of a private `main` push
+- A forker can follow `docs/hosting.md` and have the app running without asking us anything
+- Personalized icons never appear in the public repo
 
 ---
 
@@ -1789,7 +1743,9 @@ All packages use Vitest for unit and integration tests.
 
 ## Multi-Family Distribution
 
-This app is designed to be self-hosted by a single family, but the repo should be shareable so that other families can spin up their own private instance with minimal config.
+> **Updated June 2026:** Originally scoped as a private share. Now a maintained open-source project published at `shnick92/baby-tracker`. See Phase 7.Distribution for the two-repo sync strategy.
+
+This app is maintained as open-source software. Any family can fork the public repo, self-host it, and pull upstream updates to get new features as they ship.
 
 ### Config-Driven Setup
 
@@ -1828,5 +1784,5 @@ SEED_USER_2_PASSWORD=changeme
 
 ---
 
-*Last updated: May 2026*  
-*Next review: After Phase 5.Illness + Phase 5.AI-Hardening land*
+*Last updated: June 2026*  
+*Next review: After public repo (`shnick92/baby-tracker`) is live and sync action is running*

@@ -304,7 +304,9 @@ Multi-type exports (e.g. feedings + sleep + diapers) download as a ZIP with one 
 
 This app is designed to be forked and self-hosted by any family. No hardcoded names or family data exist in the codebase — everything is configured via environment variables and the database seed.
 
-### Prerequisites
+**[Full hosting guide →](docs/hosting.md)** — covers Cloudflare Tunnel, VPS (Hetzner/DigitalOcean), Railway, Render, and Fly.io in addition to the Tailscale + home server setup below.
+
+### Prerequisites (Tailscale + home server)
 
 - Docker + Docker Compose on your home server (Unraid, a NAS, a spare PC, etc.)
 - [Tailscale](https://tailscale.com/) installed on your server and your phones — provides secure remote access without opening ports
@@ -509,6 +511,7 @@ tracker/
 
 ## Documentation
 
+- **[docs/hosting.md](docs/hosting.md)** — Deployment options: Cloudflare Tunnel, VPS, Railway, Render, Fly.io
 - **[docs/project-plan.md](docs/project-plan.md)** — Full phased roadmap, data model, acceptance criteria
 - **[docs/ADRs.md](docs/ADRs.md)** — Architecture Decision Records explaining every major technical choice
 - **[docs/ai/ai-integration.md](docs/ai/ai-integration.md)** — Claude AI integration spec: prompts, streaming, cost estimates, caching strategy

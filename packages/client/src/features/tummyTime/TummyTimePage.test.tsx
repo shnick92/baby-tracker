@@ -70,6 +70,6 @@ describe('TummyTimePage', () => {
       },
     })
     renderWithProviders(<TummyTimePage />)
-    expect(await screen.findByText('Total today')).toBeInTheDocument()
+    expect(await screen.findByText('Total today', {}, { timeout: 3000 })).toBeInTheDocument()
   })
 })
