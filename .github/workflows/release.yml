@@ -11,6 +11,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to push tags to the private repo
     steps:
       - uses: actions/checkout@v4
         with:
