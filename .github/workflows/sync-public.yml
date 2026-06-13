@@ -12,6 +12,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history so public repo gets complete git log
+          persist-credentials: false # Prevent checkout's GITHUB_TOKEN helper from intercepting the push
 
       - name: Configure git
         run: |
