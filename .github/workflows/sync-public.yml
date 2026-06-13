@@ -1,0 +1,32 @@
+name: Sync to public repo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger for initial seed
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history so public repo gets complete git log
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Swap in generic icons
+        run: |
+          cp .github/assets/icons/icon-192.png packages/client/public/icons/icon-192.png
+          cp .github/assets/icons/icon-192-maskable.png packages/client/public/icons/icon-192-maskable.png
+          cp .github/assets/icons/icon-512.png packages/client/public/icons/icon-512.png
+          cp .github/assets/icons/icon-512-maskable.png packages/client/public/icons/icon-512-maskable.png
+          git add packages/client/public/icons/
+          git commit -m "chore: swap personalized icons for generic defaults [skip ci]"
+
+      - name: Push to public repo
+        run: |
+          git push https://x-access-token:${{ secrets.PUBLIC_REPO_TOKEN }}@github.com/shnick92/baby-tracker.git HEAD:main --force

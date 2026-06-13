@@ -533,4 +533,4 @@ Common scopes: `auth`, `feeding`, `sleep`, `diaper`, `health`, `checklist`, `vis
 
 ## License
 
-Private — not licensed for public distribution. Fork freely for personal, non-commercial self-hosting.
+[MIT](LICENSE) — fork freely, self-host for your family, contribute back if you'd like.
