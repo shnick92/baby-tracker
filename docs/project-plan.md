@@ -1477,15 +1477,18 @@ Centralized `/settings` route — one page with feature-scoped sections. Accessi
 
 ```prisma
 model BabyName {
-  id          String             @id @default(cuid())
-  babyId      String
-  baby        Baby               @relation(...)
-  firstName   String
-  middleName  String?
-  addedById   String             // user who added it; can only edit/delete their own
-  reactions   BabyNameReaction[]
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  id            String             @id @default(cuid())
+  babyId        String
+  baby          Baby               @relation(...)
+  firstName     String
+  middleName    String?
+  nickname      String?            // optional short form e.g. "Em" for "Emma"
+  pronunciation String?            // optional phonetic hint e.g. "EE-mah"
+  group         String?            // optional user-defined label e.g. "Favorites", "Maybe"
+  addedById     String             // user who added it; can only edit/delete their own
+  reactions     BabyNameReaction[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 }
 
 model BabyNameReaction {
@@ -1519,11 +1522,18 @@ model BabyNameReaction {
   - Partner reaction: shown alongside your own
   - Add / Edit / Delete your own names; can't edit partner's names
 - [x] Accessible from Pregnancy group in sidebar + More page (Baby icon)
+- [x] **v2 improvements** (migrated `add_baby_name_fields_and_partner_alert`):
+  - Sticky header with inline "Add Name" form (header morphs into form on tap; names scroll below)
+  - Group filter chips: names can be tagged with a group (preset suggestions + free-text); chips filter the list
+  - Optional nickname + pronunciation fields (collapsed by default in the form; shown on card when set)
+  - Partner names alert: push notification sent to partner at every 5th name the other parent adds; toggled via Settings > Notifications > "Partner Names Alert"; `partnerNamesAlertEnabled` added to `NotificationSettings`
 
 **Acceptance criteria:**
 - Adding a name and seeing the full-name preview takes 2 taps
 - Partner's reaction appears in real time without page refresh
 - Family surname shown in preview when `VITE_FAMILY_SURNAME` is set
+- Group filter chips update the visible list instantly; "All" chip resets filter
+- Partner receives a push when their partner adds a 5th (or 10th, 15th…) name, if the toggle is on
 
 ---
 

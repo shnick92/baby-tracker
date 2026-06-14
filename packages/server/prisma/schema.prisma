@@ -221,15 +221,16 @@ model SleepSettings {
 }
 
 model NotificationSettings {
-  id                     String    @id @default(cuid())
-  babyId                 String    @unique
-  baby                   Baby      @relation(fields: [babyId], references: [id])
-  feedingReminderEnabled Boolean   @default(false)
-  feedingReminderMinutes Int       @default(180)
-  wakeWindowAlertEnabled Boolean   @default(true)
-  weeklyDigestEnabled    Boolean   @default(true)
-  lastFeedingNotifiedAt  DateTime?
-  updatedAt              DateTime  @updatedAt
+  id                       String    @id @default(cuid())
+  babyId                   String    @unique
+  baby                     Baby      @relation(fields: [babyId], references: [id])
+  feedingReminderEnabled   Boolean   @default(false)
+  feedingReminderMinutes   Int       @default(180)
+  wakeWindowAlertEnabled   Boolean   @default(true)
+  weeklyDigestEnabled      Boolean   @default(true)
+  partnerNamesAlertEnabled Boolean   @default(true)
+  lastFeedingNotifiedAt    DateTime?
+  updatedAt                DateTime  @updatedAt
 }
 
 model PushSubscription {
@@ -542,15 +543,18 @@ model VaccinationRecord {
 
 // Baby name candidates — one record per name, one emoji reaction per parent
 model BabyName {
-  id          String     @id @default(cuid())
-  babyId      String
-  baby        Baby       @relation(fields: [babyId], references: [id])
-  firstName   String
-  middleName  String?
-  addedById   String
-  reactions   BabyNameReaction[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  babyId        String
+  baby          Baby       @relation(fields: [babyId], references: [id])
+  firstName     String
+  middleName    String?
+  nickname      String?
+  pronunciation String?
+  group         String?
+  addedById     String
+  reactions     BabyNameReaction[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model BabyNameReaction {

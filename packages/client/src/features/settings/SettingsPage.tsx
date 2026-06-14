@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, BabyIcon, CalendarClock, Eye, KeyRound, Moon as MoonIcon, Ruler, Trash2 } from 'lucide-react'
+import { Bell, BabyIcon, Baby, CalendarClock, Eye, KeyRound, Moon as MoonIcon, Ruler, Trash2 } from 'lucide-react'
 
 import { api } from '@lib/axios'
 import { useAuthStore } from '@stores/authStore'
@@ -445,6 +445,21 @@ export function SettingsPage() {
                           checked={notif.weeklyDigestEnabled}
                           onChange={(v) => updateNotif.mutate({ weeklyDigestEnabled: v })}
                           label="Weekly digest"
+                        />
+                      }
+                    />
+                  </div>
+
+                  <div className={cardCls}>
+                    <SettingsRow
+                      icon={<Baby size={18} />}
+                      label="Partner Names Alert"
+                      sub="Notify when your partner adds 5+ new names"
+                      action={
+                        <Toggle
+                          checked={notif.partnerNamesAlertEnabled}
+                          onChange={(v) => updateNotif.mutate({ partnerNamesAlertEnabled: v })}
+                          label="Partner names alert"
                         />
                       }
                     />

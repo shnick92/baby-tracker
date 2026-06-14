@@ -243,7 +243,7 @@ Multi-type exports (e.g. feedings + sleep + diapers) download as a ZIP with one 
 - Hospital bag checklists (mom's bag, baby's bag, home prep, before-you-leave) with per-item check-off
 - Purchase tracker with status cycling (Needed → Bought / Gifted / Skip), price tracking, and auto-generated shortlinks for sharing items with family
 - Visitor schedule planner with date, time window, and RSVP tracking
-- Baby name shortlist — both parents add candidates with full-name preview (first + middle + surname) and real-time emoji reactions
+- Baby name shortlist — both parents add candidates with full-name preview (first + middle + surname), optional nickname and pronunciation hint, optional group label (Favorites, Maybe, etc.) with filter chips, and real-time emoji reactions; partner receives a push notification when the other parent adds every 5th name
 
 **Daily newborn tracking:**
 - Feeding log — live breastfeed timer with left/right side tracking, bottle volume entry, pump log; oz/mL toggle
@@ -272,11 +272,11 @@ Multi-type exports (e.g. feedings + sleep + diapers) download as a ZIP with one 
 **Export & settings:**
 - Data export page — select data types (feeding, sleep, diapers, growth, medications, tummy time, mood), date range, and format (PDF or CSV/ZIP)
 - Health Summary report — compact PDF covering vaccinations, medications, weight/height, and feeding/sleep overviews; designed for pediatrician visits
-- Settings — account management, passkey add/remove, push notification preferences (feeding reminder intervals, wake window alerts, weekly digest), display theme (dark/light/system), oz/mL unit preference
+- Settings — account management, passkey add/remove, push notification preferences (feeding reminder intervals, wake window alerts, weekly digest, partner names alert), display theme (dark/light/system), oz/mL unit preference
 
 **Platform:**
 - Real-time sync between both parents via Socket.io — one parent logs a feeding, the other's screen updates instantly
-- Push notifications — feeding reminders, wake window alerts, SOS emergency alert; Android DND override via Web Push notification channel; iOS and Android DND override via Twilio phone call fallback
+- Push notifications — feeding reminders, wake window alerts, weekly digest, partner names alert (fires every 5th name the other parent adds), SOS emergency alert; Android DND override via Web Push notification channel; iOS and Android DND override via Twilio phone call fallback
 - Offline read access — cached data available when Tailscale drops; connection indicator on every screen
 - PWA — installable on Android and iOS; biometric/passkey login (Face ID, fingerprint)
 

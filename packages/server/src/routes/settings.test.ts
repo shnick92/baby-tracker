@@ -16,8 +16,14 @@ describe('updateNotificationSettingsSchema', () => {
       feedingReminderMinutes: 240,
       wakeWindowAlertEnabled: false,
       weeklyDigestEnabled: false,
+      partnerNamesAlertEnabled: true,
     })
     expect(result.success).toBe(true)
+  })
+
+  it('accepts partnerNamesAlertEnabled toggle', () => {
+    expect(updateNotificationSettingsSchema.safeParse({ partnerNamesAlertEnabled: false }).success).toBe(true)
+    expect(updateNotificationSettingsSchema.safeParse({ partnerNamesAlertEnabled: 'yes' }).success).toBe(false)
   })
 
   it('rejects an interval below 30 minutes', () => {
@@ -44,6 +50,7 @@ describe('NOTIFICATION_SETTINGS_DEFAULTS', () => {
       feedingReminderMinutes: 180,
       wakeWindowAlertEnabled: true,
       weeklyDigestEnabled: true,
+      partnerNamesAlertEnabled: true,
     })
   })
 })

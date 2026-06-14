@@ -11,6 +11,7 @@ export const updateNotificationSettingsSchema = z.object({
     .optional(),
   wakeWindowAlertEnabled: z.boolean().optional(),
   weeklyDigestEnabled: z.boolean().optional(),
+  partnerNamesAlertEnabled: z.boolean().optional(),
 })
 
 export type UpdateNotificationSettingsInput = z.infer<typeof updateNotificationSettingsSchema>
@@ -20,6 +21,7 @@ export type NotificationSettingsDTO = {
   feedingReminderMinutes: number
   wakeWindowAlertEnabled: boolean
   weeklyDigestEnabled: boolean
+  partnerNamesAlertEnabled: boolean
 }
 
 export const NOTIFICATION_SETTINGS_DEFAULTS: NotificationSettingsDTO = {
@@ -27,4 +29,5 @@ export const NOTIFICATION_SETTINGS_DEFAULTS: NotificationSettingsDTO = {
   feedingReminderMinutes: 180,
   wakeWindowAlertEnabled: true,
   weeklyDigestEnabled: true,
+  partnerNamesAlertEnabled: true,
 }

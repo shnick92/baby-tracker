@@ -18,6 +18,9 @@ export type BabyName = {
   babyId: string
   firstName: string
   middleName: string | null
+  nickname: string | null
+  pronunciation: string | null
+  group: string | null
   addedById: string
   reactions: BabyNameReaction[]
   createdAt: string
@@ -59,14 +62,16 @@ export function useBabyNames(babyId: string) {
   }, [babyId, queryClient])
 
   const addMutation = useMutation({
-    mutationFn: ({ firstName, middleName }: { firstName: string; middleName?: string }) =>
-      api.post('/api/baby-names', { babyId, firstName, middleName }).then((r) => r.data.data as BabyName),
+    mutationFn: (input: { firstName: string; middleName?: string; nickname?: string; pronunciation?: string; group?: string }) =>
+      api.post('/api/baby-names', { babyId, ...input }).then((r) => r.data.data as BabyName),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: babyNameKeys.list(babyId) }),
   })
 
   const editMutation = useMutation({
-    mutationFn: ({ id, firstName, middleName }: { id: string; firstName?: string; middleName?: string | null }) =>
-      api.patch(`/api/baby-names/${id}`, { firstName, middleName }).then((r) => r.data.data as BabyName),
+    mutationFn: (input: { id: string; firstName?: string; middleName?: string | null; nickname?: string | null; pronunciation?: string | null; group?: string | null }) => {
+      const { id, ...data } = input
+      return api.patch(`/api/baby-names/${id}`, data).then((r) => r.data.data as BabyName)
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: babyNameKeys.list(babyId) }),
   })
 

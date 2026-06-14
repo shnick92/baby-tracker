@@ -2,7 +2,8 @@ import { Router } from 'express'
 import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
-import { addBabyNameSchema, updateBabyNameSchema, reactToBabyNameSchema } from '@tracker/shared'
+import { sendPush } from '../lib/push'
+import { addBabyNameSchema, updateBabyNameSchema, reactToBabyNameSchema, NOTIFICATION_SETTINGS_DEFAULTS } from '@tracker/shared'
 
 export const babyNamesRouter = Router()
 babyNamesRouter.use(authMiddleware)
@@ -26,18 +27,26 @@ babyNamesRouter.post('/', async (req, res) => {
   const parsed = addBabyNameSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ data: null, error: 'Invalid request body' }); return }
 
+  const adderId = req.user!.userId
+
   const name = await prisma.babyName.create({
     data: {
       babyId: parsed.data.babyId,
       firstName: parsed.data.firstName,
       middleName: parsed.data.middleName,
-      addedById: req.user!.userId,
+      nickname: parsed.data.nickname,
+      pronunciation: parsed.data.pronunciation,
+      group: parsed.data.group,
+      addedById: adderId,
     },
     include: { reactions: true },
   })
 
   const io = req.app.get('io') as Server
   io.to(`family:${name.babyId}`).emit('babyName:created', { babyId: name.babyId })
+
+  // Partner notification: fire at every 5th name added by this user (5, 10, 15…)
+  void sendPartnerNamesAlert(name.babyId, adderId).catch(() => null)
 
   res.status(201).json({ data: name, error: null })
 })
@@ -59,6 +68,9 @@ babyNamesRouter.patch('/:id', async (req, res) => {
     data: {
       ...(parsed.data.firstName !== undefined && { firstName: parsed.data.firstName }),
       ...(parsed.data.middleName !== undefined && { middleName: parsed.data.middleName }),
+      ...(parsed.data.nickname !== undefined && { nickname: parsed.data.nickname }),
+      ...(parsed.data.pronunciation !== undefined && { pronunciation: parsed.data.pronunciation }),
+      ...(parsed.data.group !== undefined && { group: parsed.data.group }),
     },
     include: { reactions: true },
   })
@@ -120,3 +132,50 @@ babyNamesRouter.delete('/:id/reaction', async (req, res) => {
 
   res.json({ data: { removed: true }, error: null })
 })
+
+// Fire-and-forget: push to partner when adder hits a multiple of 5 names
+async function sendPartnerNamesAlert(babyId: string, adderId: string): Promise<void> {
+  const settings = await prisma.notificationSettings.findUnique({ where: { babyId } })
+  const alertEnabled = settings?.partnerNamesAlertEnabled ?? NOTIFICATION_SETTINGS_DEFAULTS.partnerNamesAlertEnabled
+  if (!alertEnabled) return
+
+  const adderCount = await prisma.babyName.count({ where: { babyId, addedById: adderId } })
+  if (adderCount === 0 || adderCount % 5 !== 0) return
+
+  // Find the adder's display name and partner subscriptions
+  const [adder, partners] = await Promise.all([
+    prisma.user.findUnique({ where: { id: adderId }, select: { name: true } }),
+    prisma.babyUser.findMany({
+      where: { babyId, userId: { not: adderId } },
+      include: { user: { include: { pushSubscriptions: true } } },
+    }),
+  ])
+
+  const firstName = adder?.name?.split(' ')[0] ?? 'Your partner'
+
+  const subs = partners.flatMap((p) => p.user.pushSubscriptions)
+  if (subs.length === 0) return
+
+  const results = await Promise.allSettled(
+    subs.map((sub) =>
+      sendPush(sub, {
+        title: `${firstName} added some names 👶`,
+        body: `${firstName} has added ${adderCount} name candidates — go check them out!`,
+        type: 'partner-names-alert',
+        tag: 'partner-names-alert',
+      }),
+    ),
+  )
+
+  // Clean up expired subscriptions
+  await Promise.all(
+    results.map(async (r, i) => {
+      if (r.status === 'rejected') {
+        const err = r.reason as { statusCode?: number }
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await prisma.pushSubscription.delete({ where: { endpoint: subs[i].endpoint } }).catch(() => null)
+        }
+      }
+    }),
+  )
+}

@@ -78,7 +78,7 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `mobile/more.png` | Screenshot | "More" navigation menu |
 | `mobile/dashboard.png` | Screenshot | Dashboard — newborn state (feeding/sleep/diaper summary) |
 | `mobile/sleep.png` | Screenshot | Sleep tracker — active nap timer |
-| `mobile/baby-names.png` | Screenshot | Baby name shortlist with emoji reactions (surname stripped) |
+| `mobile/baby-names.png` | Screenshot | Baby name shortlist with group filter chips and emoji reactions (surname stripped) |
 | `mobile/vaccinations.png` | Screenshot | Vaccination tracker — CDC schedule with due/overdue status |
 | `mobile/milestones.png` | Screenshot | Milestone tracker — grouped by age range |
 | `mobile/settings.png` | Screenshot | Settings page — account, notifications, display |
@@ -112,7 +112,7 @@ Each run of `npm run screenshots` wipes and recreates:
 - Hospital bag checklist ~60% checked
 - 10 purchases (4 BOUGHT, 2 GIFTED, 3 NEEDED, 1 SKIP)
 - 5 visitor slots (generic names, mix of past + upcoming)
-- 4 baby name candidates with emoji reactions from both parents
+- 4 baby name candidates with group labels, emoji reactions from both parents, and at least one with a nickname/pronunciation set
 - 1 seeded AI Q&A exchange
 
 The `videos/` directory is git-ignored (MP4 files are ~5–20 MB each). The `mobile/` and `gifs/` directories are committed.
