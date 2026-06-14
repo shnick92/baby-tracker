@@ -550,7 +550,7 @@ model BabyName {
   middleName    String?
   nickname      String?
   pronunciation String?
-  group         String?
+  groups        String[]   @default([])
   addedById     String
   reactions     BabyNameReaction[]
   createdAt     DateTime   @default(now())

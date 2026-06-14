@@ -9,7 +9,7 @@ import type { BabyName } from './useBabyNames'
 const REACTION_EMOJIS = ['❤️', '😍', '🤔', '😬', '👎', '🥰', '🌟', '💯']
 const FAMILY_SURNAME = import.meta.env['VITE_FAMILY_SURNAME'] as string | undefined
 
-const PRESET_GROUPS = ['Favorites', 'Maybe', 'Wild Cards', "Partner's Picks"]
+const PRESET_GROUPS = ['Favorites', 'Maybe', 'Wild Cards', "Partner's Picks", 'Girl', 'Boy', 'Gender Neutral']
 
 const btnGradient =
   'bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-400 hover:to-blue-400 text-white transition-all'
@@ -27,10 +27,110 @@ type NameFormState = {
   middleName: string
   nickname: string
   pronunciation: string
-  group: string
+  groups: string[]
 }
 
-const emptyForm: NameFormState = { firstName: '', middleName: '', nickname: '', pronunciation: '', group: '' }
+const emptyForm: NameFormState = { firstName: '', middleName: '', nickname: '', pronunciation: '', groups: [] }
+
+// Tag-style multi-group input with autocomplete suggestions
+function GroupTagInput({
+  selected,
+  onChange,
+  knownGroups,
+}: {
+  selected: string[]
+  onChange: (groups: string[]) => void
+  knownGroups: string[]
+}) {
+  const [inputVal, setInputVal] = useState('')
+  const [open, setOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Merge presets + known groups, deduplicated, sorted
+  const allSuggestions = Array.from(
+    new Set([...knownGroups, ...PRESET_GROUPS])
+  ).sort()
+
+  const filtered = allSuggestions.filter(
+    (g) =>
+      !selected.includes(g) &&
+      (!inputVal || g.toLowerCase().includes(inputVal.toLowerCase()))
+  )
+
+  const addGroup = (g: string) => {
+    const trimmed = g.trim()
+    if (trimmed && !selected.includes(trimmed)) {
+      onChange([...selected, trimmed])
+    }
+    setInputVal('')
+    inputRef.current?.focus()
+  }
+
+  const removeGroup = (g: string) => onChange(selected.filter((x) => x !== g))
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === 'Enter' || e.key === ',') && inputVal.trim()) {
+      e.preventDefault()
+      addGroup(inputVal)
+    } else if (e.key === 'Backspace' && !inputVal && selected.length > 0) {
+      removeGroup(selected[selected.length - 1])
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Groups</label>
+      <div
+        className="min-h-[42px] flex flex-wrap gap-1.5 items-center px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-text focus-within:ring-2 focus-within:ring-blue-400"
+        onClick={() => inputRef.current?.focus()}
+      >
+        {selected.map((g) => (
+          <span
+            key={g}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium bg-gradient-to-r from-pink-100 to-blue-100 dark:from-pink-900/30 dark:to-blue-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-700"
+          >
+            {g}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); removeGroup(g) }}
+              className="hover:text-red-500 transition-colors"
+              aria-label={`Remove ${g}`}
+            >
+              <X size={10} />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputVal}
+          onChange={(e) => { setInputVal(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onKeyDown={handleKeyDown}
+          placeholder={selected.length === 0 ? 'e.g. Girl, Favorites…' : ''}
+          className="flex-1 min-w-[80px] bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none py-1"
+        />
+      </div>
+      {open && filtered.length > 0 && (
+        <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+          {filtered.map((g) => (
+            <button
+              key={g}
+              type="button"
+              onMouseDown={() => addGroup(g)}
+              className="w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function NameForm({
   initial,
@@ -38,28 +138,22 @@ function NameForm({
   onSubmit,
   onCancel,
   submitLabel,
+  knownGroups,
 }: {
   initial: NameFormState
   isPending: boolean
   onSubmit: (v: NameFormState) => void
   onCancel: () => void
   submitLabel: string
+  knownGroups: string[]
 }) {
   const [v, setV] = useState(initial)
-  const [showExtra, setShowExtra] = useState(!!(initial.nickname || initial.pronunciation || initial.group))
-  const [groupInput, setGroupInput] = useState(initial.group)
-  const [showGroupSuggestions, setShowGroupSuggestions] = useState(false)
+  const [showExtra, setShowExtra] = useState(!!(initial.nickname || initial.pronunciation || initial.groups.length > 0))
 
-  const field = (key: keyof NameFormState) => ({
-    value: key === 'group' ? groupInput : v[key],
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (key === 'group') {
-        setGroupInput(e.target.value)
-        setV((s) => ({ ...s, group: e.target.value }))
-      } else {
-        setV((s) => ({ ...s, [key]: e.target.value }))
-      }
-    },
+  const field = (key: Exclude<keyof NameFormState, 'groups'>) => ({
+    value: v[key] as string,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      setV((s) => ({ ...s, [key]: e.target.value })),
   })
 
   const preview = [v.firstName.trim(), v.middleName.trim(), FAMILY_SURNAME].filter(Boolean).join(' ')
@@ -78,7 +172,7 @@ function NameForm({
             placeholder="e.g. Emma"
             maxLength={100}
             className={inputCls}
-            onKeyDown={(e) => { if (e.key === 'Enter' && v.firstName.trim()) onSubmit({ ...v, group: groupInput }) }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && v.firstName.trim()) onSubmit(v) }}
             autoFocus
           />
         </div>
@@ -105,7 +199,7 @@ function NameForm({
         className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
       >
         {showExtra ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        {showExtra ? 'Hide' : 'Add'} nickname, pronunciation &amp; group
+        {showExtra ? 'Hide' : 'Add'} nickname, pronunciation &amp; groups
       </button>
 
       {showExtra && (
@@ -120,39 +214,18 @@ function NameForm({
               <input type="text" {...field('pronunciation')} placeholder='e.g. "EE-mah"' maxLength={200} className={inputCls} />
             </div>
           </div>
-          <div className="relative">
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Group</label>
-            <input
-              type="text"
-              {...field('group')}
-              placeholder="e.g. Favorites"
-              maxLength={50}
-              className={inputCls}
-              onFocus={() => setShowGroupSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowGroupSuggestions(false), 150)}
-            />
-            {showGroupSuggestions && (
-              <div className="absolute z-10 left-0 right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg overflow-hidden">
-                {PRESET_GROUPS.filter((g) => !groupInput || g.toLowerCase().includes(groupInput.toLowerCase())).map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    onMouseDown={() => { setGroupInput(g); setV((s) => ({ ...s, group: g })); setShowGroupSuggestions(false) }}
-                    className="w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <GroupTagInput
+            selected={v.groups}
+            onChange={(groups) => setV((s) => ({ ...s, groups }))}
+            knownGroups={knownGroups}
+          />
         </div>
       )}
 
       <div className="flex gap-2 pt-1">
         <button
           type="button"
-          onClick={() => onSubmit({ ...v, group: groupInput })}
+          onClick={() => onSubmit(v)}
           disabled={!v.firstName.trim() || isPending}
           className={`flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-1.5 ${btnGradient}`}
         >
@@ -203,6 +276,18 @@ function NameCard({ name, currentUserId, onReact, onRemoveReaction, onEdit, onDe
               <p className="text-xs text-gray-400 dark:text-gray-500">Pron: <span className="text-gray-600 dark:text-gray-300">{name.pronunciation}</span></p>
             )}
           </div>
+          {name.groups.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {name.groups.map((g) => (
+                <span
+                  key={g}
+                  className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-medium bg-gradient-to-r from-pink-50 to-blue-50 dark:from-pink-900/20 dark:to-blue-900/20 text-pink-600 dark:text-pink-400 border border-pink-100 dark:border-pink-800"
+                >
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3 mt-2 flex-wrap">
@@ -276,6 +361,56 @@ function NameCard({ name, currentUserId, onReact, onRemoveReaction, onEdit, onDe
   )
 }
 
+// Filter chip row — multi-select, AND logic
+function GroupFilterChips({
+  groups,
+  names,
+  activeGroups,
+  onToggle,
+  onClear,
+}: {
+  groups: string[]
+  names: BabyName[]
+  activeGroups: string[]
+  onToggle: (g: string) => void
+  onClear: () => void
+}) {
+  if (groups.length === 0) return null
+  return (
+    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+      <button
+        type="button"
+        onClick={onClear}
+        className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+          activeGroups.length === 0
+            ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
+            : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+        }`}
+      >
+        All ({names.length})
+      </button>
+      {groups.map((g) => {
+        const count = names.filter((n) => n.groups.includes(g)).length
+        const active = activeGroups.includes(g)
+        return (
+          <button
+            key={g}
+            type="button"
+            onClick={() => onToggle(g)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              active
+                ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
+                : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+            }`}
+          >
+            {g} ({count})
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function BabyNamesPage() {
   const { babyId, user } = useAuthStore()
   const currentUserId = user!.id
@@ -283,15 +418,23 @@ export function BabyNamesPage() {
 
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingName, setEditingName] = useState<BabyName | null>(null)
-  const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [activeGroups, setActiveGroups] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
 
-  // Derived: unique groups across all names (preserving order of first appearance)
-  const groups = Array.from(new Set(names.map((n) => n.group).filter((g): g is string => !!g)))
+  // All unique groups across all names (sorted, preserving uniqueness)
+  const allGroups = Array.from(
+    new Set(names.flatMap((n) => n.groups))
+  ).sort()
 
-  const visibleNames = activeGroup === null
+  // AND filter: name must have ALL active groups
+  const visibleNames = activeGroups.length === 0
     ? names
-    : names.filter((n) => n.group === activeGroup)
+    : names.filter((n) => activeGroups.every((g) => n.groups.includes(g)))
+
+  const toggleGroup = (g: string) =>
+    setActiveGroups((prev) =>
+      prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+    )
 
   const handleAdd = (v: NameFormState) => {
     addMutation.mutate(
@@ -300,7 +443,7 @@ export function BabyNamesPage() {
         middleName: v.middleName.trim() || undefined,
         nickname: v.nickname.trim() || undefined,
         pronunciation: v.pronunciation.trim() || undefined,
-        group: v.group.trim() || undefined,
+        groups: v.groups,
       },
       { onSuccess: () => setShowAddForm(false) },
     )
@@ -315,7 +458,7 @@ export function BabyNamesPage() {
         middleName: v.middleName.trim() || null,
         nickname: v.nickname.trim() || null,
         pronunciation: v.pronunciation.trim() || null,
-        group: v.group.trim() || null,
+        groups: v.groups,
       },
       { onSuccess: () => setEditingName(null) },
     )
@@ -324,7 +467,6 @@ export function BabyNamesPage() {
   const openAdd = () => {
     setEditingName(null)
     setShowAddForm(true)
-    // Give the sticky header time to expand before scrolling
     requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
@@ -332,7 +474,7 @@ export function BabyNamesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-sky-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900">
-      {/* Sticky header — collapses into add form when open */}
+      {/* Sticky header */}
       <header className="sticky top-0 z-20 md:hidden border-b border-pink-100/60 dark:border-gray-700 bg-gradient-to-r from-pink-50/95 to-blue-50/95 dark:from-gray-800/95 dark:to-gray-800/95 backdrop-blur-sm">
         {showAddForm ? (
           <div>
@@ -349,6 +491,7 @@ export function BabyNamesPage() {
               onSubmit={handleAdd}
               onCancel={closeAdd}
               submitLabel="Add Name"
+              knownGroups={allGroups}
             />
           </div>
         ) : (
@@ -369,37 +512,15 @@ export function BabyNamesPage() {
           </div>
         )}
 
-        {/* Group filter chips — only shown when there are groups and form is not open */}
-        {!showAddForm && groups.length > 0 && (
-          <div className="px-4 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
-            <button
-              type="button"
-              onClick={() => setActiveGroup(null)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                activeGroup === null
-                  ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
-                  : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-              }`}
-            >
-              All ({names.length})
-            </button>
-            {groups.map((g) => {
-              const count = names.filter((n) => n.group === g).length
-              return (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => setActiveGroup(activeGroup === g ? null : g)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                    activeGroup === g
-                      ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
-                      : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  {g} ({count})
-                </button>
-              )
-            })}
+        {!showAddForm && allGroups.length > 0 && (
+          <div className="px-4 pb-3">
+            <GroupFilterChips
+              groups={allGroups}
+              names={names}
+              activeGroups={activeGroups}
+              onToggle={toggleGroup}
+              onClear={() => setActiveGroups([])}
+            />
           </div>
         )}
       </header>
@@ -420,43 +541,30 @@ export function BabyNamesPage() {
         ) : (
           <>
             {/* Desktop: group filter chips */}
-            {groups.length > 0 && (
-              <div className="hidden md:flex gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setActiveGroup(null)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                    activeGroup === null
-                      ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
-                      : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-                  }`}
-                >
-                  All ({names.length})
-                </button>
-                {groups.map((g) => {
-                  const count = names.filter((n) => n.group === g).length
-                  return (
-                    <button
-                      key={g}
-                      type="button"
-                      onClick={() => setActiveGroup(activeGroup === g ? null : g)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                        activeGroup === g
-                          ? 'bg-gradient-to-r from-pink-500 to-blue-500 text-white'
-                          : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400'
-                      }`}
-                    >
-                      {g} ({count})
-                    </button>
-                  )
-                })}
+            {allGroups.length > 0 && (
+              <div className="hidden md:block">
+                <GroupFilterChips
+                  groups={allGroups}
+                  names={names}
+                  activeGroups={activeGroups}
+                  onToggle={toggleGroup}
+                  onClear={() => setActiveGroups([])}
+                />
               </div>
+            )}
+
+            {/* Active filter summary */}
+            {activeGroups.length > 1 && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Showing names in <span className="font-medium text-gray-600 dark:text-gray-300">{activeGroups.join(' + ')}</span>
+                {' '}({visibleNames.length} match{visibleNames.length !== 1 ? 'es' : ''})
+              </p>
             )}
 
             {visibleNames.map((name) =>
               editingName?.id === name.id ? (
-                <div key={name.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                  <div className="h-0.5 bg-gradient-to-r from-pink-400 to-blue-400" />
+                <div key={name.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                  <div className="h-0.5 bg-gradient-to-r from-pink-400 to-blue-400 rounded-t-2xl" />
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-4 pt-4">Edit name</p>
                   <NameForm
                     initial={{
@@ -464,12 +572,13 @@ export function BabyNamesPage() {
                       middleName: editingName.middleName ?? '',
                       nickname: editingName.nickname ?? '',
                       pronunciation: editingName.pronunciation ?? '',
-                      group: editingName.group ?? '',
+                      groups: editingName.groups,
                     }}
                     isPending={editMutation.isPending}
                     onSubmit={handleSaveEdit}
                     onCancel={() => setEditingName(null)}
                     submitLabel="Save"
+                    knownGroups={allGroups}
                   />
                 </div>
               ) : (
@@ -491,10 +600,10 @@ export function BabyNamesPage() {
                   <Baby size={32} className="text-white" />
                 </div>
                 <p className="text-sm text-gray-400 dark:text-gray-500">
-                  {activeGroup ? `No names in "${activeGroup}" yet` : 'No names yet'}
+                  {activeGroups.length > 0 ? `No names in "${activeGroups.join(' + ')}"` : 'No names yet'}
                 </p>
                 <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">
-                  {activeGroup ? 'Try a different group or add one above' : 'Tap Add to get started'}
+                  {activeGroups.length > 0 ? 'Try different filters or add a name above' : 'Tap Add to get started'}
                 </p>
               </div>
             )}
@@ -507,8 +616,8 @@ export function BabyNamesPage() {
                   <Plus size={16} /> Add Name
                 </button>
               ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                  <div className="h-0.5 bg-gradient-to-r from-pink-400 to-blue-400" />
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                  <div className="h-0.5 bg-gradient-to-r from-pink-400 to-blue-400 rounded-t-2xl" />
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-4 pt-4">New name candidate</p>
                   <NameForm
                     initial={emptyForm}
@@ -516,6 +625,7 @@ export function BabyNamesPage() {
                     onSubmit={handleAdd}
                     onCancel={closeAdd}
                     submitLabel="Add Name"
+                    knownGroups={allGroups}
                   />
                 </div>
               )}

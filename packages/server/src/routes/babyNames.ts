@@ -36,7 +36,7 @@ babyNamesRouter.post('/', async (req, res) => {
       middleName: parsed.data.middleName,
       nickname: parsed.data.nickname,
       pronunciation: parsed.data.pronunciation,
-      group: parsed.data.group,
+      groups: parsed.data.groups ?? [],
       addedById: adderId,
     },
     include: { reactions: true },
@@ -70,7 +70,7 @@ babyNamesRouter.patch('/:id', async (req, res) => {
       ...(parsed.data.middleName !== undefined && { middleName: parsed.data.middleName }),
       ...(parsed.data.nickname !== undefined && { nickname: parsed.data.nickname }),
       ...(parsed.data.pronunciation !== undefined && { pronunciation: parsed.data.pronunciation }),
-      ...(parsed.data.group !== undefined && { group: parsed.data.group }),
+      ...(parsed.data.groups !== undefined && { groups: parsed.data.groups }),
     },
     include: { reactions: true },
   })
