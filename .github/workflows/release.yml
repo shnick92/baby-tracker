@@ -1,63 +1,157 @@
 name: Release
 
 on:
+  # Auto-release after CI passes on main — version derived from conventional commits
+  workflow_run:
+    workflows: ['CI']
+    branches: [main]
+    types: [completed]
+
+  # Manual override: leave version blank to auto-detect, or supply e.g. "1.2.0"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version number — semver, no v prefix (e.g. 1.0.0)"
-        required: true
+        description: "Override version (semver, no v prefix). Leave blank to auto-detect from commits."
+        required: false
         type: string
 
 jobs:
   release:
+    # For workflow_run: only proceed if CI succeeded
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
     runs-on: ubuntu-latest
     permissions:
-      contents: write # required to push tags to the private repo
+      contents: write
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
+          # Check out the exact commit that passed CI (or HEAD for manual runs)
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0   # full history + all tags needed for version calculation
           persist-credentials: true
-
-      - name: Validate semver format
-        run: |
-          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::Version must be semver format (e.g. 1.0.0)"
-            exit 1
-          fi
-
-      - name: Check tag does not already exist
-        run: |
-          if git ls-remote --tags origin "refs/tags/v${{ inputs.version }}" | grep -q .; then
-            echo "::error::Tag v${{ inputs.version }} already exists on the private repo"
-            exit 1
-          fi
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Tag private repo
+      - name: Determine next version
+        id: version
         run: |
-          git tag v${{ inputs.version }}
-          git push origin v${{ inputs.version }}
+          # ── Find the latest semver tag ─────────────────────────────────────
+          LATEST_TAG=$(git tag --list 'v*' --sort=-version:refname | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+            COMMITS=$(git log --format="%s%n%b" 2>/dev/null)
+          else
+            COMMITS=$(git log "${LATEST_TAG}..HEAD" --format="%s%n%b" 2>/dev/null)
+          fi
+
+          # ── Manual override: skip detection if version was supplied ─────────
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "bump=manual" >> "$GITHUB_OUTPUT"
+            echo "previous_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+            echo "Manual override: ${LATEST_TAG} → v${{ inputs.version }}"
+            exit 0
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            echo "No commits since ${LATEST_TAG} — skipping release"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Determine bump type from conventional commits ──────────────────
+          # major: any type with ! suffix, or BREAKING CHANGE in body
+          # minor: feat
+          # patch: fix · perf · revert
+          # none:  everything else (docs, chore, ci, db, style, test, refactor…)
+          BUMP="none"
+
+          while IFS= read -r line; do
+            if echo "$line" | grep -qE '^(feat|fix|refactor|perf|db|ci|chore|docs|test|style|build|revert)(\([^)]+\))?!:' \
+               || echo "$line" | grep -q "^BREAKING CHANGE"; then
+              BUMP="major"
+              break
+            fi
+            if echo "$line" | grep -qE '^feat(\([^)]+\))?:'; then
+              [ "$BUMP" != "major" ] && BUMP="minor"
+            fi
+            if echo "$line" | grep -qE '^(fix|perf|revert)(\([^)]+\))?:'; then
+              [ "$BUMP" = "none" ] && BUMP="patch"
+            fi
+          done <<< "$COMMITS"
+
+          if [ "$BUMP" = "none" ]; then
+            echo "No releasable commits since ${LATEST_TAG} (only docs/chore/ci/db/etc.) — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ── Calculate new version ──────────────────────────────────────────
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+
+          case "$BUMP" in
+            major) NEW_VERSION="$((MAJOR+1)).0.0" ;;
+            minor) NEW_VERSION="${MAJOR}.$((MINOR+1)).0" ;;
+            patch) NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH+1))" ;;
+          esac
+
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Next version: ${LATEST_TAG} → v${NEW_VERSION} (${BUMP} bump)"
+
+      - name: Skip — no releasable commits
+        if: steps.version.outputs.skip == 'true'
+        run: echo "Nothing to release — exiting cleanly."
+
+      - name: Validate manual version format
+        if: steps.version.outputs.skip != 'true' && inputs.version != ''
+        run: |
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version must be semver format (e.g. 1.2.0)"
+            exit 1
+          fi
+
+      - name: Check tag does not already exist
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
+            echo "::error::Tag ${TAG} already exists — was this commit already released?"
+            exit 1
+          fi
+
+      - name: Tag private repo
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          git tag v${{ steps.version.outputs.version }}
+          git push origin v${{ steps.version.outputs.version }}
 
       - name: Tag public repo and create GitHub release
+        if: steps.version.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
         run: |
-          # Get the current HEAD of the public repo (already synced by the last push to main)
           PUBLIC_SHA=$(gh api repos/shnick92/baby-tracker/branches/main --jq '.commit.sha')
 
-          # Create the tag on the public repo pointing at its current main HEAD
           gh api repos/shnick92/baby-tracker/git/refs \
             -X POST \
-            -f ref="refs/tags/v${{ inputs.version }}" \
+            -f ref="refs/tags/v${{ steps.version.outputs.version }}" \
             -f sha="$PUBLIC_SHA"
 
-          # Create a GitHub release with auto-generated notes from commit history
-          gh release create v${{ inputs.version }} \
+          gh release create v${{ steps.version.outputs.version }} \
             --repo shnick92/baby-tracker \
-            --title "v${{ inputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
             --generate-notes \
             --latest
