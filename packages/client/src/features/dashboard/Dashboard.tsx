@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Moon, Droplets, MoreHorizontal, Thermometer, Pill } from 'lucide-react'
+import { Moon, Droplets, MoreHorizontal, Thermometer, Pill, Baby } from 'lucide-react'
 
 import { BabyBottleIcon } from '@components/icons'
 import { useAuthStore } from '@stores/authStore'
@@ -408,27 +408,33 @@ function PrepStatsGrid() {
 
   return (
     <div className="grid grid-cols-2 gap-2.5">
-      <PrepCard
-        label="Hospital Bag"
-        checked={bagChecked}
-        total={bagItems.length}
-        color="bg-blue-500 dark:bg-blue-400"
-        isLoading={momLoading || babyLoading}
-      />
-      <PrepCard
-        label="Purchases"
-        checked={purchasesBought}
-        total={purchasesTotal}
-        color="bg-purple-500 dark:bg-purple-400"
-        isLoading={purchasesLoading}
-      />
-      <PrepCard
-        label="Home Prep"
-        checked={prepChecked}
-        total={prepItems.length}
-        color="bg-green-500 dark:bg-green-400"
-        isLoading={prepLoading}
-      />
+      <Link to="/checklist/hospital_bag_mom" className="active:scale-95 transition-transform">
+        <PrepCard
+          label="Hospital Bag"
+          checked={bagChecked}
+          total={bagItems.length}
+          color="bg-blue-500 dark:bg-blue-400"
+          isLoading={momLoading || babyLoading}
+        />
+      </Link>
+      <Link to="/purchases" className="active:scale-95 transition-transform">
+        <PrepCard
+          label="Purchases"
+          checked={purchasesBought}
+          total={purchasesTotal}
+          color="bg-purple-500 dark:bg-purple-400"
+          isLoading={purchasesLoading}
+        />
+      </Link>
+      <Link to="/checklist/home_prep" className="active:scale-95 transition-transform">
+        <PrepCard
+          label="Home Prep"
+          checked={prepChecked}
+          total={prepItems.length}
+          color="bg-green-500 dark:bg-green-400"
+          isLoading={prepLoading}
+        />
+      </Link>
       <Link
         to="/visitors"
         className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-3 py-3 flex flex-col gap-1 active:scale-95 transition-transform"
@@ -675,25 +681,16 @@ export function Dashboard() {
           <>
             {mobilePregnancy}
             {bornToggle}
-            <div className="space-y-2">
-              {[
-                { to: '/feeding', label: 'Feeding', sub: 'Bottle & breast tracking', icon: <BabyBottleIcon size={20} />, color: 'text-blue-500 dark:text-blue-400' },
-                { to: '/sleep', label: 'Sleep', sub: 'Nap & overnight tracking', icon: <Moon size={20} />, color: 'text-indigo-500 dark:text-indigo-400' },
-                { to: '/diaper', label: 'Diapers', sub: 'Log wet & dirty', icon: <Droplets size={20} />, color: 'text-amber-500 dark:text-amber-400' },
-              ].map((card) => (
-                <Link
-                  key={card.to}
-                  to={card.to}
-                  className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-3 active:scale-[0.98] transition-transform"
-                >
-                  <span className={card.color}>{card.icon}</span>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{card.label}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">{card.sub}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <Link
+              to="/names"
+              className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-3 active:scale-[0.98] transition-transform"
+            >
+              <span className="text-gray-500 dark:text-gray-400"><Baby size={20} /></span>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Baby Names</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Browse &amp; shortlist names</p>
+              </div>
+            </Link>
             {passkeyCard}
           </>
         )}
@@ -764,6 +761,16 @@ export function Dashboard() {
             </div>
             {/* Right column */}
             <div className="space-y-4">
+              <Link
+                to="/names"
+                className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-3 active:scale-[0.98] transition-transform"
+              >
+                <span className="text-gray-500 dark:text-gray-400"><Baby size={20} /></span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">Baby Names</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Browse &amp; shortlist names</p>
+                </div>
+              </Link>
               {bornToggle}
               {passkeyCard}
             </div>

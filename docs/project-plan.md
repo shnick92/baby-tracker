@@ -726,10 +726,17 @@ Push to main
 - [x] Edit/delete slots (inline edit form)
 - [x] Mobile-friendly: tapping a time slot opens a quick-add form
 - [x] Loading skeleton (`<VisitorsSkeleton>`) — no layout shift on load
+- [x] Calendar export button (`CalendarPlus` icon) on every visitor slot:
+  - **Non-iOS:** dropdown with two options — "iCal / Apple" (downloads `.ics` file) and "Google Calendar" (opens `calendar.google.com/render?action=TEMPLATE` URL in a new tab)
+  - **iOS:** tapping the icon directly downloads the `.ics` file — iOS Calendar picks it up natively without a Google Calendar redirect
+  - All-day events (no time set) use `DTSTART;VALUE=DATE` / `DTEND;VALUE=DATE` format; timed events use UTC `DTSTART` / `DTEND`
+  - Slot notes are included as the `DESCRIPTION` field in iCal and as the `details` query param in the Google Calendar URL
+  - Implemented in `packages/client/src/features/visitors/utils/generateIcal.ts`; unit-tested in `generateIcal.test.ts`
 
 **Acceptance criteria:**
 - Can schedule 10+ visitor slots without UI degradation
 - Slots display clearly in a week view on mobile
+- Tapping the calendar icon on a slot exports it to iCal or Google Calendar without navigating away from the page
 
 ---
 

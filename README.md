@@ -242,7 +242,7 @@ Multi-type exports (e.g. feedings + sleep + diapers) download as a ZIP with one 
 **Pregnancy prep:**
 - Hospital bag checklists (mom's bag, baby's bag, home prep, before-you-leave) with per-item check-off
 - Purchase tracker with status cycling (Needed → Bought / Gifted / Skip), price tracking, and auto-generated shortlinks for sharing items with family
-- Visitor schedule planner with date, time window, and RSVP tracking
+- Visitor schedule planner with date, time window, and notes; each slot has a one-tap calendar export — iCal (`.ics`) for Apple Calendar and a direct Google Calendar link; on iOS the `.ics` downloads directly, on Android/desktop a dropdown offers both options
 - Baby name shortlist — both parents add candidates with full-name preview (first + middle + surname), optional nickname and pronunciation hint, optional group label (Favorites, Maybe, etc.) with filter chips, and real-time emoji reactions; partner receives a push notification when the other parent adds every 5th name
 
 **Daily newborn tracking:**
