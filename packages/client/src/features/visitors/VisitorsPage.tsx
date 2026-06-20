@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { CalendarPlus } from 'lucide-react'
 
 import { TrashIcon, PencilIcon } from '@components/icons'
 import { formatDueMonthYear } from '@lib/utils/formatDate'
@@ -17,7 +18,12 @@ import {
   todayDateString,
   extractTimeInput,
   groupByMonth,
+  generateVisitorIcal,
+  buildGoogleCalendarUrl,
+  downloadIcal,
 } from './utils'
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
 
 const visitorSchema = z.object({
   name: z.string().min(1, 'Required'),
@@ -43,6 +49,68 @@ function buildSlotPayload(values: VisitorForm) {
     endTime: values.endTime ? toISO(values.date, values.endTime) : undefined,
     notes: values.notes?.trim() || undefined,
   }
+}
+
+type SlotForCal = Parameters<typeof generateVisitorIcal>[0]
+
+function CalendarButton({ slot }: { slot: SlotForCal }) {
+  const [open, setOpen] = useState(false)
+
+  const triggerIcal = () => {
+    const ical = generateVisitorIcal(slot)
+    downloadIcal(ical, `${slot.name.replace(/\s+/g, '-')}-visit.ics`)
+    setOpen(false)
+  }
+
+  if (isIOS) {
+    return (
+      <button
+        onClick={triggerIcal}
+        className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+        aria-label="Add to Calendar"
+        title="Add to Calendar"
+      >
+        <CalendarPlus size={15} />
+      </button>
+    )
+  }
+
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+        aria-label="Add to Calendar"
+        title="Add to Calendar"
+      >
+        <CalendarPlus size={15} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden min-w-[150px]">
+            <button
+              onClick={triggerIcal}
+              className="w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+            >
+              <CalendarPlus size={13} className="text-blue-400" />
+              iCal / Apple
+            </button>
+            <a
+              href={buildGoogleCalendarUrl(slot)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setOpen(false)}
+              className="w-full text-left px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+            >
+              <CalendarPlus size={13} className="text-blue-400" />
+              Google Calendar
+            </a>
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 function DateBox({ dateStr, isToday }: { dateStr: string; isToday: boolean }) {
@@ -236,6 +304,7 @@ export function VisitorsPage() {
                           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic">{slot.notes}</p>
                         )}
                       </div>
+                      <CalendarButton slot={slot} />
                       <button
                         onClick={() => handleStartEdit(slot)}
                         className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"

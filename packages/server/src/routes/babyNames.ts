@@ -16,7 +16,7 @@ babyNamesRouter.get('/', async (req, res) => {
   const names = await prisma.babyName.findMany({
     where: { babyId },
     include: { reactions: true },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
   })
 
   res.json({ data: names, error: null })

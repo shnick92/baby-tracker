@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Heart, Pencil, Trash2, Plus, X, Check, Baby, ChevronDown, ChevronUp } from 'lucide-react'
 
 import { useAuthStore } from '@stores/authStore'
@@ -243,9 +243,10 @@ function NameForm({
   )
 }
 
-function NameCard({ name, currentUserId, onReact, onRemoveReaction, onEdit, onDelete }: {
+function NameCard({ name, currentUserId, isNew, onReact, onRemoveReaction, onEdit, onDelete }: {
   name: BabyName
   currentUserId: string
+  isNew: boolean
   onReact: (nameId: string, emoji: string) => void
   onRemoveReaction: (nameId: string) => void
   onEdit: (name: BabyName) => void
@@ -256,12 +257,23 @@ function NameCard({ name, currentUserId, onReact, onRemoveReaction, onEdit, onDe
   const partnerReaction = name.reactions.find((r) => r.userId !== currentUserId)
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="h-0.5 bg-gradient-to-r from-pink-400 to-blue-400" />
+    <div className={`bg-white dark:bg-gray-800 rounded-2xl border overflow-hidden relative ${
+      isNew
+        ? 'border-purple-200 dark:border-purple-700'
+        : 'border-gray-100 dark:border-gray-700'
+    }`}>
+      <div className={`h-0.5 bg-gradient-to-r ${isNew ? 'from-purple-400 to-pink-400' : 'from-pink-400 to-blue-400'}`} />
       <div className="p-4">
+        {isNew && (
+          <span className="absolute top-3 right-3 px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full leading-none">
+            NEW
+          </span>
+        )}
         <div className="mb-3">
-          <p className="text-xl font-bold tracking-wide bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">
-            {fullName(name)}
+          <p className="text-xl font-bold tracking-wide">
+            <span className="bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent inline-block">
+              {fullName(name)}
+            </span>
           </p>
           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
             {name.middleName && (
@@ -421,6 +433,16 @@ export function BabyNamesPage() {
   const [activeGroups, setActiveGroups] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
 
+  // Track last-seen timestamp to badge partner's new names
+  const lastSeenKey = `names_last_seen_${babyId}`
+  const [lastSeenAt] = useState<Date | null>(() => {
+    const stored = localStorage.getItem(lastSeenKey)
+    return stored ? new Date(stored) : null
+  })
+  useEffect(() => {
+    return () => { localStorage.setItem(lastSeenKey, new Date().toISOString()) }
+  }, [lastSeenKey])
+
   // All unique groups across all names (sorted, preserving uniqueness)
   const allGroups = Array.from(
     new Set(names.flatMap((n) => n.groups))
@@ -561,8 +583,13 @@ export function BabyNamesPage() {
               </p>
             )}
 
-            {visibleNames.map((name) =>
-              editingName?.id === name.id ? (
+            {visibleNames.map((name) => {
+              const isNew =
+                lastSeenAt !== null &&
+                new Date(name.createdAt) > lastSeenAt &&
+                name.addedById !== currentUserId
+
+              return editingName?.id === name.id ? (
                 <div key={name.id} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                   <div className="h-0.5 bg-gradient-to-r from-pink-400 to-blue-400 rounded-t-2xl" />
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-4 pt-4">Edit name</p>
@@ -586,13 +613,14 @@ export function BabyNamesPage() {
                   key={name.id}
                   name={name}
                   currentUserId={currentUserId}
+                  isNew={isNew}
                   onReact={(nameId, emoji) => reactMutation.mutate({ nameId, emoji })}
                   onRemoveReaction={(nameId) => removeReactionMutation.mutate(nameId)}
                   onEdit={setEditingName}
                   onDelete={(id) => deleteMutation.mutate(id)}
                 />
               )
-            )}
+            })}
 
             {visibleNames.length === 0 && (
               <div className="text-center py-14">
