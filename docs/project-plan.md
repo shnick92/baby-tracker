@@ -569,16 +569,19 @@ model TemperatureLog {
     +-----------+-----------+
     |           |           |
  [Nginx]    [Server]   [Postgres]
- port 443   port 3001   port 5432
-    |           |
- [Client]   [Prisma]
- (static)   [Socket.io]
+ port 8090  port 3001   port 5432
+ (loopback)     |
+    |       [Prisma]
+ [Client]   [Socket.io]
+ (static)
 ```
 
-- **Nginx** terminates HTTPS via Tailscale TLS certs, serves the React build, and proxies `/api` and `/socket.io` to the Express server.
+`tailscale serve` runs on the host and terminates HTTPS on the Tailscale interface (port 443), proxying to nginx's loopback-only port. It renews its own certificate automatically — no cert files, no renewal cron job. See [ADR-017](ADRs.md).
+
+- **Nginx** serves the React build over plain HTTP and proxies `/api` and `/socket.io` to the Express server.
 - **Express** runs on port 3001 (internal only).
 - **PostgreSQL** runs on port 5432 (internal only).
-- **Tailscale** provides encrypted peer-to-peer remote access.
+- **Tailscale** provides encrypted peer-to-peer remote access and terminates TLS via `tailscale serve`.
 
 ### CI/CD Flow
 

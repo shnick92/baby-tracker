@@ -415,10 +415,15 @@ This creates exactly two user accounts from your `SEED_USER_*` env vars. After f
 
 ### 6. Set Up Tailscale
 
-1. Install Tailscale on your server ([docs.tailscale.com](https://docs.tailscale.com/))
+1. Install Tailscale on your server ([docs.tailscale.com](https://docs.tailscale.com/)) — it needs to run on the host itself (not just inside a container), since the next step uses `tailscaled`'s own TLS termination
 2. Install the Tailscale app on both phones
 3. Sign in to the same Tailscale account on all three devices
 4. Your server's Tailscale hostname (e.g. `myserver.tail1234.ts.net`) is your app's URL
+5. Point `tailscale serve` at the nginx container so Tailscale terminates HTTPS and renews its own certificate automatically — no cert files to manage, no renewal cron job:
+   ```bash
+   tailscale serve --bg --https=443 http://127.0.0.1:8090
+   ```
+   (Match the port to `NGINX_LOCAL_PORT` in your `.env`, default `8090`.) Flag names have changed across Tailscale CLI versions — run `tailscale serve --help` if this errors. This config is stored by `tailscaled` and persists across reboots as long as Tailscale is set to start on boot; verify anytime with `tailscale serve status`.
 
 ### 7. Set Up CI/CD (Optional)
 

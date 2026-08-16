@@ -4,10 +4,10 @@ services:
   nginx:
     image: ${DOCKERHUB_USERNAME}/tracker-client:latest
     ports:
-      - "${TAILSCALE_IP}:80:80"
-      - "${TAILSCALE_IP}:443:443"
-    volumes:
-      - /mnt/user/appdata/tracker/certs:/etc/ssl/tailscale:ro
+      # Loopback-only — `tailscale serve` on the host terminates TLS and
+      # proxies here. Not the Tailscale interface IP; nothing needs to
+      # reach this port except tailscaled itself.
+      - "127.0.0.1:${NGINX_LOCAL_PORT:-8090}:80"
     depends_on:
       - server
     restart: unless-stopped

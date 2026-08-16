@@ -711,4 +711,41 @@ Build a minimal link shortener directly into the app:
 
 ---
 
+## ADR-017: TLS Termination via `tailscale serve` (Supersedes Static Tailscale Certs)
+
+**Status:** Accepted  
+**Date:** 2026-08-16  
+**Deciders:** Nick
+
+### Context
+
+HTTPS was originally enabled (PR #13, 2026-05-17) by running `tailscale cert` once to generate a cert/key pair, mounting it into the nginx container from `/mnt/user/appdata/tracker/certs`, and terminating TLS in nginx. Tailscale-issued Let's Encrypt certs are valid for 90 days. No renewal automation was ever built — not a cron job, not a script, nothing. The cert expired on schedule roughly 90 days later and locked both parents out of the app, including passkey login: WebAuthn requires a secure context, which Chrome refuses to grant on a page served past a cert-error interstitial, so the login failure looked unrelated to the cert error at first glance.
+
+### Decision
+
+Stop managing cert files entirely. Use `tailscale serve` on the host to terminate TLS and reverse-proxy to nginx over plain HTTP on a loopback-only port:
+
+- `tailscale serve --bg --https=443 http://127.0.0.1:${NGINX_LOCAL_PORT:-8090}` run once on the Unraid host; the config is stored in `tailscaled`'s local state and reasserts itself across reboots
+- `docker/nginx.conf` drops its TLS server block entirely and serves plain HTTP on port 80 inside the container
+- `docker-compose.prod.yml` binds nginx to `127.0.0.1:${NGINX_LOCAL_PORT:-8090}:80` instead of the Tailscale interface IP on ports 80/443; the `TAILSCALE_IP` env var and the certs volume mount are both removed
+- `tailscale serve` renews its own certificate indefinitely — no cron job, no manual `tailscale cert` re-run, no cert files on disk that can silently go stale
+
+### Options Considered
+
+| Option | Verdict |
+|--------|---------|
+| Cron job to re-run `tailscale cert` periodically | Rejected — still a manual file-based cert that can silently fail to renew; this is exactly the failure mode that caused the outage |
+| `tailscale serve` (this decision) | Accepted — Tailscale manages the full cert lifecycle natively; nothing to renew or monitor |
+| Move TLS termination to Caddy | Rejected — solves the same problem but adds a new container/process for something `tailscale serve` already does for free |
+
+### Consequences
+
+- Positive: Cert expiry can never again cause an outage — Tailscale handles renewal internally, with no file on disk to go stale
+- Positive: Removes cert files, the certs volume mount, and `TAILSCALE_IP` from the deployment entirely — smaller config surface
+- Positive: `nginx.conf` is simpler — no TLS directives, no cert paths to keep in sync with the volume mount
+- Negative: TLS termination now depends on `tailscaled` running on the host itself (not just in a container) — if Tailscale is down, so is HTTPS. This dependency already existed for MagicDNS resolution, so it isn't a new failure mode
+- Negative: `tailscale serve`'s config lives in `tailscaled`'s local state, not the git repo — a from-scratch server rebuild must re-run the `tailscale serve` command once (documented in README → Self-Hosting)
+
+---
+
 *ADRs authored May 2026. Review after initial launch (target: Q4 2026 post-birth).*

@@ -42,7 +42,7 @@ This is the default configuration documented in the [README](../README.md). Skip
 
 Follow the full setup in the README → **Self-Hosting** section. The key files are:
 - `docker/docker-compose.prod.yml` — production services
-- `docker/nginx.conf` — nginx with Tailscale TLS certs
+- `docker/nginx.conf` — plain HTTP nginx; TLS is terminated externally by `tailscale serve` on the host, which auto-renews its own certificate (no cert files to manage, no renewal cron job)
 
 ---
 
