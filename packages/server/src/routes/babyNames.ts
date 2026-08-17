@@ -133,14 +133,16 @@ babyNamesRouter.delete('/:id/reaction', async (req, res) => {
   res.json({ data: { removed: true }, error: null })
 })
 
+const PARTNER_NAMES_ALERT_BATCH_SIZE = 5
+
 // Fire-and-forget: push to partner when adder hits a multiple of 5 names
-async function sendPartnerNamesAlert(babyId: string, adderId: string): Promise<void> {
+export async function sendPartnerNamesAlert(babyId: string, adderId: string): Promise<void> {
   const settings = await prisma.notificationSettings.findUnique({ where: { babyId } })
   const alertEnabled = settings?.partnerNamesAlertEnabled ?? NOTIFICATION_SETTINGS_DEFAULTS.partnerNamesAlertEnabled
   if (!alertEnabled) return
 
   const adderCount = await prisma.babyName.count({ where: { babyId, addedById: adderId } })
-  if (adderCount === 0 || adderCount % 5 !== 0) return
+  if (adderCount === 0 || adderCount % PARTNER_NAMES_ALERT_BATCH_SIZE !== 0) return
 
   // Find the adder's display name and partner subscriptions
   const [adder, partners] = await Promise.all([
@@ -160,7 +162,7 @@ async function sendPartnerNamesAlert(babyId: string, adderId: string): Promise<v
     subs.map((sub) =>
       sendPush(sub, {
         title: `${firstName} added some names 👶`,
-        body: `${firstName} has added ${adderCount} name candidates — go check them out!`,
+        body: `${firstName} has added ${PARTNER_NAMES_ALERT_BATCH_SIZE} new name candidates — go check them out!`,
         type: 'partner-names-alert',
         tag: 'partner-names-alert',
       }),
