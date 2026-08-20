@@ -18,6 +18,7 @@ import { medicationRouter } from './routes/medication'
 import { weightRouter } from './routes/weight'
 import { heightRouter } from './routes/height'
 import { tummyTimeRouter } from './routes/tummyTime'
+import { contractionRouter } from './routes/contraction'
 import { moodRouter } from './routes/mood'
 import { historyRouter } from './routes/history'
 import { calendarRouter } from './routes/calendar'
@@ -87,6 +88,7 @@ app.use('/api/medication', medicationRouter)
 app.use('/api/weight', weightRouter)
 app.use('/api/height', heightRouter)
 app.use('/api/tummy-time', tummyTimeRouter)
+app.use('/api/contractions', contractionRouter)
 app.use('/api/mood', moodRouter)
 app.use('/api/history', historyRouter)
 app.use('/api/calendar', calendarRouter)

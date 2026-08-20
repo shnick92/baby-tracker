@@ -1547,6 +1547,32 @@ model BabyNameReaction {
 
 ---
 
+### Phase 6.Contractions: Contraction Timer ✅ Complete
+
+**Goal:** A simple start/stop timer for timing contractions during labor — press start when a contraction begins, stop when it ends, and see how far apart contractions are getting. Modeled after the thebump.com contraction counter.
+
+#### Tasks ✅ Complete
+
+- [x] `ContractionLog` added to Prisma schema (`babyId`, `loggedById`, `startedAt`, `endedAt`, `durationSec`); migrated (`add_contraction_log`)
+- [x] `startContractionSchema`, `endContractionSchema` in `packages/shared/src/schemas/contraction.ts`
+- [x] `GET /api/contractions?babyId=` — list logs, newest first
+- [x] `POST /api/contractions/start` — start a contraction; cancels any already-active one
+- [x] `PATCH /api/contractions/:id/end` — end the active contraction; server computes `durationSec`
+- [x] `DELETE /api/contractions/:id` — remove a log (used for testing the timer on-device)
+- [x] Socket.io: emit `contraction:created`, `contraction:updated`, `contraction:deleted` for real-time sync
+- [x] Client feature at `/contractions`: `ContractionsPage`, `useContractionLogs` hook
+  - Live MM:SS timer while a contraction is active; Stop / Cancel actions
+  - "Time since last contraction" live counter when idle
+  - Log list shows each contraction's duration and time since the previous contraction started ("apart")
+- [x] Accessible from More page → Pregnancy mode → Health group (Timer icon)
+
+**Acceptance criteria:**
+- Starting and stopping a contraction takes 2 taps, no form fields
+- A log's "apart" value matches the gap between its start time and the previous log's start time
+- Deleting a log removes it immediately on all connected devices (for on-device testing)
+
+---
+
 ### Phase 7: Repository Screenshots & Visual Documentation ✅ Complete
 
 **Goal:** Anyone who receives or discovers the repo can immediately see what the app looks like before committing to setup.

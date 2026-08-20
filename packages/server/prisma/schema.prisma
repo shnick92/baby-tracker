@@ -65,6 +65,7 @@ model Baby {
   medicationLogs  MedicationLog[]
   tummyTimeLogs   TummyTimeLog[]
   moodLogs        MoodLog[]
+  contractionLogs ContractionLog[]
   customActivities    CustomActivity[]
   milestones          Milestone[]
   vaccinationRecords  VaccinationRecord[]
@@ -281,6 +282,17 @@ model TummyTimeLog {
   durationSec Int?
   notes       String?
   createdAt   DateTime @default(now())
+}
+
+model ContractionLog {
+  id          String    @id @default(cuid())
+  babyId      String
+  baby        Baby      @relation(fields: [babyId], references: [id])
+  loggedById  String
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int?
+  createdAt   DateTime  @default(now())
 }
 
 model MoodLog {

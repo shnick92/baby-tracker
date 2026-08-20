@@ -27,6 +27,7 @@ import { MorePage } from '@features/more'
 import { MedicationPage } from '@features/medication'
 import { WeightPage, GrowthPage } from '@features/weight'
 import { TummyTimePage } from '@features/tummyTime'
+import { ContractionsPage } from '@features/contractions'
 import { MoodPage } from '@features/mood'
 import { HistoryPage } from '@features/history'
 import { CalendarPage } from '@features/calendar'
@@ -228,6 +229,7 @@ export default function App() {
               <Route path="/weight" element={<WeightPage />} />
               <Route path="/growth" element={<GrowthPage />} />
               <Route path="/tummy-time" element={<TummyTimePage />} />
+              <Route path="/contractions" element={<ContractionsPage />} />
               <Route path="/mood" element={<MoodPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/calendar" element={<CalendarPage />} />

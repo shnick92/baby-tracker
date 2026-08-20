@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Settings, Sparkles, Thermometer, Syringe, Star, Baby } from 'lucide-react'
+import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Settings, Sparkles, Thermometer, Syringe, Star, Baby, Timer } from 'lucide-react'
 import { useAuthStore } from '@stores/authStore'
 
 type MoreItem = {
@@ -70,6 +70,12 @@ const BABY_NAMES: MoreItem = {
   label: 'Baby Names',
   description: 'Add name candidates and react with your partner',
 }
+const CONTRACTIONS: MoreItem = {
+  to: '/contractions',
+  icon: <Timer size={22} />,
+  label: 'Contraction Timer',
+  description: 'Time contractions and track how far apart they are',
+}
 const TUMMY_TIME: MoreItem = {
   to: '/tummy-time',
   icon: <span className="text-2xl">🐢</span>,
@@ -124,7 +130,7 @@ const BABY_MODE_GROUPS: MoreGroup[] = [
 
 const PREGNANCY_MODE_GROUPS: MoreGroup[] = [
   { label: 'Planning', items: [BABY_NAMES, PREGNANCY_PREP, PURCHASES, VISITORS] },
-  { label: 'Health', items: [AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD, ILLNESS] },
+  { label: 'Health', items: [CONTRACTIONS, AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD, ILLNESS] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
   { label: 'System', items: [ALERTS, SETTINGS] },
 ]
