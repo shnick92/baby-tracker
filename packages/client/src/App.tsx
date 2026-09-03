@@ -19,6 +19,7 @@ import { Dashboard } from '@features/dashboard'
 import { ChecklistPage } from '@features/checklist'
 import { PurchasesPage } from '@features/purchases'
 import { VisitorsPage } from '@features/visitors'
+import { DoctorsPage } from '@features/doctors'
 import { FeedingPage } from '@features/feeding'
 import { SleepPage } from '@features/sleep'
 import { DiaperPage } from '@features/diaper'
@@ -223,6 +224,7 @@ export default function App() {
               <Route path="/checklist/:type" element={<ChecklistPage />} />
               <Route path="/purchases" element={<PurchasesPage />} />
               <Route path="/visitors" element={<VisitorsPage />} />
+              <Route path="/doctors" element={<DoctorsPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/more" element={<MorePage />} />
               <Route path="/medication" element={<MedicationPage />} />

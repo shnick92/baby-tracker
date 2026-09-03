@@ -32,6 +32,7 @@ import { illnessRouter } from './routes/illness'
 import { milestonesRouter } from './routes/milestones'
 import { vaccinationsRouter } from './routes/vaccinations'
 import { babyNamesRouter } from './routes/babyNames'
+import { doctorsRouter } from './routes/doctors'
 import { exportRouter } from './routes/export'
 import { devRouter } from './routes/dev'
 import { startCronJobs, runWakeWindowCheck } from './lib/cron'
@@ -102,6 +103,7 @@ app.use('/api/illness', illnessRouter)
 app.use('/api/milestones', milestonesRouter)
 app.use('/api/vaccinations', vaccinationsRouter)
 app.use('/api/baby-names', babyNamesRouter)
+app.use('/api/doctors', doctorsRouter)
 
 app.use(errorHandler)
 

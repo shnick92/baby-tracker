@@ -9,6 +9,7 @@ export type DayPresence = {
   sleep: boolean
   diapers: boolean
   visitors: boolean
+  appointments: boolean
 }
 
 export type CalendarMonth = {

@@ -615,7 +615,8 @@ All ADRs are in `docs/ADRs.md`. Summary:
 | ADR-015 | Calendar View: unified month view with filter chips, split-panel tablet layout | Accepted |
 | ADR-016 | Self-hosted link shortener for purchase URLs; auto-created, no external service | Accepted |
 | ADR-017 | TLS termination via `tailscale serve` instead of static Tailscale certs mounted into nginx | Accepted |
+| ADR-018 | Doctor appointments as a first-class calendar category with dedicated `Doctor`/`DoctorAppointment` models | Accepted |
 
 ---
 
-*Last updated: 2026-08-16. Update this file whenever a new ADR is accepted or a convention changes.*
+*Last updated: 2026-09-02. Update this file whenever a new ADR is accepted or a convention changes.*

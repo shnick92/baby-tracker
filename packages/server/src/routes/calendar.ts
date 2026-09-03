@@ -7,7 +7,7 @@ export const calendarRouter = Router()
 calendarRouter.use(authMiddleware)
 
 // GET /api/calendar?babyId=&from=YYYY-MM-DD&to=YYYY-MM-DD
-// Returns per-day presence flags for each event category (feedings, sleep, diapers, visitors)
+// Returns per-day presence flags for each event category (feedings, sleep, diapers, visitors, appointments)
 calendarRouter.get('/', async (req, res) => {
   const babyId = req.query['babyId'] as string
   const from = req.query['from'] as string
@@ -25,7 +25,7 @@ calendarRouter.get('/', async (req, res) => {
   const end = new Date(`${to}T23:59:59.999Z`)
   end.setUTCDate(end.getUTCDate() + 1)
 
-  const [feedings, sleeps, diapers, visitors, tummyTimes, moods, medications] = await Promise.all([
+  const [feedings, sleeps, diapers, visitors, tummyTimes, moods, medications, appointments] = await Promise.all([
     prisma.feedingLog.findMany({
       where: { babyId, startedAt: { gte: start, lte: end } },
       select: { startedAt: true },
@@ -54,12 +54,16 @@ calendarRouter.get('/', async (req, res) => {
       where: { babyId, givenAt: { gte: start, lte: end } },
       select: { givenAt: true },
     }),
+    prisma.doctorAppointment.findMany({
+      where: { babyId, date: { gte: from, lte: to } },
+      select: { date: true },
+    }),
   ])
 
-  const days: Record<string, { feedings: boolean; sleep: boolean; diapers: boolean; visitors: boolean }> = {}
+  const days: Record<string, { feedings: boolean; sleep: boolean; diapers: boolean; visitors: boolean; appointments: boolean }> = {}
 
   const getOrInit = (key: string) => {
-    if (!days[key]) days[key] = { feedings: false, sleep: false, diapers: false, visitors: false }
+    if (!days[key]) days[key] = { feedings: false, sleep: false, diapers: false, visitors: false, appointments: false }
     return days[key]
   }
 
@@ -73,6 +77,7 @@ calendarRouter.get('/', async (req, res) => {
   for (const t of tummyTimes) getOrInit(toLocalDay(new Date(t.startedAt))).sleep = true
   for (const m of moods) getOrInit(toLocalDay(new Date(m.occurredAt))).feedings = true
   for (const med of medications) getOrInit(toLocalDay(new Date(med.givenAt))).feedings = true
+  for (const a of appointments) getOrInit(a.date).appointments = true
 
   res.json({ data: { days }, error: null })
 })

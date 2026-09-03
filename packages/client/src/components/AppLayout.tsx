@@ -18,6 +18,7 @@ import {
   Syringe,
   Star,
   Baby,
+  Stethoscope,
 } from 'lucide-react'
 
 const TopbarActionsContext = createContext<(node: React.ReactNode) => void>(() => {})
@@ -63,6 +64,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     label: 'Health',
     items: [
       { to: '/illness', label: 'Illness Tracker', icon: <Thermometer size={16} />, prefix: '/illness' },
+      { to: '/doctors', label: 'Doctors', icon: <Stethoscope size={16} />, prefix: '/doctors' },
       { to: '/medication', label: 'Medication', icon: <Pill size={16} />, prefix: '/medication' },
       { to: '/growth', label: 'Weight & Growth', icon: <Scale size={16} />, prefix: '/growth' },
       { to: '/milestones', label: 'Milestones', icon: <Star size={16} />, prefix: '/milestones' },
@@ -115,6 +117,7 @@ function isMoreActive(pathname: string): boolean {
     pathname.startsWith('/checklist') ||
     pathname.startsWith('/purchases') ||
     pathname.startsWith('/visitors') ||
+    pathname.startsWith('/doctors') ||
     pathname.startsWith('/alerts') ||
     pathname.startsWith('/medication') ||
     pathname.startsWith('/weight') ||
@@ -141,6 +144,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/checklist')) return 'Pregnancy Prep'
   if (pathname.startsWith('/purchases')) return 'Purchases'
   if (pathname.startsWith('/visitors')) return 'Visitor Schedule'
+  if (pathname.startsWith('/doctors')) return 'Doctors'
   if (pathname.startsWith('/alerts')) return 'Alert History'
   if (pathname.startsWith('/medication')) return 'Medication'
   if (pathname.startsWith('/weight')) return 'Weight'

@@ -30,6 +30,10 @@ export type DailyLog = {
   visitors: {
     id: string; name: string; date: string; startTime: string | null; endTime: string | null; notes: string | null
   }[]
+  appointments: {
+    id: string; title: string | null; date: string; startTime: string | null; endTime: string | null; notes: string | null
+    doctor: { name: string; practiceName: string | null; address: string | null }
+  }[]
 }
 
 export type WeeklySummary = {

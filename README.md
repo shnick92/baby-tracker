@@ -243,6 +243,7 @@ Multi-type exports (e.g. feedings + sleep + diapers) download as a ZIP with one 
 - Hospital bag checklists (mom's bag, baby's bag, home prep, before-you-leave) with per-item check-off
 - Purchase tracker with status cycling (Needed → Bought / Gifted / Skip), price tracking, and auto-generated shortlinks for sharing items with family
 - Visitor schedule planner with date, time window, and notes; each slot has a one-tap calendar export — iCal (`.ics`) for Apple Calendar and a direct Google Calendar link; on iOS the `.ics` downloads directly, on Android/desktop a dropdown offers both options
+- Doctor shortlist — add the pediatricians or providers you're considering with practice, address, and phone, mark one as "our doctor", and schedule appointments that appear on the in-app calendar and export to Google Calendar / iCal with the office address as the location
 - Baby name shortlist — both parents add candidates with full-name preview (first + middle + surname), optional nickname and pronunciation hint, optional group label (Favorites, Maybe, etc.) with filter chips, and real-time emoji reactions; partner receives a push notification when the other parent adds every 5th name
 - Contraction timer — start/stop timer for labor; logs each contraction's duration and how far apart it was from the previous one; logs can be deleted individually
 
@@ -533,7 +534,7 @@ All commits follow [Conventional Commits](https://www.conventionalcommits.org/),
 
 Common types: `feat`, `fix`, `chore`, `refactor`, `ci`, `db`, `docs`, `test`, `perf`
 
-Common scopes: `auth`, `feeding`, `sleep`, `diaper`, `health`, `checklist`, `visitors`, `milestones`, `ai`, `sync`, `pwa`, `infra`, `db`, `ui`, `alerts`
+Common scopes: `auth`, `feeding`, `sleep`, `diaper`, `health`, `checklist`, `visitors`, `doctors`, `milestones`, `ai`, `sync`, `pwa`, `infra`, `db`, `ui`, `alerts`
 
 ---
 

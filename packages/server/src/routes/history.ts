@@ -18,7 +18,7 @@ historyRouter.get('/daily', async (req, res) => {
 
   const [start, end] = localDayBoundsUTC(dateStr)
 
-  const [feedings, sleeps, diapers, medications, tummyTimes, moods, visitors] = await Promise.all([
+  const [feedings, sleeps, diapers, medications, tummyTimes, moods, visitors, appointments] = await Promise.all([
     prisma.feedingLog.findMany({
       where: { babyId, startedAt: { gte: start, lte: end } },
       orderBy: { startedAt: 'asc' },
@@ -51,9 +51,14 @@ historyRouter.get('/daily', async (req, res) => {
       where: { babyId, date: dateStr },
       orderBy: { date: 'asc' },
     }),
+    prisma.doctorAppointment.findMany({
+      where: { babyId, date: dateStr },
+      include: { doctor: { select: { name: true, practiceName: true, address: true } } },
+      orderBy: { startTime: { sort: 'asc', nulls: 'last' } },
+    }),
   ])
 
-  res.json({ data: { feedings, sleeps, diapers, medications, tummyTimes, moods, visitors }, error: null })
+  res.json({ data: { feedings, sleeps, diapers, medications, tummyTimes, moods, visitors, appointments }, error: null })
 })
 
 // GET /api/history/weekly?babyId=

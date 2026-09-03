@@ -6,7 +6,7 @@ import { useDailyHistory } from '@features/history'
 import { useCalendarMonth, type DayPresence } from './useCalendar'
 import { CalendarSkeleton } from './CalendarSkeleton'
 
-type FilterKey = 'all' | 'feedings' | 'sleep' | 'diapers' | 'visitors'
+type FilterKey = 'all' | 'feedings' | 'sleep' | 'diapers' | 'visitors' | 'appointments'
 
 const FILTER_LABELS: Record<FilterKey, string> = {
   all: 'All',
@@ -14,18 +14,28 @@ const FILTER_LABELS: Record<FilterKey, string> = {
   sleep: 'Sleep',
   diapers: 'Diapers',
   visitors: 'Visits',
+  appointments: 'Doctor',
 }
 
-const FILTERS: FilterKey[] = ['all', 'feedings', 'sleep', 'diapers', 'visitors']
+const FILTERS: FilterKey[] = ['all', 'feedings', 'sleep', 'diapers', 'visitors', 'appointments']
 
 const DOT_BG: Record<Exclude<FilterKey, 'all'>, string> = {
   feedings: 'bg-blue-400',
   sleep: 'bg-green-400 dot-sleep',
   diapers: 'bg-amber-400',
   visitors: 'bg-purple-400',
+  appointments: 'bg-rose-400',
 }
 
-const CATEGORY_ORDER: Exclude<FilterKey, 'all'>[] = ['feedings', 'sleep', 'diapers', 'visitors']
+const CATEGORY_ORDER: Exclude<FilterKey, 'all'>[] = ['feedings', 'sleep', 'diapers', 'visitors', 'appointments']
+
+const LEGEND_LABEL: Record<Exclude<FilterKey, 'all'>, string> = {
+  feedings: 'Feedings',
+  sleep: 'Sleep',
+  diapers: 'Diapers',
+  visitors: 'Visits',
+  appointments: 'Doctor',
+}
 
 const FEEDING_LABEL: Record<string, string> = {
   BREAST_LEFT: 'Breastfeed · Left',
@@ -96,7 +106,7 @@ function ColourLegend() {
         <div key={cat} className="flex items-center gap-1.5">
           <div className={`w-2 h-2 rounded-full ${DOT_BG[cat]}`} />
           <span className="text-[10px] text-gray-400 dark:text-gray-500 capitalize">
-            {cat === 'feedings' ? 'Feedings' : cat === 'sleep' ? 'Sleep' : cat === 'diapers' ? 'Diapers' : 'Visits'}
+            {LEGEND_LABEL[cat]}
           </span>
         </div>
       ))}
@@ -126,7 +136,7 @@ function DayDetail({ dateStr, babyId, filter, panelMode = false }: DayDetailProp
   const events: EventItem[] = []
 
   if (data) {
-    const { feedings, sleeps, diapers, medications, tummyTimes, moods, visitors } = data
+    const { feedings, sleeps, diapers, medications, tummyTimes, moods, visitors, appointments = [] } = data
 
     for (const f of feedings) {
       if (filter !== 'all' && filter !== 'feedings') continue
@@ -203,6 +213,19 @@ function DayDetail({ dateStr, babyId, filter, panelMode = false }: DayDetailProp
         label: v.name,
         sub: subs.join(' · ') || undefined,
         category: 'visitors',
+      })
+    }
+
+    for (const a of appointments) {
+      if (filter !== 'all' && filter !== 'appointments') continue
+      const subs: string[] = [a.doctor.name]
+      if (a.startTime) subs.push(formatTime(a.startTime))
+      if (a.doctor.practiceName) subs.push(a.doctor.practiceName)
+      events.push({
+        time: a.startTime ?? `${a.date}T12:00:00Z`,
+        label: a.title ? `Dr. appointment — ${a.title}` : 'Doctor appointment',
+        sub: subs.join(' · '),
+        category: 'appointments',
       })
     }
 

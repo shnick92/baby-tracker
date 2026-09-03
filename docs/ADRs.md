@@ -748,4 +748,40 @@ Stop managing cert files entirely. Use `tailscale serve` on the host to terminat
 
 ---
 
+## ADR-018: Doctor Appointments as a First-Class Calendar Category (Not Visitor Slots)
+
+**Status:** Accepted  
+**Date:** 2026-09-02  
+**Deciders:** Nick
+
+### Context
+
+While choosing a pediatrician the parents want to record a handful of candidate doctors (name, practice, address, phone) and put appointments with any of them on the shared calendar. The existing `VisitorSlot` model already gives a dated, optionally-timed event with iCal/Google Calendar export, so the cheapest option was to write appointments into the visitors table with a naming convention.
+
+### Decision
+
+Add two dedicated models — `Doctor` and `DoctorAppointment` — and surface appointments on the Calendar as their own category ("Doctor", rose dot) alongside visitors, rather than reusing `VisitorSlot`.
+
+- `DoctorAppointment.date` is a local `YYYY-MM-DD` string with optional `startTime`/`endTime` instants, the same shape as `VisitorSlot` (ADR-011), so the calendar and history endpoints treat both identically
+- `DoctorAppointment.doctorId` cascades on delete: removing a candidate doctor removes their appointments
+- At most one doctor per baby carries `isChosen = true`; this is enforced in `services/doctors.ts` inside a transaction rather than by a partial unique index, so toggling never fails with a constraint error mid-tap
+- The iCal/Google Calendar helpers that previously lived in `features/visitors/utils` are promoted to `lib/utils/calendarExport.ts` and gain a `location` field; a shared `<AddToCalendarButton>` replaces the visitor-page-local button (ADR-013 promotion rule)
+
+### Options Considered
+
+| Option | Verdict |
+|--------|---------|
+| Store appointments as `VisitorSlot` rows named "Dr. X" | Rejected — no link to the doctor record (no address in the export, no cascade), and the Visitors page would fill with non-visitor rows |
+| Add a nullable `doctorId` to `VisitorSlot` | Rejected — a visitor slot and an appointment have different vocabularies ("visit" vs "appointment", "who" vs "what for"); a shared table would need mode flags throughout the UI |
+| Dedicated models with their own calendar category (this decision) | Accepted — clean data model, appointments carry the doctor's location into calendar exports, and the Calendar filter can isolate them |
+
+### Consequences
+
+- Positive: appointments export with the practice address as `LOCATION`, so the phone's calendar can navigate to the office
+- Positive: the Calendar gains a filter chip that isolates medical appointments — useful once well-baby visits start
+- Negative: one more category colour in the calendar legend (rose); the legend row now has five entries
+- Negative: `calendar` and `history/daily` each gain a query; negligible at this data volume
+
+---
+
 *ADRs authored May 2026. Review after initial launch (target: Q4 2026 post-birth).*

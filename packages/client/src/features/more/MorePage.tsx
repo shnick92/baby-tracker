@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Settings, Sparkles, Thermometer, Syringe, Star, Baby, Timer } from 'lucide-react'
+import { ShoppingBag, Users, Pill, Scale, Bell, History, CalendarDays, Settings, Sparkles, Thermometer, Syringe, Star, Baby, Timer, Stethoscope } from 'lucide-react'
 import { useAuthStore } from '@stores/authStore'
 
 type MoreItem = {
@@ -39,6 +39,12 @@ const VISITORS: MoreItem = {
   icon: <Users size={22} />,
   label: 'Visitors',
   description: 'Schedule and manage visitor time slots',
+}
+const DOCTORS: MoreItem = {
+  to: '/doctors',
+  icon: <Stethoscope size={22} />,
+  label: 'Doctors',
+  description: 'Compare doctors you\'re considering and schedule appointments',
 }
 const MEDICATION: MoreItem = {
   to: '/medication',
@@ -122,14 +128,14 @@ const PREGNANCY_PREP: MoreItem = {
 // ── Groups ─────────────────────────────────────────────────────────────────
 
 const BABY_MODE_GROUPS: MoreGroup[] = [
-  { label: 'Health', items: [ILLNESS, AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD] },
+  { label: 'Health', items: [ILLNESS, DOCTORS, AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
   { label: 'Planning', items: [VISITORS, PURCHASES, PREGNANCY_PREP] },
   { label: 'System', items: [ALERTS, SETTINGS] },
 ]
 
 const PREGNANCY_MODE_GROUPS: MoreGroup[] = [
-  { label: 'Planning', items: [BABY_NAMES, PREGNANCY_PREP, PURCHASES, VISITORS] },
+  { label: 'Planning', items: [BABY_NAMES, DOCTORS, PREGNANCY_PREP, PURCHASES, VISITORS] },
   { label: 'Health', items: [CONTRACTIONS, AI_CHAT, MEDICATION, WEIGHT, MILESTONES, VACCINATIONS, TUMMY_TIME, MOOD, ILLNESS] },
   { label: 'Reports', items: [HISTORY, CALENDAR] },
   { label: 'System', items: [ALERTS, SETTINGS] },

@@ -1573,6 +1573,66 @@ model BabyNameReaction {
 
 ---
 
+### Phase 6.Doctors: Doctor Candidates & Appointments ✅ Complete
+
+**Goal:** While choosing a pediatrician (or any provider), both parents can keep a short list of doctors they are considering — name, specialty, practice, address, phone, notes — mark one as "our doctor", and schedule appointments against any of them. Appointments appear on the in-app Calendar as their own category and can be exported to Google Calendar or iCal with one tap, exactly like visitor slots.
+
+#### Data model
+
+```prisma
+model Doctor {
+  id           String              @id @default(cuid())
+  babyId       String
+  name         String
+  specialty    String?
+  practiceName String?
+  address      String?
+  phone        String?
+  notes        String?
+  isChosen     Boolean             @default(false)   // at most one per baby — enforced in the service layer
+  addedById    String
+  appointments DoctorAppointment[]
+}
+
+model DoctorAppointment {
+  id        String    @id @default(cuid())
+  babyId    String
+  doctorId  String    // onDelete: Cascade — deleting a doctor removes their appointments
+  title     String?
+  date      String    // local YYYY-MM-DD (ADR-011)
+  startTime DateTime?
+  endTime   DateTime?
+  notes     String?
+}
+```
+
+#### Tasks ✅ Complete
+
+- [x] `Doctor` and `DoctorAppointment` added to Prisma schema; migrated (`add_doctors_and_appointments`)
+- [x] Shared Zod schemas in `packages/shared/src/schemas/doctor.ts` (`createDoctorSchema`, `updateDoctorSchema`, `createAppointmentSchema`, `updateAppointmentSchema`)
+- [x] `GET/POST /api/doctors`, `PATCH/DELETE /api/doctors/:id`
+- [x] `POST/DELETE /api/doctors/:id/choose` — mark/unmark the family's doctor; `chooseDoctor` service clears any other chosen doctor in one transaction (unit-tested)
+- [x] `POST /api/doctors/:id/appointments`, `GET /api/doctors/appointments`, `PATCH/DELETE /api/doctors/appointments/:id`
+- [x] Socket.io: emit `doctors:updated` after every write; client invalidates doctors, calendar month, and daily history queries
+- [x] Calendar: `GET /api/calendar` returns an `appointments` presence flag per day; `GET /api/history/daily` returns the day's appointments with doctor name and location
+- [x] Client feature at `/doctors`: `DoctorsPage`, `useDoctors` hook, `DoctorCard`, `DoctorForm`, `AppointmentRow`, `AppointmentForm`, `DoctorsSkeleton`
+  - Doctor cards show location (tap opens Google Maps), phone (`tel:` link), notes, and an "Our doctor" star toggle
+  - "Add appointment" on a card pre-selects that doctor; the top-level "Schedule an appointment" button defaults to the chosen doctor
+  - Upcoming appointments listed first; past ones behind a "Show past" toggle
+- [x] Calendar page: new "Doctor" filter chip and rose-coloured dot; appointments appear in the day detail with doctor name, time, and practice
+- [x] Calendar export (`CalendarPlus`) on every appointment — iCal (`.ics`) with `LOCATION` set to the practice/address, or a Google Calendar link
+  - `generateIcal` / `buildGoogleCalendarUrl` promoted from `features/visitors/utils` to `lib/utils/calendarExport.ts` (ADR-013 promotion rule) and shared with visitors via the new `<AddToCalendarButton>` component
+- [x] Navigation: More page (Planning group in pregnancy mode, Health group in baby mode) and tablet sidebar Health group, using the lucide `Stethoscope` icon
+- [x] Tests: `services/doctors.test.ts`, `lib/utils/calendarExport.test.ts`, `features/doctors/utils/toAppointmentEvent.test.ts`, `DoctorsPage.test.tsx`
+
+**Acceptance criteria:**
+- Adding a doctor takes one form; only the name is required
+- Marking a second doctor as "our doctor" automatically unmarks the first on both devices
+- An appointment added on one phone shows on the other phone's Calendar within a second, with a rose dot on that day
+- Exporting an appointment to Google Calendar pre-fills the title, time, and the practice address as the location
+
+---
+
 ### Phase 7: Repository Screenshots & Visual Documentation ✅ Complete
 
 **Goal:** Anyone who receives or discovers the repo can immediately see what the app looks like before committing to setup.

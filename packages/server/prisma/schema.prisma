@@ -47,37 +47,39 @@ model Challenge {
 }
 
 model Baby {
-  id              String           @id @default(cuid())
-  name            String?
-  dueDate         DateTime?
-  birthDate       DateTime?
-  createdAt       DateTime         @default(now())
-  parents         BabyUser[]
-  checklists      Checklist[]
-  purchases       Purchase[]
-  visitorSlots    VisitorSlot[]
-  shortLinks      ShortLink[]
-  feedingLogs     FeedingLog[]
-  sleepLogs       SleepLog[]
-  diaperLogs      DiaperLog[]
-  weightLogs      WeightLog[]
-  heightLogs      HeightLog[]
-  medicationLogs  MedicationLog[]
-  tummyTimeLogs   TummyTimeLog[]
-  moodLogs        MoodLog[]
-  contractionLogs ContractionLog[]
-  customActivities    CustomActivity[]
-  milestones          Milestone[]
-  vaccinationRecords  VaccinationRecord[]
-  sleepSettings       SleepSettings?
+  id                   String                @id @default(cuid())
+  name                 String?
+  dueDate              DateTime?
+  birthDate            DateTime?
+  createdAt            DateTime              @default(now())
+  parents              BabyUser[]
+  checklists           Checklist[]
+  purchases            Purchase[]
+  visitorSlots         VisitorSlot[]
+  shortLinks           ShortLink[]
+  feedingLogs          FeedingLog[]
+  sleepLogs            SleepLog[]
+  diaperLogs           DiaperLog[]
+  weightLogs           WeightLog[]
+  heightLogs           HeightLog[]
+  medicationLogs       MedicationLog[]
+  tummyTimeLogs        TummyTimeLog[]
+  moodLogs             MoodLog[]
+  contractionLogs      ContractionLog[]
+  customActivities     CustomActivity[]
+  milestones           Milestone[]
+  vaccinationRecords   VaccinationRecord[]
+  sleepSettings        SleepSettings?
   notificationSettings NotificationSettings?
-  emergencyAlerts     EmergencyAlert[]
-  aiConversationLogs  AIConversationLog[]
-  aiWeeklySummaries   AIWeeklySummary[]
-  aiUsageLogs         AIUsageLog[]
-  sicknessEpisodes    SicknessEpisode[]
-  temperatureLogs     TemperatureLog[]
-  babyNames           BabyName[]
+  emergencyAlerts      EmergencyAlert[]
+  aiConversationLogs   AIConversationLog[]
+  aiWeeklySummaries    AIWeeklySummary[]
+  aiUsageLogs          AIUsageLog[]
+  sicknessEpisodes     SicknessEpisode[]
+  temperatureLogs      TemperatureLog[]
+  babyNames            BabyName[]
+  doctors              Doctor[]
+  doctorAppointments   DoctorAppointment[]
 }
 
 model BabyUser {
@@ -273,15 +275,15 @@ model MedicationLog {
 }
 
 model TummyTimeLog {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   babyId      String
-  baby        Baby     @relation(fields: [babyId], references: [id])
+  baby        Baby      @relation(fields: [babyId], references: [id])
   loggedById  String
   startedAt   DateTime
   endedAt     DateTime?
   durationSec Int?
   notes       String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 }
 
 model ContractionLog {
@@ -336,17 +338,17 @@ model Milestone {
 }
 
 model EmergencyAlert {
-  id         String      @id @default(cuid())
-  babyId     String
-  baby       Baby        @relation(fields: [babyId], references: [id])
-  sentById   String
-  sentBy     User        @relation("AlertsSent", fields: [sentById], references: [id])
-  sentToId   String
-  sentTo     User        @relation("AlertsReceived", fields: [sentToId], references: [id])
-  message    String?
-  status     AlertStatus @default(SENT)
-  sentAt     DateTime    @default(now())
-  seenAt     DateTime?
+  id       String      @id @default(cuid())
+  babyId   String
+  baby     Baby        @relation(fields: [babyId], references: [id])
+  sentById String
+  sentBy   User        @relation("AlertsSent", fields: [sentById], references: [id])
+  sentToId String
+  sentTo   User        @relation("AlertsReceived", fields: [sentToId], references: [id])
+  message  String?
+  status   AlertStatus @default(SENT)
+  sentAt   DateTime    @default(now())
+  seenAt   DateTime?
 }
 
 enum AlertStatus {
@@ -431,26 +433,26 @@ enum MilestoneCategory {
 }
 
 model AIConversationLog {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   babyId    String
-  baby      Baby        @relation(fields: [babyId], references: [id])
+  baby      Baby     @relation(fields: [babyId], references: [id])
   userId    String
   role      AIRole
   content   String
-  createdAt DateTime    @default(now())
+  createdAt DateTime @default(now())
 }
 
 model AIWeeklySummary {
-  id          String   @id @default(cuid())
-  babyId      String
-  baby        Baby     @relation(fields: [babyId], references: [id])
-  weekOf      DateTime
-  content     String
-  totalFeeds  Int?
-  totalSleepMin Int?
-  totalDiapers Int?
+  id             String   @id @default(cuid())
+  babyId         String
+  baby           Baby     @relation(fields: [babyId], references: [id])
+  weekOf         DateTime
+  content        String
+  totalFeeds     Int?
+  totalSleepMin  Int?
+  totalDiapers   Int?
   weightChangeOz Float?
-  createdAt   DateTime @default(now())
+  createdAt      DateTime @default(now())
 }
 
 enum AIRole {
@@ -555,28 +557,63 @@ model VaccinationRecord {
 
 // Baby name candidates — one record per name, one emoji reaction per parent
 model BabyName {
-  id            String     @id @default(cuid())
+  id            String             @id @default(cuid())
   babyId        String
-  baby          Baby       @relation(fields: [babyId], references: [id])
+  baby          Baby               @relation(fields: [babyId], references: [id])
   firstName     String
   middleName    String?
   nickname      String?
   pronunciation String?
-  groups        String[]   @default([])
+  groups        String[]           @default([])
   addedById     String
   reactions     BabyNameReaction[]
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
 }
 
 model BabyNameReaction {
-  id         String   @id @default(cuid())
-  nameId     String
-  name       BabyName @relation(fields: [nameId], references: [id], onDelete: Cascade)
-  userId     String
-  emoji      String   // single emoji e.g. "❤️" "😍" "🤔" "👎"
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(cuid())
+  nameId    String
+  name      BabyName @relation(fields: [nameId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String // single emoji e.g. "❤️" "😍" "🤔" "👎"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([nameId, userId])
+}
+
+// Doctor candidates (pediatrician, OB, etc.) — parents add a few they are
+// considering, then mark one as chosen. Appointments hang off a doctor and
+// surface on the in-app calendar; `date` is a local YYYY-MM-DD string per ADR-011.
+model Doctor {
+  id           String              @id @default(cuid())
+  babyId       String
+  baby         Baby                @relation(fields: [babyId], references: [id])
+  name         String
+  specialty    String?
+  practiceName String?
+  address      String?
+  phone        String?
+  notes        String?
+  isChosen     Boolean             @default(false)
+  addedById    String
+  appointments DoctorAppointment[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model DoctorAppointment {
+  id        String    @id @default(cuid())
+  babyId    String
+  baby      Baby      @relation(fields: [babyId], references: [id])
+  doctorId  String
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  title     String?
+  date      String
+  startTime DateTime?
+  endTime   DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
