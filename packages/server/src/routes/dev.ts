@@ -49,6 +49,7 @@ devRouter.post('/seed-demo', async (_req, res) => {
     prisma.aIConversationLog.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.purchase.deleteMany({ where: { babyId: BABY_ID } }),
     prisma.visitorSlot.deleteMany({ where: { babyId: BABY_ID } }),
+    prisma.doctor.deleteMany({ where: { babyId: BABY_ID } }), // cascades appointments
   ])
 
   // Phase 2: delete episodes (now safe; cascades symptoms via DB)
@@ -442,6 +443,46 @@ devRouter.post('/seed-demo', async (_req, res) => {
     prisma.moodLog.createMany({ data: moodData }),
     prisma.visitorSlot.createMany({ data: visitorData }),
   ])
+
+  // ── Doctor shortlist — one chosen, one still being considered ───────────────
+
+  await prisma.doctor.create({
+    data: {
+      babyId: BABY_ID,
+      addedById: USER1,
+      name: 'Dr. Maria Alvarez',
+      specialty: 'Pediatrics',
+      practiceName: 'Lakeside Pediatrics',
+      address: '1200 Lakeshore Dr, Springfield, IL 62704',
+      phone: '(217) 555-0142',
+      notes: 'Recommended by our OB. Saturday morning hours.',
+      isChosen: true,
+      appointments: {
+        create: [
+          { babyId: BABY_ID, title: 'Newborn checkup', date: dateStr(-35), startTime: visitorTime(-35, 9, 30), endTime: visitorTime(-35, 10), notes: 'Weight check + jaundice screen' },
+          { babyId: BABY_ID, title: '2-month well visit', date: dateStr(3), startTime: visitorTime(3, 10), endTime: visitorTime(3, 10, 45), notes: 'First round of vaccines' },
+        ],
+      },
+    },
+  })
+  await prisma.doctor.create({
+    data: {
+      babyId: BABY_ID,
+      addedById: USER2,
+      name: 'Dr. James Whitfield',
+      specialty: 'Family medicine',
+      practiceName: 'Oak Street Family Care',
+      address: '48 Oak St, Springfield, IL 62701',
+      phone: '(217) 555-0188',
+      notes: null,
+      isChosen: false,
+      appointments: {
+        create: [
+          { babyId: BABY_ID, title: 'Meet & greet', date: dateStr(9), startTime: visitorTime(9, 15), endTime: null, notes: null },
+        ],
+      },
+    },
+  })
 
   // ── Mark ~60% of hospital bag checklist items as checked ─────────────────────
 

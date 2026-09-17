@@ -66,6 +66,7 @@ All settings are optional — the script reads from `packages/server/.env` autom
 | `mobile/checklist.png` | Screenshot | Hospital bag checklist (~60% checked) |
 | `mobile/purchases.png` | Screenshot | Purchases tracker — mixed statuses |
 | `mobile/visitors.png` | Screenshot | Visitor schedule |
+| `mobile/doctors.png` | Screenshot | Doctor shortlist — chosen doctor, upcoming appointments |
 | `mobile/alerts.png` | Screenshot | SOS alert history |
 | `mobile/ai-chat.png` | Screenshot | "Is This Normal?" AI chat with seeded Q&A |
 | `mobile/history.png` | Screenshot | History & Reports — weekly summary tab |

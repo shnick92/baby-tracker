@@ -39,15 +39,15 @@ A private, self-hosted Progressive Web App for tracking pregnancy milestones and
 </details>
 
 <details>
-<summary><strong>Pregnancy prep</strong> — Baby Names, Purchases, Visitors, Checklists</summary>
+<summary><strong>Pregnancy prep</strong> — Baby Names, Purchases, Visitors, Doctors, Checklists</summary>
 
 | Baby Names | Purchases | Visitors |
 |:---:|:---:|:---:|
 | ![baby-names](docs/screenshots/mobile/baby-names.png) | ![purchases](docs/screenshots/mobile/purchases.png) | ![visitors](docs/screenshots/mobile/visitors.png) |
 
-| Checklist | | |
+| Doctors | Checklist | |
 |:---:|:---:|:---:|
-| ![checklist](docs/screenshots/mobile/checklist.png) | | |
+| ![doctors](docs/screenshots/mobile/doctors.png) | ![checklist](docs/screenshots/mobile/checklist.png) | |
 
 </details>
 

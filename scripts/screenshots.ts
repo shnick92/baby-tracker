@@ -296,6 +296,11 @@ async function main(): Promise<void> {
   await page.waitForTimeout(400)
   await shot(page, 'visitors.png')
 
+  // ─ doctors.png — doctor shortlist with a chosen doctor + upcoming appointments ─
+  await page.goto(`${FRONTEND_URL}/doctors`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(400)
+  await shot(page, 'doctors.png')
+
   // ─ alerts.png ────────────────────────────────────────────────────────────────
   await page.goto(`${FRONTEND_URL}/alerts`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(400)

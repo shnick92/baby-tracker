@@ -1625,6 +1625,7 @@ model DoctorAppointment {
   - `generateIcal` / `buildGoogleCalendarUrl` promoted from `features/visitors/utils` to `lib/utils/calendarExport.ts` (ADR-013 promotion rule) and shared with visitors via the new `<AddToCalendarButton>` component
 - [x] Navigation: More page (Planning group in pregnancy mode, Health group in baby mode) and tablet sidebar Health group, using the lucide `Stethoscope` icon
 - [x] Tests: `services/doctors.test.ts`, `lib/utils/calendarExport.test.ts`, `features/doctors/utils/toAppointmentEvent.test.ts`, `DoctorsPage.test.tsx`
+- [x] Docs: `docs/screenshots/mobile/doctors.png` captured by `npm run screenshots` (seed-demo creates two doctors, one chosen, with past + upcoming appointments); README gallery, screenshot index, and CLAUDE.md feature tree updated
 
 **Acceptance criteria:**
 - Adding a doctor takes one form; only the name is required
@@ -1664,6 +1665,7 @@ model DoctorAppointment {
 | `mobile/checklist.png` | Hospital bag checklist (~60% checked) |
 | `mobile/purchases.png` | Purchases tracker — mixed statuses |
 | `mobile/visitors.png` | Visitor schedule |
+| `mobile/doctors.png` | Doctor shortlist — chosen doctor + upcoming appointments |
 | `mobile/alerts.png` | SOS alert history |
 | `mobile/ai-chat.png` | "Is This Normal?" AI chat with seeded Q&A |
 | `mobile/history.png` | History & Reports data log view |
