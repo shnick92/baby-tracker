@@ -688,6 +688,7 @@ Push to main
 - [x] Hospital Bag Checklist UI — two tabs: Mom's Bag / Baby's Bag
 - [x] Items grouped by category; default items pre-seeded; ability to add custom items
 - [x] Check/uncheck with timestamp; checked items visually distinct but not hidden
+- [x] Inline edit for checklist items (label, category) and per-item delete — pencil/trash on every row, same pattern as purchases; `PATCH /api/checklist/items/:id` accepts `category`
 - [x] Purchases Tracker UI — grouped by category
 - [x] Status toggle: Needed → Bought / Gifted / Skip
 - [x] Optional price + URL fields

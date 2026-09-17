@@ -240,7 +240,7 @@ Multi-type exports (e.g. feedings + sleep + diapers) download as a ZIP with one 
 ## What It Does
 
 **Pregnancy prep:**
-- Hospital bag checklists (mom's bag, baby's bag, home prep, before-you-leave) with per-item check-off
+- Hospital bag checklists (mom's bag, baby's bag, home prep, before-you-leave) with per-item check-off; items can be renamed, moved to another category, or deleted inline
 - Purchase tracker with status cycling (Needed → Bought / Gifted / Skip), price tracking, and auto-generated shortlinks for sharing items with family
 - Visitor schedule planner with date, time window, and notes; each slot has a one-tap calendar export — iCal (`.ics`) for Apple Calendar and a direct Google Calendar link; on iOS the `.ics` downloads directly, on Android/desktop a dropdown offers both options
 - Doctor shortlist — add the pediatricians or providers you're considering with practice, address, and phone, mark one as "our doctor", and schedule appointments that appear on the in-app calendar and export to Google Calendar / iCal with the office address as the location

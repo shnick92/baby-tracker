@@ -87,5 +87,33 @@ export function useChecklist(activeType: ChecklistTypeInput) {
     },
   })
 
-  return { data, isLoading, babyId, toggleMutation, addMutation }
+  const editMutation = useMutation({
+    mutationFn: ({ itemId, label, category }: { itemId: string; label: string; category: string }) =>
+      api.patch(`/api/checklist/items/${itemId}`, { label, category: category || 'Custom' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: checklistKeys.detail(activeType, babyId) })
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (itemId: string) => api.delete(`/api/checklist/items/${itemId}`),
+    onMutate: async (itemId) => {
+      const key = checklistKeys.detail(activeType, babyId)
+      await queryClient.cancelQueries({ queryKey: key })
+      const prev = queryClient.getQueryData<Checklist>(key)
+      queryClient.setQueryData<Checklist>(key, (old) =>
+        old ? { ...old, items: old.items.filter((i) => i.id !== itemId) } : old,
+      )
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev !== undefined)
+        queryClient.setQueryData(checklistKeys.detail(activeType, babyId), ctx.prev)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: checklistKeys.detail(activeType, babyId) })
+    },
+  })
+
+  return { data, isLoading, babyId, toggleMutation, addMutation, editMutation, deleteMutation }
 }

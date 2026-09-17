@@ -19,7 +19,8 @@ export const toggleChecklistItemSchema = z.object({
 })
 
 export const updateChecklistItemSchema = z.object({
-  label: z.string().min(1).optional(),
+  label: z.string().min(1, 'Required').optional(),
+  category: z.string().min(1, 'Required').optional(),
   notes: z.string().optional(),
   sortOrder: z.number().int().optional(),
 })

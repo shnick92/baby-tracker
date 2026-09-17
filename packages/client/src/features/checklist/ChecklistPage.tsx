@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { groupBy } from '@lib/utils/groupBy'
 import { formatDueMonthYear } from '@lib/utils/formatDate'
+import { PencilIcon, TrashIcon } from '@components/icons'
 import type { ChecklistTypeInput } from '@tracker/shared'
 import { usePregnancyStatus } from '@features/pregnancy'
 
@@ -18,6 +19,17 @@ const addItemSchema = z.object({
 })
 type AddItemForm = z.infer<typeof addItemSchema>
 
+const editItemSchema = z.object({
+  label: z.string().min(1, 'Required'),
+  category: z.string().optional(),
+})
+type EditItemForm = z.infer<typeof editItemSchema>
+
+const inputCls =
+  'w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
+const iconBtnCls =
+  'flex-shrink-0 w-11 h-11 -my-3 flex items-center justify-center rounded-full text-gray-300 dark:text-gray-600 transition-colors'
 
 const TABS: { type: ChecklistTypeInput; label: string }[] = [
   { type: 'HOSPITAL_BAG_MOM', label: "Mom's Bag" },
@@ -38,8 +50,9 @@ export function ChecklistPage() {
   const { type: typeParam } = useParams<{ type: string }>()
   const activeType = (typeParam?.toUpperCase() ?? 'HOSPITAL_BAG_MOM') as ChecklistTypeInput
   const [addingItem, setAddingItem] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
-  const { data, isLoading, toggleMutation, addMutation } = useChecklist(activeType)
+  const { data, isLoading, toggleMutation, addMutation, editMutation, deleteMutation } = useChecklist(activeType)
   const { data: pregnancy } = usePregnancyStatus()
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<AddItemForm>({
@@ -52,6 +65,25 @@ export function ChecklistPage() {
     addMutation.mutate(
       { label: values.label.trim(), category: values.category?.trim() ?? '' },
       { onSuccess: () => { reset(); setAddingItem(false) } },
+    )
+  })
+
+  const editForm = useForm<EditItemForm>({
+    resolver: zodResolver(editItemSchema),
+    defaultValues: { label: '', category: '' },
+  })
+
+  const handleStartEdit = (item: { id: string; label: string; category: string }) => {
+    setEditingId(item.id)
+    editForm.reset({ label: item.label, category: item.category })
+  }
+  const handleCancelEdit = () => setEditingId(null)
+
+  const onEditSubmit = editForm.handleSubmit((values) => {
+    if (!editingId) return
+    editMutation.mutate(
+      { itemId: editingId, label: values.label.trim(), category: values.category?.trim() ?? '' },
+      { onSuccess: () => setEditingId(null) },
     )
   })
 
@@ -131,33 +163,87 @@ export function ChecklistPage() {
                   {category}
                 </h2>
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-700">
-                  {catItems.map((item) => (
-                    <label
-                      key={item.id}
-                      className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item.isChecked}
-                        onChange={(e) =>
-                          toggleMutation.mutate({ itemId: item.id, isChecked: e.target.checked })
-                        }
-                        className="w-5 h-5 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span
-                        className={`flex-1 text-sm leading-snug ${
-                          item.isChecked ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-100'
-                        }`}
-                      >
-                        {item.label}
-                      </span>
-                      {!item.isChecked && (
-                        <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
-                          Needed
-                        </span>
-                      )}
-                    </label>
-                  ))}
+                  {catItems.map((item) =>
+                    editingId === item.id ? (
+                      <form key={item.id} onSubmit={onEditSubmit} className="px-4 py-3 space-y-2.5">
+                        <div>
+                          <input
+                            autoFocus
+                            type="text"
+                            placeholder="Item name"
+                            {...editForm.register('label')}
+                            className={`${inputCls} ${editForm.formState.errors.label ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
+                          />
+                          {editForm.formState.errors.label && (
+                            <p className="text-xs text-red-500 mt-1 text-right">{editForm.formState.errors.label.message}</p>
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Category"
+                          {...editForm.register('category')}
+                          className={inputCls}
+                        />
+                        <div className="flex gap-2 pt-0.5">
+                          <button
+                            type="submit"
+                            disabled={editMutation.isPending}
+                            className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-50"
+                          >
+                            {editMutation.isPending ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div key={item.id} className="flex items-center gap-2 px-4 py-3.5">
+                        <label className="flex-1 min-w-0 flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.isChecked}
+                            onChange={(e) =>
+                              toggleMutation.mutate({ itemId: item.id, isChecked: e.target.checked })
+                            }
+                            className="w-5 h-5 rounded border-gray-300 dark:border-gray-500 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span
+                            className={`flex-1 text-sm leading-snug ${
+                              item.isChecked ? 'line-through text-gray-400 dark:text-gray-600' : 'text-gray-800 dark:text-gray-100'
+                            }`}
+                          >
+                            {item.label}
+                          </span>
+                          {!item.isChecked && (
+                            <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400">
+                              Needed
+                            </span>
+                          )}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(item)}
+                          className={`${iconBtnCls} hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20`}
+                          aria-label={`Edit ${item.label}`}
+                        >
+                          <PencilIcon />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMutation.mutate(item.id)}
+                          className={`${iconBtnCls} hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}
+                          aria-label={`Delete ${item.label}`}
+                        >
+                          <TrashIcon />
+                        </button>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             ))}
@@ -175,7 +261,7 @@ export function ChecklistPage() {
                 type="text"
                 placeholder="Item name"
                 {...register('label')}
-                className={`w-full rounded-xl border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${errors.label ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'}`}
+                className={`${inputCls} ${errors.label ? 'border-red-400 dark:border-red-500 focus:ring-red-400' : ''}`}
               />
               {errors.label && (
                 <p className="text-xs text-red-500 mt-1 text-right">{errors.label.message}</p>
@@ -185,7 +271,7 @@ export function ChecklistPage() {
               type="text"
               placeholder="Category (optional)"
               {...register('category')}
-              className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={inputCls}
             />
             <div className="flex gap-2">
               <button

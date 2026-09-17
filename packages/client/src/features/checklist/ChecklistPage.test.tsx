@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ChecklistPage } from './ChecklistPage'
 import { api } from '@lib/axios'
@@ -87,5 +87,101 @@ describe('ChecklistPage', () => {
 
     await userEvent.type(screen.getByPlaceholderText('Item name'), 'My custom item')
     expect(screen.getByRole('button', { name: 'Add item' })).not.toBeDisabled()
+  })
+
+  // --- edit ---
+
+  it('edit button opens an inline form pre-populated with the item label and category', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: mockChecklist } })
+    renderPage()
+    await screen.findByText('Comfy clothes')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Comfy clothes' }))
+    expect(screen.getByPlaceholderText('Item name')).toHaveValue('Comfy clothes')
+    expect(screen.getByPlaceholderText('Category')).toHaveValue('Clothing')
+    // the row itself is replaced by the form
+    expect(screen.queryByText('Comfy clothes')).not.toBeInTheDocument()
+  })
+
+  it('cancel closes the edit form without calling patch', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: mockChecklist } })
+    renderPage()
+    await screen.findByText('Comfy clothes')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Comfy clothes' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.getByText('Comfy clothes')).toBeInTheDocument()
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('saving the edit form patches the item with the new label and category', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: mockChecklist } })
+    vi.mocked(api.patch).mockResolvedValue({ data: { data: null } })
+    renderPage()
+    await screen.findByText('Comfy clothes')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Comfy clothes' }))
+    const labelInput = screen.getByPlaceholderText('Item name')
+    await userEvent.clear(labelInput)
+    await userEvent.type(labelInput, 'Comfy going-home outfit')
+    const categoryInput = screen.getByPlaceholderText('Category')
+    await userEvent.clear(categoryInput)
+    await userEvent.type(categoryInput, 'Going home')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(api.patch).toHaveBeenCalledWith('/api/checklist/items/i1', {
+      label: 'Comfy going-home outfit',
+      category: 'Going home',
+    })
+    expect(screen.queryByPlaceholderText('Item name')).not.toBeInTheDocument()
+  })
+
+  it('clearing the label shows an inline error and does not save', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: mockChecklist } })
+    renderPage()
+    await screen.findByText('Comfy clothes')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Comfy clothes' }))
+    await userEvent.clear(screen.getByPlaceholderText('Item name'))
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Required')).toBeInTheDocument()
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+
+  it('editing a checked item keeps its checked state (no toggle call)', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { data: mockChecklist } })
+    vi.mocked(api.patch).mockResolvedValue({ data: { data: null } })
+    renderPage()
+    await screen.findByText('Snacks')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit Snacks' }))
+    await userEvent.type(screen.getByPlaceholderText('Item name'), ' and drinks')
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(api.patch).toHaveBeenCalledTimes(1)
+    expect(api.patch).toHaveBeenCalledWith('/api/checklist/items/i2', {
+      label: 'Snacks and drinks',
+      category: 'Food',
+    })
+  })
+
+  // --- delete ---
+
+  it('delete button calls delete and the item disappears from the list', async () => {
+    const withoutCharger = { ...mockChecklist, items: mockChecklist.items.filter((i) => i.id !== 'i3') }
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ data: { data: mockChecklist } })
+      .mockResolvedValue({ data: { data: withoutCharger } })
+    vi.mocked(api.delete).mockResolvedValue({ data: { data: { success: true } } })
+    renderPage()
+    await screen.findByText('Phone charger')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Delete Phone charger' }))
+
+    expect(api.delete).toHaveBeenCalledWith('/api/checklist/items/i3')
+    await waitFor(() => expect(screen.queryByText('Phone charger')).not.toBeInTheDocument())
+    expect(screen.getByText('Comfy clothes')).toBeInTheDocument()
   })
 })
