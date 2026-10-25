@@ -148,7 +148,7 @@ export function DiaperPage() {
                 </div>
                 <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 py-2.5 text-center">
                   <p className="text-xl font-semibold text-gray-600 dark:text-gray-300 tabular-nums leading-none">{totalToday}</p>
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-1">Total</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mt-1">Today</p>
                 </div>
               </div>
             )}

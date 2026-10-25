@@ -64,8 +64,8 @@ describe('Dashboard tracking toggles', () => {
     expect(screen.getAllByText('Dirty').length).toBeGreaterThan(0)
   })
 
-  it('shows the diaper total as the number of changes', () => {
+  it("shows today's diaper count as the number of changes", () => {
     renderWithProviders(<Dashboard />)
-    expect(screen.getAllByText('2 total').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('2 today').length).toBeGreaterThan(0)
   })
 })

@@ -10,11 +10,18 @@ vi.mock('@lib/socket', () => ({ getSocket: () => ({ on: vi.fn(), off: vi.fn() })
 vi.mock('@stores/authStore', () => ({
   useAuthStore: () => ({ babyId: 'b1', user: { name: 'Nick' } }),
 }))
+const activeEpisode = vi.hoisted(() => ({ current: null as { startedAt: string } | null }))
+vi.mock('@features/illness', () => ({
+  useActiveEpisode: () => ({ data: activeEpisode.current }),
+}))
 
 const emptyResponse = { data: { data: [], error: null } }
 
 describe('DiaperPage', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    activeEpisode.current = null
+  })
 
   it('renders the three type buttons', async () => {
     vi.mocked(api.get).mockResolvedValue(emptyResponse)
@@ -57,7 +64,8 @@ describe('DiaperPage', () => {
     })
     renderWithProviders(<DiaperPage />)
     expect(await screen.findByText('Today · 2 changes')).toBeInTheDocument()
-    expect(screen.getByText('Total')).toBeInTheDocument()
+    // Count strip + day group header
+    expect(screen.getAllByText('Today')).toHaveLength(2)
   })
 
   it('counts a wet + dirty change once in the daily total', async () => {
@@ -92,7 +100,7 @@ describe('DiaperPage', () => {
     })
     renderWithProviders(<DiaperPage />)
     expect(await screen.findByText('Today · 1 change')).toBeInTheDocument()
-    expect(screen.getByText('Today')).toBeInTheDocument()
+    expect(screen.getAllByText('Today')).toHaveLength(2)
     expect(screen.getByText('Yesterday')).toBeInTheDocument()
     expect(
       screen.getByText(twoDaysAgo.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })),
@@ -106,6 +114,19 @@ describe('DiaperPage', () => {
     await screen.findByText('Wet')
     expect(api.get).toHaveBeenCalledWith('/api/diaper', {
       params: { babyId: 'b1', since: expect.any(String) },
+    })
+  })
+
+  it('reaches back to the start of an active sick episode older than a week', async () => {
+    const now = new Date()
+    const episodeStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 10, 15)
+    activeEpisode.current = { startedAt: episodeStart.toISOString() }
+    vi.mocked(api.get).mockResolvedValue(emptyResponse)
+    renderWithProviders(<DiaperPage />)
+    await screen.findByText('Wet')
+    const since = new Date(episodeStart.getFullYear(), episodeStart.getMonth(), episodeStart.getDate())
+    expect(api.get).toHaveBeenCalledWith('/api/diaper', {
+      params: { babyId: 'b1', since: since.toISOString() },
     })
   })
 })

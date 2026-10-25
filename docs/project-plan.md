@@ -807,7 +807,7 @@ Push to main
 - [x] For dirty: color picker + consistency selector (seedy, pasty, runny, firm, watery, custom)
 - [x] Diaper count summary for today
 - [x] Delete button on each log row
-- [x] Diaper list grouped by day (Today / Yesterday / date) over a 7-day window; `GET /api/diaper` accepts `since` so daily counts aren't capped by the 20-row default; wet + dirty counts once in the total; offline-queued logs keep their tap time
+- [x] Diaper list grouped by day (Today / Yesterday / date) over a 7-day window, extended back to the start of an active sick episode; `GET /api/diaper` accepts `since` so daily counts aren't capped by the 20-row default; counts are labelled as today's (dashboard pill, count strip); wet + dirty counts once; offline-queued logs keep their tap time
 
 #### Home Dashboard
 

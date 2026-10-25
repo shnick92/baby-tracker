@@ -304,7 +304,7 @@ function DiapersCard({
         <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Diapers Today</p>
         {totalCount > 0 && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-            {totalCount} total
+            {totalCount} today
           </span>
         )}
       </div>
