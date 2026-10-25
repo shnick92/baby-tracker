@@ -59,4 +59,53 @@ describe('DiaperPage', () => {
     expect(await screen.findByText('Today · 2 changes')).toBeInTheDocument()
     expect(screen.getByText('Total')).toBeInTheDocument()
   })
+
+  it('counts a wet + dirty change once in the daily total', async () => {
+    const now = new Date().toISOString()
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        data: [
+          { id: 'd1', type: 'BOTH', occurredAt: now, color: null, consistency: null },
+          { id: 'd2', type: 'WET', occurredAt: now, color: null, consistency: null },
+        ],
+        error: null,
+      },
+    })
+    renderWithProviders(<DiaperPage />)
+    expect(await screen.findByText('Today · 2 changes')).toBeInTheDocument()
+  })
+
+  it('groups earlier changes under their own day instead of Today', async () => {
+    const today = new Date()
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 12)
+    const twoDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 2, 12)
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        data: [
+          { id: 'd1', type: 'WET', occurredAt: today.toISOString(), color: null, consistency: null },
+          { id: 'd2', type: 'WET', occurredAt: yesterday.toISOString(), color: null, consistency: null },
+          { id: 'd3', type: 'DIRTY', occurredAt: yesterday.toISOString(), color: null, consistency: null },
+          { id: 'd4', type: 'WET', occurredAt: twoDaysAgo.toISOString(), color: null, consistency: null },
+        ],
+        error: null,
+      },
+    })
+    renderWithProviders(<DiaperPage />)
+    expect(await screen.findByText('Today · 1 change')).toBeInTheDocument()
+    expect(screen.getByText('Today')).toBeInTheDocument()
+    expect(screen.getByText('Yesterday')).toBeInTheDocument()
+    expect(
+      screen.getByText(twoDaysAgo.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })),
+    ).toBeInTheDocument()
+    expect(screen.getByText('2 changes')).toBeInTheDocument()
+  })
+
+  it('requests a multi-day window so daily counts are not truncated', async () => {
+    vi.mocked(api.get).mockResolvedValue(emptyResponse)
+    renderWithProviders(<DiaperPage />)
+    await screen.findByText('Wet')
+    expect(api.get).toHaveBeenCalledWith('/api/diaper', {
+      params: { babyId: 'b1', since: expect.any(String) },
+    })
+  })
 })

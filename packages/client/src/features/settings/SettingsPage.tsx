@@ -92,8 +92,8 @@ function NotificationSettingsSkeleton() {
 export function SettingsPage() {
   const { user, babyId, logout } = useAuthStore()
   const {
-    theme, units, pushEnabled, defaultMilkType, colorBlindMode,
-    setTheme, setUnits, setPushEnabled, setDefaultMilkType, setColorBlindMode,
+    theme, units, pushEnabled, defaultMilkType, colorBlindMode, feedingEnabled, sleepEnabled,
+    setTheme, setUnits, setPushEnabled, setDefaultMilkType, setColorBlindMode, setFeedingEnabled, setSleepEnabled,
   } = useSettingsStore()
   const offlineQueueCount = useSocketStore((s) => s.offlineQueueCount)
 
@@ -210,6 +210,24 @@ export function SettingsPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </section>
+
+            <section>
+              <p className={sectionLabelCls}>Tracking</p>
+              <div className={`${cardCls} divide-y divide-gray-100 dark:divide-gray-700`}>
+                <SettingsRow
+                  icon={<BabyBottleIcon size={18} />}
+                  label="Feeding tracking"
+                  sub="Show feeding on the home screen and nav"
+                  action={<Toggle checked={feedingEnabled} onChange={setFeedingEnabled} label="Feeding tracking" />}
+                />
+                <SettingsRow
+                  icon={<MoonIcon size={18} />}
+                  label="Sleep tracking"
+                  sub="Show sleep on the home screen and nav"
+                  action={<Toggle checked={sleepEnabled} onChange={setSleepEnabled} label="Sleep tracking" />}
+                />
               </div>
             </section>
 

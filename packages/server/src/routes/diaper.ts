@@ -2,22 +2,26 @@ import { Router } from 'express'
 import type { Server } from 'socket.io'
 import { prisma } from '../lib/prisma'
 import { authMiddleware } from '../middleware/auth'
-import { logDiaperSchema, updateDiaperSchema } from '@tracker/shared'
+import { diaperListQuerySchema, logDiaperSchema, updateDiaperSchema } from '@tracker/shared'
 
 export const diaperRouter = Router()
 diaperRouter.use(authMiddleware)
 
-// GET /api/diaper?babyId=&limit=
+// GET /api/diaper?babyId=&since=&limit=
 diaperRouter.get('/', async (req, res) => {
-  const babyId = req.query['babyId'] as string
-  if (!babyId) { res.status(400).json({ data: null, error: 'babyId required' }); return }
+  const parsed = diaperListQuerySchema.safeParse(req.query)
+  if (!parsed.success) {
+    res.status(400).json({ data: null, error: parsed.error.issues[0]?.message ?? 'Invalid query' })
+    return
+  }
 
-  const limit = Math.min(Number(req.query['limit'] ?? 20), 100)
+  const { babyId, since, limit } = parsed.data
 
   const logs = await prisma.diaperLog.findMany({
-    where: { babyId },
+    where: { babyId, ...(since && { occurredAt: { gte: new Date(since) } }) },
     orderBy: { occurredAt: 'desc' },
-    take: limit,
+    // With `since` the window bounds the result; otherwise keep the short recent list
+    take: limit ?? (since ? 500 : 20),
   })
 
   res.json({ data: logs, error: null })

@@ -8,6 +8,10 @@ import { useSocketStore } from '@stores/socketStore'
 import type { DiaperType, DiaperColor, DiaperConsistency, UpdateDiaperInput } from '@tracker/shared'
 
 import { diaperKeys } from './queryKeys'
+import { countDiapers, startOfLocalDay } from './utils/groupDiapersByDay'
+
+// How many local days of history the diaper list covers (today + 6 prior)
+export const DIAPER_HISTORY_DAYS = 7
 
 export type DiaperLog = {
   id: string
@@ -38,8 +42,13 @@ export function useDiaperLogs(babyId: string) {
 
   const query = useQuery({
     queryKey: diaperKeys.list(babyId),
+    // `since` is computed per fetch so the window rolls forward past midnight
     queryFn: () =>
-      api.get<DiaperListResponse>(`/api/diaper?babyId=${babyId}`).then((r) => r.data.data),
+      api
+        .get<DiaperListResponse>('/api/diaper', {
+          params: { babyId, since: startOfLocalDay(DIAPER_HISTORY_DAYS - 1).toISOString() },
+        })
+        .then((r) => r.data.data),
     staleTime: 30_000,
   })
 
@@ -62,7 +71,8 @@ export function useDiaperLogs(babyId: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: diaperKeys.list(babyId) }),
     onError: async (error, variables) => {
       if (isOfflineError(error)) {
-        await enqueueOffline('/api/diaper', { babyId, ...variables })
+        // Stamp the tap time so a later replay doesn't record the change as happening on reconnect
+        await enqueueOffline('/api/diaper', { babyId, occurredAt: new Date().toISOString(), ...variables })
         setQueueCount(await getQueueCount())
       }
     },
@@ -80,10 +90,9 @@ export function useDiaperLogs(babyId: string) {
   })
 
   const logs = query.data ?? []
-  const today = new Date().toDateString()
-  const todayLogs = logs.filter((l) => new Date(l.occurredAt).toDateString() === today)
-  const wetCount = todayLogs.filter((l) => l.type === 'WET' || l.type === 'BOTH').length
-  const dirtyCount = todayLogs.filter((l) => l.type === 'DIRTY' || l.type === 'BOTH').length
+  const todayStart = startOfLocalDay().getTime()
+  const todayLogs = logs.filter((l) => new Date(l.occurredAt).getTime() >= todayStart)
+  const { total: totalCount, wet: wetCount, dirty: dirtyCount } = countDiapers(todayLogs)
 
-  return { logs, isLoading: query.isLoading, todayLogs, wetCount, dirtyCount, logMutation, editMutation, deleteMutation }
+  return { logs, isLoading: query.isLoading, todayLogs, totalCount, wetCount, dirtyCount, logMutation, editMutation, deleteMutation }
 }

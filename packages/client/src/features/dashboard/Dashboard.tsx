@@ -5,6 +5,7 @@ import { Moon, Droplets, MoreHorizontal, Thermometer, Pill, Baby } from 'lucide-
 
 import { BabyBottleIcon } from '@components/icons'
 import { useAuthStore } from '@stores/authStore'
+import { useSettingsStore } from '@stores/settingsStore'
 
 function todayLocalDate() {
   const d = new Date()
@@ -12,7 +13,7 @@ function todayLocalDate() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 import { useSocketStore } from '@stores/socketStore'
-import { formatTimeAgo, formatDuration, syncRingClass } from '@lib/utils'
+import { formatTime, formatTimeAgo, formatDuration, syncRingClass } from '@lib/utils'
 import { api } from '@lib/axios'
 import { useElapsedSeconds } from '@hooks/useElapsedSeconds'
 import { AddPasskeyButton } from '../auth/AddPasskeyButton'
@@ -261,18 +262,28 @@ function SleepCard({
   )
 }
 
+const DIAPER_TYPE_LABEL: Record<string, string> = { WET: 'Wet', DIRTY: 'Dirty', BOTH: 'Wet + Dirty' }
+
 function DiapersCard({
+  totalCount,
   wetCount,
   dirtyCount,
   todayLogs,
+  recentLogs,
+  expanded,
   isLoading,
 }: {
+  totalCount: number
   wetCount: number
   dirtyCount: number
   todayLogs: Array<{ occurredAt: string; type: string }>
+  recentLogs: Array<{ id: string; occurredAt: string; type: string; color: string | null }>
+  // Full-width variant (sleep tracking off) that also lists the latest changes
+  expanded: boolean
   isLoading: boolean
 }) {
   const lastDiaper = todayLogs.length > 0 ? todayLogs[0] : null
+  const recent = recentLogs.slice(0, 5)
 
   if (isLoading) {
     return (
@@ -280,6 +291,9 @@ function DiapersCard({
         <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded" />
         <div className="h-8 w-28 bg-gray-100 dark:bg-gray-700 rounded" />
         <div className="h-3 w-36 bg-gray-100 dark:bg-gray-700 rounded" />
+        {expanded && Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="h-5 w-full bg-gray-100 dark:bg-gray-700 rounded" />
+        ))}
       </div>
     )
   }
@@ -288,9 +302,9 @@ function DiapersCard({
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500">Diapers Today</p>
-        {(wetCount + dirtyCount) > 0 && (
+        {totalCount > 0 && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-            {wetCount + dirtyCount} total
+            {totalCount} total
           </span>
         )}
       </div>
@@ -305,7 +319,32 @@ function DiapersCard({
           <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">dirty</p>
         </div>
       </div>
-      {lastDiaper ? (
+      {expanded ? (
+        recent.length > 0 ? (
+          <div className="mt-1 border-t border-gray-100 dark:border-gray-700">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-gray-500 pt-3 pb-1">Recent changes</p>
+            <ul className="divide-y divide-gray-50 dark:divide-gray-700">
+              {recent.map((log) => (
+                <li key={log.id} className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-gray-800 dark:text-gray-100 font-medium">
+                    {DIAPER_TYPE_LABEL[log.type] ?? log.type}
+                    {log.color && (
+                      <span className="text-gray-500 dark:text-gray-400 font-normal">
+                        {' · '}{log.color.charAt(0) + log.color.slice(1).toLowerCase()}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                    {formatTime(log.occurredAt)} · {formatTimeAgo(log.occurredAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400 dark:text-gray-500">No diapers logged yet</p>
+        )
+      ) : lastDiaper ? (
         <p className="text-xs text-gray-400 dark:text-gray-500">
           Last: {lastDiaper.type === 'WET' ? 'wet' : lastDiaper.type === 'DIRTY' ? 'dirty' : 'wet+dirty'},{' '}
           {formatTimeAgo(lastDiaper.occurredAt)}
@@ -317,15 +356,20 @@ function DiapersCard({
   )
 }
 
-function QuickLogRow() {
-  const items: { to: string; label: string; bg: string; icon: React.ReactNode; color: string }[] = [
+const QUICK_LOG_COLS: Record<number, string> = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' }
+
+function QuickLogRow({ feedingEnabled, sleepEnabled }: { feedingEnabled: boolean; sleepEnabled: boolean }) {
+  const allItems: { to: string; label: string; bg: string; icon: React.ReactNode; color: string }[] = [
     { to: '/feeding', label: 'Feed', bg: 'bg-blue-50 dark:bg-blue-900/20', icon: <BabyBottleIcon size={20} />, color: 'text-blue-600 dark:text-blue-400' },
     { to: '/sleep', label: 'Sleep', bg: 'bg-indigo-50 dark:bg-indigo-900/20', icon: <Moon size={20} />, color: 'text-indigo-600 dark:text-indigo-400' },
     { to: '/diaper', label: 'Diaper', bg: 'bg-amber-50 dark:bg-amber-900/20', icon: <Droplets size={20} />, color: 'text-amber-600 dark:text-amber-400' },
     { to: '/more', label: 'More', bg: 'bg-gray-50 dark:bg-gray-700/50', icon: <MoreHorizontal size={20} />, color: 'text-gray-500 dark:text-gray-400' },
   ]
+  const items = allItems.filter(
+    (item) => (item.to !== '/feeding' || feedingEnabled) && (item.to !== '/sleep' || sleepEnabled),
+  )
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className={`grid ${QUICK_LOG_COLS[items.length]} gap-2`}>
       {items.map((item) => (
         <Link
           key={item.to}
@@ -523,7 +567,11 @@ export function Dashboard() {
 
   const { logs: feedingLogs, isLoading: feedingLoading, activeSession: activeFeeding } = useFeedingLogs(babyId!)
   const { activeSession: activeSleep, lastEnded: lastSleep, isLoading: sleepLoading } = useSleepLogs(babyId!)
-  const { wetCount, dirtyCount, todayLogs: diaperTodayLogs, isLoading: diaperLoading } = useDiaperLogs(babyId!)
+  const {
+    logs: diaperLogs, totalCount: diaperTotal, wetCount, dirtyCount, todayLogs: diaperTodayLogs, isLoading: diaperLoading,
+  } = useDiaperLogs(babyId!)
+  const feedingEnabled = useSettingsStore((s) => s.feedingEnabled)
+  const sleepEnabled = useSettingsStore((s) => s.sleepEnabled)
 
   const lastFed = feedingLogs.find((l) => l.endedAt || l.type === 'BOTTLE' || l.type === 'PUMP') ?? null
 
@@ -592,27 +640,48 @@ export function Dashboard() {
     </div>
   )
 
+  const diapersCard = (
+    <DiapersCard
+      totalCount={diaperTotal}
+      wetCount={wetCount}
+      dirtyCount={dirtyCount}
+      todayLogs={diaperTodayLogs}
+      recentLogs={diaperLogs}
+      expanded={!sleepEnabled}
+      isLoading={diaperLoading}
+    />
+  )
+
+  // Feeding and sleep cards can be switched off in Settings → Tracking;
+  // without sleep, the diaper card takes the full width.
+  const trackingCards = (
+    <>
+      {feedingEnabled && (
+        <LastFeedingCard
+          lastFed={lastFed}
+          activeFeeding={activeFeeding}
+          currentUserId={user?.id}
+          isLoading={feedingLoading}
+        />
+      )}
+      {sleepEnabled ? (
+        <div className="grid grid-cols-2 gap-3">
+          <SleepCard activeSleep={activeSleep} lastSleep={lastSleep} isLoading={sleepLoading} />
+          {diapersCard}
+        </div>
+      ) : (
+        diapersCard
+      )}
+      <QuickLogRow feedingEnabled={feedingEnabled} sleepEnabled={sleepEnabled} />
+    </>
+  )
+
   // ── Mobile content ─────────────────────────────────────────────────────
 
   const mobileNewborn = (
     <div className="space-y-3">
       {activeEpisode && <SickQuickActions episodeId={activeEpisode.id} />}
-      <LastFeedingCard
-        lastFed={lastFed}
-        activeFeeding={activeFeeding}
-        currentUserId={user?.id}
-        isLoading={feedingLoading}
-      />
-      <div className="grid grid-cols-2 gap-3">
-        <SleepCard activeSleep={activeSleep} lastSleep={lastSleep} isLoading={sleepLoading} />
-        <DiapersCard
-          wetCount={wetCount}
-          dirtyCount={dirtyCount}
-          todayLogs={diaperTodayLogs}
-          isLoading={diaperLoading}
-        />
-      </div>
-      <QuickLogRow />
+      {trackingCards}
       {!activeEpisode && (
         <button
           type="button"
@@ -704,22 +773,7 @@ export function Dashboard() {
             <div className="space-y-4">
               <IllnessBanner />
               {activeEpisode && <SickQuickActions episodeId={activeEpisode.id} />}
-              <LastFeedingCard
-                lastFed={lastFed}
-                activeFeeding={activeFeeding}
-                currentUserId={user?.id}
-                isLoading={feedingLoading}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <SleepCard activeSleep={activeSleep} lastSleep={lastSleep} isLoading={sleepLoading} />
-                <DiapersCard
-                  wetCount={wetCount}
-                  dirtyCount={dirtyCount}
-                  todayLogs={diaperTodayLogs}
-                  isLoading={diaperLoading}
-                />
-              </div>
-              <QuickLogRow />
+              {trackingCards}
               {!activeEpisode && (
                 <button
                   type="button"

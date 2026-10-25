@@ -45,12 +45,12 @@ function getLogLabel(parsed: ParsedLogResult): string {
 const INVALIDATE_KEYS: Record<string, string[]> = {
   feeding_bottle: ['feedings'],
   feeding_breast: ['feedings'],
-  sleep: ['sleeps'],
-  diaper: ['diapers'],
-  medication: ['medications'],
-  tummy_time: ['tummyTime'],
-  temperature: ['illnessActive'],
-  illness_start: ['illnessActive'],
+  sleep: ['sleepLogs'],
+  diaper: ['diaperLogs'],
+  medication: ['medicationLogs'],
+  tummy_time: ['tummyTimeLogs'],
+  temperature: ['illness'],
+  illness_start: ['illness'],
 }
 
 export function QuickLogInput({ babyId, onIllnessStarted }: Props) {

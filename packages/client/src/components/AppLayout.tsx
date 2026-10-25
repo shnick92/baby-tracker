@@ -28,6 +28,7 @@ import { api } from '@lib/axios'
 import { syncRingClass } from '@lib/utils'
 import { useAuthStore } from '@stores/authStore'
 import { useSocketStore } from '@stores/socketStore'
+import { useSettingsStore } from '@stores/settingsStore'
 import { SOSButton } from '@features/alerts'
 import { InstallPrompt } from './InstallPrompt'
 import { BabyBottleIcon } from '@components/icons'
@@ -111,6 +112,13 @@ const BOTTOM_NAV: NavItem[] = [
   { to: '/more', label: 'More', icon: <MoreHorizontal size={22} />, prefix: '/more' },
 ]
 
+// Feeding and sleep can be switched off in Settings → Tracking
+function isNavItemEnabled(item: NavItem, toggles: { feedingEnabled: boolean; sleepEnabled: boolean }): boolean {
+  if (item.prefix === '/feeding') return toggles.feedingEnabled
+  if (item.prefix === '/sleep') return toggles.sleepEnabled
+  return true
+}
+
 function isMoreActive(pathname: string): boolean {
   return (
     pathname.startsWith('/more') ||
@@ -171,6 +179,9 @@ export function AppLayout() {
   const socketStatus = useSocketStore((s) => s.status)
   const offlineQueueCount = useSocketStore((s) => s.offlineQueueCount)
   const location = useLocation()
+  const feedingEnabled = useSettingsStore((s) => s.feedingEnabled)
+  const sleepEnabled = useSettingsStore((s) => s.sleepEnabled)
+  const toggles = { feedingEnabled, sleepEnabled }
   const [topbarAction, setTopbarAction] = useState<React.ReactNode>(null)
 
   const handleLogout = () => {
@@ -198,7 +209,7 @@ export function AppLayout() {
                 </p>
               )}
               <div className="space-y-0.5">
-                {group.items.map((item) => {
+                {group.items.filter((item) => isNavItemEnabled(item, toggles)).map((item) => {
                   const isActive = item.exact
                     ? location.pathname === item.prefix
                     : location.pathname.startsWith(item.prefix)
@@ -270,7 +281,7 @@ export function AppLayout() {
 
         {/* Bottom nav — mobile only */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex safe-bottom">
-          {BOTTOM_NAV.map((item) => {
+          {BOTTOM_NAV.filter((item) => isNavItemEnabled(item, toggles)).map((item) => {
             const isActive =
               item.prefix === '/more'
                 ? isMoreActive(location.pathname)

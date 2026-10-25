@@ -807,11 +807,13 @@ Push to main
 - [x] For dirty: color picker + consistency selector (seedy, pasty, runny, firm, watery, custom)
 - [x] Diaper count summary for today
 - [x] Delete button on each log row
+- [x] Diaper list grouped by day (Today / Yesterday / date) over a 7-day window; `GET /api/diaper` accepts `since` so daily counts aren't capped by the 20-row default; wet + dirty counts once in the total; offline-queued logs keep their tap time
 
 #### Home Dashboard
 
 - [x] Dashboard screen aggregates all active tracking info: last feeding, sleep status, today's diaper count
 - [x] Bottom navigation: Dashboard / Feed / Sleep / Diaper / More
+- [x] Settings → Tracking toggles for feeding and sleep (per device); turning them off hides their dashboard cards, quick-log buttons, and nav entries; with sleep off the diaper card goes full width and lists the 5 most recent changes
 - [x] Pre-birth: Pregnancy Prep section first, Baby Tracking below
 - [x] Post-birth: Baby Tracking first; "Baby has arrived" button flips layout (sets birthDate via PATCH /api/pregnancy/born)
 

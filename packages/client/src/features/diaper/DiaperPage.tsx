@@ -7,6 +7,7 @@ import type { DiaperColor, DiaperConsistency, DiaperType } from '@tracker/shared
 
 import { useDiaperLogs } from './useDiaperLogs'
 import { DiaperSkeleton } from './DiaperSkeleton'
+import { groupDiapersByDay } from './utils/groupDiapersByDay'
 
 const COLOR_OPTIONS: { value: DiaperColor; label: string; bg: string; ring: string }[] = [
   { value: 'YELLOW', label: 'Yellow', bg: 'bg-yellow-400', ring: 'ring-yellow-400' },
@@ -33,7 +34,7 @@ const CONSISTENCY_LABEL: Record<string, string> = Object.fromEntries(
 
 export function DiaperPage() {
   const { babyId } = useAuthStore()
-  const { logs, isLoading, wetCount, dirtyCount, logMutation, editMutation, deleteMutation } =
+  const { logs, isLoading, totalCount, wetCount, dirtyCount, logMutation, editMutation, deleteMutation } =
     useDiaperLogs(babyId!)
 
   const [pendingType, setPendingType] = useState<DiaperType | null>(null)
@@ -48,7 +49,8 @@ export function DiaperPage() {
   const needsDetail = pendingType === 'DIRTY' || pendingType === 'BOTH'
   const editNeedsDetail = editType === 'DIRTY' || editType === 'BOTH'
 
-  const totalToday = wetCount + dirtyCount
+  const totalToday = totalCount
+  const dayGroups = groupDiapersByDay(logs)
 
   const handleTypeSelect = (type: DiaperType) => {
     if (type === 'WET') {
@@ -118,7 +120,7 @@ export function DiaperPage() {
         <div>
           <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">Diapers</h1>
           {totalToday > 0 && (
-            <p className="text-xs text-gray-400 dark:text-gray-500">Today · {totalToday} changes</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Today · {totalToday} change{totalToday !== 1 ? 's' : ''}</p>
           )}
         </div>
       </header>
@@ -293,150 +295,157 @@ export function DiaperPage() {
 
           {/* Right column: log list */}
           <div className="mt-4 md:mt-0">
-            {logs.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                    Today's changes
-                  </p>
-                </div>
-                <div className="divide-y divide-gray-50 dark:divide-gray-700">
-                  {logs.slice(0, 10).map((log) => {
-                    if (editingId === log.id) {
-                      return (
-                        <div key={log.id} className="px-4 py-3 space-y-3">
-                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                            Edit diaper
-                          </p>
+            {dayGroups.length > 0 && (
+              <div className="space-y-4">
+                {dayGroups.map((group) => (
+                  <div key={group.key} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                        {group.label}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                        {group.logs.length} change{group.logs.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="divide-y divide-gray-50 dark:divide-gray-700">
+                      {group.logs.map((log) => {
+                        if (editingId === log.id) {
+                          return (
+                            <div key={log.id} className="px-4 py-3 space-y-3">
+                              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                Edit diaper
+                              </p>
 
-                          {/* Type selector */}
-                          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 gap-0.5">
-                            {(['WET', 'DIRTY', 'BOTH'] as const).map((type) => (
-                              <button
-                                key={type}
-                                type="button"
-                                onClick={() => setEditType(type)}
-                                className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                                  editType === type
-                                    ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                                    : 'text-gray-500 dark:text-gray-400'
-                                }`}
-                              >
-                                {TYPE_LABEL[type]}
-                              </button>
-                            ))}
-                          </div>
-
-                          {editNeedsDetail && (
-                            <>
-                              <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Color</p>
-                                <div className="flex gap-3 flex-wrap">
-                                  {COLOR_OPTIONS.map((opt) => (
-                                    <button
-                                      key={opt.value}
-                                      type="button"
-                                      onClick={() => setEditColor(editColor === opt.value ? null : opt.value)}
-                                      title={opt.label}
-                                      className={`w-8 h-8 rounded-full ${opt.bg} transition-all ${
-                                        editColor === opt.value
-                                          ? `ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ${opt.ring} scale-110`
-                                          : 'opacity-70 hover:opacity-100'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
+                              {/* Type selector */}
+                              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 gap-0.5">
+                                {(['WET', 'DIRTY', 'BOTH'] as const).map((type) => (
+                                  <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setEditType(type)}
+                                    className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                                      editType === type
+                                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                                        : 'text-gray-500 dark:text-gray-400'
+                                    }`}
+                                  >
+                                    {TYPE_LABEL[type]}
+                                  </button>
+                                ))}
                               </div>
-                              <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Consistency</p>
-                                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 gap-0.5 flex-wrap">
-                                  {CONSISTENCY_OPTIONS.map((opt) => (
-                                    <button
-                                      key={opt.value}
-                                      type="button"
-                                      onClick={() =>
-                                        setEditConsistency(
-                                          editConsistency === opt.value ? null : opt.value,
-                                        )
-                                      }
-                                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors min-w-[3.5rem] ${
-                                        editConsistency === opt.value
-                                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
-                                          : 'text-gray-500 dark:text-gray-400'
-                                      }`}
-                                    >
-                                      {opt.label}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </>
-                          )}
 
-                          <div className="flex gap-2 pt-1">
+                              {editNeedsDetail && (
+                                <>
+                                  <div>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Color</p>
+                                    <div className="flex gap-3 flex-wrap">
+                                      {COLOR_OPTIONS.map((opt) => (
+                                        <button
+                                          key={opt.value}
+                                          type="button"
+                                          onClick={() => setEditColor(editColor === opt.value ? null : opt.value)}
+                                          title={opt.label}
+                                          className={`w-8 h-8 rounded-full ${opt.bg} transition-all ${
+                                            editColor === opt.value
+                                              ? `ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ${opt.ring} scale-110`
+                                              : 'opacity-70 hover:opacity-100'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Consistency</p>
+                                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5 gap-0.5 flex-wrap">
+                                      {CONSISTENCY_OPTIONS.map((opt) => (
+                                        <button
+                                          key={opt.value}
+                                          type="button"
+                                          onClick={() =>
+                                            setEditConsistency(
+                                              editConsistency === opt.value ? null : opt.value,
+                                            )
+                                          }
+                                          className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors min-w-[3.5rem] ${
+                                            editConsistency === opt.value
+                                              ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100 shadow-sm'
+                                              : 'text-gray-500 dark:text-gray-400'
+                                          }`}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleSaveEdit}
+                                  disabled={editMutation.isPending}
+                                  className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-50"
+                                >
+                                  {editMutation.isPending ? 'Saving…' : 'Save'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEdit}
+                                  className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div key={log.id} className="flex items-center gap-3 px-4 py-3">
+                            <div className={`w-8 h-8 rounded-full ${dotBg(log.type)} flex items-center justify-center flex-shrink-0`}>
+                              {dotIcon(log.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                                {TYPE_LABEL[log.type]}
+                                {log.color && (
+                                  <span className="text-gray-500 dark:text-gray-400 font-normal">
+                                    {' · '}{log.color.charAt(0) + log.color.slice(1).toLowerCase()}
+                                    {log.consistency && `, ${CONSISTENCY_LABEL[log.consistency] ?? log.consistency.toLowerCase()}`}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                              {new Date(log.occurredAt).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                              })}
+                            </span>
                             <button
                               type="button"
-                              onClick={handleSaveEdit}
-                              disabled={editMutation.isPending}
-                              className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-50"
+                              onClick={() => handleStartEdit(log)}
+                              className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-blue-400 dark:hover:text-blue-500 transition-colors flex-shrink-0"
+                              aria-label={`Edit ${TYPE_LABEL[log.type]} diaper log`}
                             >
-                              {editMutation.isPending ? 'Saving…' : 'Save'}
+                              <PencilIcon />
                             </button>
                             <button
                               type="button"
-                              onClick={handleCancelEdit}
-                              className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300"
+                              onClick={() => deleteMutation.mutate(log.id)}
+                              disabled={deleteMutation.isPending}
+                              className="p-1.5 -mr-1 text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-500 disabled:opacity-40 transition-colors flex-shrink-0"
+                              aria-label={`Delete ${TYPE_LABEL[log.type]} diaper log`}
                             >
-                              Cancel
+                              <TrashIcon />
                             </button>
                           </div>
-                        </div>
-                      )
-                    }
-
-                    return (
-                      <div key={log.id} className="flex items-center gap-3 px-4 py-3">
-                        <div className={`w-8 h-8 rounded-full ${dotBg(log.type)} flex items-center justify-center flex-shrink-0`}>
-                          {dotIcon(log.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                            {TYPE_LABEL[log.type]}
-                            {log.color && (
-                              <span className="text-gray-500 dark:text-gray-400 font-normal">
-                                {' · '}{log.color.charAt(0) + log.color.slice(1).toLowerCase()}
-                                {log.consistency && `, ${CONSISTENCY_LABEL[log.consistency] ?? log.consistency.toLowerCase()}`}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                          {new Date(log.occurredAt).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleStartEdit(log)}
-                          className="p-1.5 text-gray-300 dark:text-gray-600 hover:text-blue-400 dark:hover:text-blue-500 transition-colors flex-shrink-0"
-                          aria-label={`Edit ${TYPE_LABEL[log.type]} diaper log`}
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteMutation.mutate(log.id)}
-                          disabled={deleteMutation.isPending}
-                          className="p-1.5 -mr-1 text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-500 disabled:opacity-40 transition-colors flex-shrink-0"
-                          aria-label={`Delete ${TYPE_LABEL[log.type]} diaper log`}
-                        >
-                          <TrashIcon />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
